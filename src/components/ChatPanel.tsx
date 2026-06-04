@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import { v4 as uuid } from 'uuid'
 import { useAppStore } from '../store'
 import { services } from '../services/service-registry'
+import { t } from '../services/i18n'
 import { MermaidDiagram } from './MermaidDiagram'
 import type { ChatMessage, CodeSource } from '../types'
 
@@ -12,6 +13,7 @@ export function ChatPanel() {
   const {
     currentProject, chatMessages, addChatMessage, clearChat, settings,
   } = useAppStore()
+  useAppStore(s => s.locale)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -76,7 +78,7 @@ ${contextStr}`
       const errorMessage: ChatMessage = {
         id: uuid(),
         role: 'assistant',
-        content: `Error: ${err instanceof Error ? err.message : 'Failed to get response'}. Check your API key in Settings.`,
+        content: `${t('error')}: ${err instanceof Error ? err.message : t('chatErrorFallback')}. ${t('chatErrorSuffix')}`,
         timestamp: Date.now(),
       }
       addChatMessage(errorMessage)
@@ -91,13 +93,13 @@ ${contextStr}`
       <div className="px-6 py-3 border-b border-wiki-border bg-wiki-sidebar flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot size={18} className="text-wiki-accent" />
-          <h2 className="text-sm font-semibold">Ask about your code</h2>
+          <h2 className="text-sm font-semibold">{t('chatHeaderTitle')}</h2>
         </div>
         {chatMessages.length > 0 && (
           <button
             onClick={clearChat}
             className="p-1.5 rounded hover:bg-wiki-card text-wiki-muted hover:text-wiki-text"
-            title="Clear chat"
+            title={t('chatClear')}
           >
             <Trash2 size={14} />
           </button>
@@ -109,17 +111,16 @@ ${contextStr}`
         {chatMessages.length === 0 && (
           <div className="text-center py-12 text-wiki-muted">
             <Bot size={40} className="mx-auto mb-3 text-wiki-muted/30" />
-            <h3 className="text-sm font-medium mb-2">Ask anything about your codebase</h3>
+            <h3 className="text-sm font-medium mb-2">{t('chatEmptyTitle')}</h3>
             <p className="text-xs text-wiki-muted/60 max-w-sm mx-auto">
-              Uses ontology-based semantic search and RAG to provide accurate,
-              grounded answers about your code.
+              {t('chatEmptyDesc')}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               {[
-                'How is authentication handled?',
-                'Explain the data flow',
-                'What design patterns are used?',
-                'Show the main entry point',
+                t('chatSuggestion1'),
+                t('chatSuggestion2'),
+                t('chatSuggestion3'),
+                t('chatSuggestion4'),
               ].map(suggestion => (
                 <button
                   key={suggestion}
@@ -144,7 +145,7 @@ ${contextStr}`
             </div>
             <div className="flex items-center gap-2 text-sm text-wiki-muted">
               <Loader2 size={14} className="animate-spin" />
-              Thinking...
+              {t('chatThinking')}
             </div>
           </div>
         )}
@@ -164,7 +165,7 @@ ${contextStr}`
                 handleSend()
               }
             }}
-            placeholder="Ask about your code..."
+            placeholder={t('chatPlaceholder')}
             rows={1}
             className="flex-1 px-4 py-2.5 rounded-lg bg-wiki-bg border border-wiki-border text-sm text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent resize-none"
           />

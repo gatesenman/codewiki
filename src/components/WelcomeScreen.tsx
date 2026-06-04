@@ -7,12 +7,14 @@ import { useAppStore } from '../store'
 import { CodeIndexer } from '../services/indexer'
 import type { IndexProgress } from '../services/indexer'
 import { SettingsModal } from './SettingsModal'
+import { t } from '../services/i18n'
 
 export function WelcomeScreen() {
   const {
     addProject, setLoading, saveProject,
     recentProjects, removeRecentProject,
   } = useAppStore()
+  useAppStore(s => s.locale)
   const [repoUrl, setRepoUrl] = useState('')
   const [progress, setProgress] = useState<IndexProgress | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +26,7 @@ export function WelcomeScreen() {
       const folderPath = await window.electronAPI.selectFolder()
       if (!folderPath) return
 
-      setLoading(true, 'Indexing project...')
+      setLoading(true, t('loadingIndexing'))
       const indexer = new CodeIndexer()
       const project = await indexer.indexLocalProject(folderPath, (p) => {
         setProgress(p)
@@ -33,19 +35,19 @@ export function WelcomeScreen() {
       setLoading(false)
       setTimeout(() => saveProject(), 500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to index project')
+      setError(err instanceof Error ? err.message : t('errIndexFailed'))
       setLoading(false)
     }
   }
 
   const handleGitHubUrl = async () => {
     if (!repoUrl.includes('github.com')) {
-      setError('Please enter a valid GitHub URL')
+      setError(t('errInvalidGithubUrl'))
       return
     }
     try {
       setError(null)
-      setLoading(true, 'Fetching repository...')
+      setLoading(true, t('loadingFetching'))
       const indexer = new CodeIndexer()
       const project = await indexer.indexGitHubRepo(repoUrl, (p) => {
         setProgress(p)
@@ -54,7 +56,7 @@ export function WelcomeScreen() {
       setLoading(false)
       setTimeout(() => saveProject(), 500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch repository')
+      setError(err instanceof Error ? err.message : t('errFetchFailed'))
       setLoading(false)
     }
   }
@@ -62,7 +64,7 @@ export function WelcomeScreen() {
   const handleOpenRecent = async (projectPath: string, projectType: 'local' | 'github') => {
     try {
       setError(null)
-      setLoading(true, 'Re-indexing project...')
+      setLoading(true, t('loadingReindexing'))
       const indexer = new CodeIndexer()
       if (projectType === 'local') {
         const project = await indexer.indexLocalProject(projectPath, (p) => setProgress(p))
@@ -74,7 +76,7 @@ export function WelcomeScreen() {
       setLoading(false)
       setTimeout(() => saveProject(), 500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to open project')
+      setError(err instanceof Error ? err.message : t('errOpenFailed'))
       setLoading(false)
     }
   }
@@ -85,7 +87,7 @@ export function WelcomeScreen() {
       <button
         onClick={() => setShowSettings(true)}
         className="absolute top-4 right-4 p-2 rounded-lg hover:bg-wiki-card text-wiki-muted hover:text-wiki-text transition-all duration-200 hover:rotate-45"
-        title="Settings"
+        title={t('settings')}
       >
         <Settings size={20} />
       </button>
@@ -101,18 +103,17 @@ export function WelcomeScreen() {
           </h1>
         </div>
         <p className="text-wiki-muted text-lg max-w-xl leading-relaxed">
-          基于本体语义模型的 AI 代码知识库。
-          生成项目文档、知识图谱，实现精确的代码分析与修改。
+          {t('welcomeDescription')}
         </p>
       </div>
 
       {/* Feature badges */}
       <div className="flex flex-wrap justify-center gap-3 mb-8">
         {[
-          { icon: <Cpu size={16} />, label: '本体模型' },
-          { icon: <Search size={16} />, label: '语义检索' },
-          { icon: <GitBranch size={16} />, label: '知识图谱' },
-          { icon: <Box size={16} />, label: '影响分析' },
+          { icon: <Cpu size={16} />, label: t('featOntology') },
+          { icon: <Search size={16} />, label: t('featSemantic') },
+          { icon: <GitBranch size={16} />, label: t('featGraph') },
+          { icon: <Box size={16} />, label: t('featImpact') },
         ].map((feat) => (
           <div key={feat.label} className="flex items-center gap-2 px-4 py-2 rounded-full bg-wiki-card/50 border border-wiki-border text-sm text-wiki-muted hover:border-wiki-accent/30 hover:text-wiki-accent transition-all duration-200 cursor-default">
             {feat.icon}
@@ -133,11 +134,11 @@ export function WelcomeScreen() {
             <div className="p-2.5 rounded-lg bg-wiki-accent/10 text-wiki-accent group-hover:bg-wiki-accent/20 transition-colors">
               <FolderOpen size={24} />
             </div>
-            <h3 className="text-lg font-semibold text-wiki-text">打开本地文件夹</h3>
+            <h3 className="text-lg font-semibold text-wiki-text">{t('welcomeOpenLocal')}</h3>
             <ChevronRight size={18} className="ml-auto text-wiki-muted group-hover:text-wiki-accent group-hover:translate-x-1 transition-all" />
           </div>
           <p className="text-sm text-wiki-muted">
-            选择本地项目文件夹，自动分析代码结构并生成 Wiki 文档。
+            {t('welcomeOpenLocalDesc')}
           </p>
         </button>
 
@@ -147,7 +148,7 @@ export function WelcomeScreen() {
             <div className="p-2.5 rounded-lg bg-wiki-purple/10 text-wiki-purple">
               <Github size={24} />
             </div>
-            <h3 className="text-lg font-semibold text-wiki-text">GitHub 仓库</h3>
+            <h3 className="text-lg font-semibold text-wiki-text">{t('welcomeGithub')}</h3>
           </div>
           <div className="flex gap-2">
             <input
@@ -163,7 +164,7 @@ export function WelcomeScreen() {
               disabled={!repoUrl || progress !== null}
               className="px-4 py-2 rounded-lg bg-wiki-purple text-white text-sm font-medium hover:bg-wiki-purple/80 disabled:opacity-50 transition-colors"
             >
-              Go
+              {t('welcomeGo')}
             </button>
           </div>
         </div>
@@ -174,7 +175,7 @@ export function WelcomeScreen() {
         <div className="max-w-3xl w-full px-8 mb-8">
           <h3 className="text-sm font-semibold text-wiki-muted uppercase tracking-wider mb-3 flex items-center gap-2">
             <Clock size={14} />
-            最近项目
+            {t('recentProjects')}
           </h3>
           <div className="space-y-1.5">
             {recentProjects.map((project) => (
@@ -201,7 +202,7 @@ export function WelcomeScreen() {
                   <button
                     onClick={(e) => { e.stopPropagation(); removeRecentProject(project.id) }}
                     className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-wiki-bg text-wiki-muted hover:text-red-400 transition-all"
-                    title="Remove from recent"
+                    title={t('welcomeRemoveRecent')}
                   >
                     <Trash2 size={12} />
                   </button>
