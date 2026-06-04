@@ -1,0 +1,155 @@
+import { useEffect, useRef, useState, useMemo } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import { BookOpen, Clock, FileText, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react'
+import { useAppStore } from '../store'
+import { MermaidDiagram } from './MermaidDiagram'
+import { validateWikiPage } from '../services/wiki-generator'
+
+export function WikiViewer() {
+  const { currentProject, activePageId, setActivePageId } = useAppStore()
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [showQuality, setShowQuality] = useState(false)
+  const wikiPages = currentProject?.wikiPages || []
+
+  const activePage = wikiPages.find(p => p.id === activePageId) || wikiPages[0]
+  const currentIndex = wikiPages.findIndex(p => p.id === activePage?.id)
+  const quality = useMemo(() => activePage ? validateWikiPage(activePage.content) : null, [activePage])
+
+  useEffect(() => {
+    if (wikiPages.length > 0 && !activePageId) {
+      setActivePageId(wikiPages[0].id)
+    }
+  }, [wikiPages, activePageId, setActivePageId])
+
+  useEffect(() => {
+    contentRef.current?.scrollTo(0, 0)
+  }, [activePageId])
+
+  if (wikiPages.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-wiki-muted">
+        <BookOpen size={48} className="mb-4 text-wiki-muted/30" />
+        <h2 className="text-lg font-medium mb-2">No Wiki Generated Yet</h2>
+        <p className="text-sm text-wiki-muted/70 max-w-md text-center">
+          Click <strong>"Generate Wiki"</strong> in the top bar to create AI-powered documentation
+          for your project. You can also configure your LLM provider in Settings.
+        </p>
+      </div>
+    )
+  }
+
+  if (!activePage) return null
+
+  return (
+    <div ref={contentRef} className="h-full overflow-y-auto">
+      <div className="max-w-4xl mx-auto px-8 py-8">
+        {/* Page header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-wiki-text mb-3">{activePage.title}</h1>
+          <div className="flex items-center gap-4 text-xs text-wiki-muted">
+            <span className="flex items-center gap-1">
+              <Clock size={12} />
+              {new Date(activePage.lastUpdated).toLocaleDateString()}
+            </span>
+            {activePage.fileSources && activePage.fileSources.length > 0 && (
+              <span className="flex items-center gap-1">
+                <FileText size={12} />
+                {activePage.fileSources.length} source files
+              </span>
+            )}
+            {quality && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowQuality(v => !v)}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors ${
+                    quality.grade === 'A' ? 'border-green-500/40 text-green-400' :
+                    quality.grade === 'B' ? 'border-wiki-accent/40 text-wiki-accent' :
+                    quality.grade === 'C' ? 'border-yellow-500/40 text-yellow-400' :
+                    'border-red-500/40 text-red-400'
+                  }`}
+                  title="文档质量校验"
+                >
+                  <ShieldCheck size={12} />
+                  质量 {quality.percent}% ({quality.grade})
+                </button>
+                {showQuality && (
+                  <div className="absolute z-20 mt-2 w-72 right-0 bg-wiki-card border border-wiki-border rounded-lg shadow-xl p-3 text-left">
+                    <div className="text-xs font-semibold text-wiki-text mb-2">文档结构校验 — {quality.score}/{quality.maxScore}</div>
+                    <div className="space-y-1.5">
+                      {quality.checks.map(c => (
+                        <div key={c.id} className="flex items-center justify-between text-xs">
+                          <span className={c.pass ? 'text-wiki-text' : 'text-wiki-muted/60'}>{c.label}</span>
+                          <span className={c.pass ? 'text-green-400' : 'text-red-400'}>{c.pass ? '✓' : '✗'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Wiki content */}
+        <div className="wiki-content">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              code({ className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || '')
+                const lang = match?.[1]
+                const content = String(children).replace(/\n$/, '')
+
+                if (lang === 'mermaid') {
+                  return <MermaidDiagram chart={content} />
+                }
+
+                if (lang) {
+                  return (
+                    <pre className="bg-wiki-card rounded-lg border border-wiki-border overflow-x-auto">
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    </pre>
+                  )
+                }
+
+                return <code className={className} {...props}>{children}</code>
+              },
+              pre({ children }) {
+                return <>{children}</>
+              },
+            }}
+          >
+            {activePage.content}
+          </ReactMarkdown>
+        </div>
+
+        {/* Page navigation */}
+        <div className="mt-12 pt-6 border-t border-wiki-border flex items-center justify-between">
+          {currentIndex > 0 ? (
+            <button
+              onClick={() => setActivePageId(wikiPages[currentIndex - 1].id)}
+              className="flex items-center gap-2 text-sm text-wiki-muted hover:text-wiki-accent transition-colors"
+            >
+              <ChevronLeft size={16} />
+              {wikiPages[currentIndex - 1].title}
+            </button>
+          ) : <div />}
+          {currentIndex < wikiPages.length - 1 ? (
+            <button
+              onClick={() => setActivePageId(wikiPages[currentIndex + 1].id)}
+              className="flex items-center gap-2 text-sm text-wiki-muted hover:text-wiki-accent transition-colors"
+            >
+              {wikiPages[currentIndex + 1].title}
+              <ChevronRight size={16} />
+            </button>
+          ) : <div />}
+        </div>
+      </div>
+    </div>
+  )
+}

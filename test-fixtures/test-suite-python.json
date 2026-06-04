@@ -1,0 +1,82 @@
+{
+  "name": "CodeWiki Python Accuracy Test Suite v1",
+  "project": "py-project",
+  "test_cases": [
+    {
+      "name": "Extract Python UserService class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "UserService", "type": "Class", "file": "user_service.py" },
+        { "name": "get_user", "type": "Method" },
+        { "name": "create_user", "type": "Method" },
+        { "name": "update_user", "type": "Method" },
+        { "name": "delete_user", "type": "Method" },
+        { "name": "list_users", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Extract Python Database class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "Database", "type": "Class", "file": "database.py" },
+        { "name": "connect", "type": "Method" },
+        { "name": "find_one", "type": "Method" },
+        { "name": "find", "type": "Method" },
+        { "name": "insert", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Extract Python AuthService class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "AuthService", "type": "Class", "file": "auth_service.py" },
+        { "name": "login", "type": "Method" },
+        { "name": "validate_token", "type": "Method" },
+        { "name": "logout", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Extract Python User class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "User", "type": "Class", "file": "user_service.py" }
+      ]
+    },
+    {
+      "name": "Extract Python UserAPI class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "UserAPI", "type": "Class", "file": "user_api.py" },
+        { "name": "handle_get_user", "type": "Method" },
+        { "name": "handle_create_user", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Python UserService contains methods",
+      "type": "relation_detection",
+      "expected_relations": [
+        { "source": "UserService", "target": "get_user", "type": "contains" },
+        { "source": "UserService", "target": "create_user", "type": "contains" }
+      ]
+    },
+    {
+      "name": "Python imports detected",
+      "type": "relation_detection",
+      "expected_relations": [
+        { "source": "auth_service.py", "target": "user_service.py", "type": "imports" }
+      ]
+    },
+    {
+      "name": "Impact: modifying Python UserService affects AuthService",
+      "type": "impact_analysis",
+      "modify_entity": "UserService",
+      "expected_impacted": ["AuthService"]
+    },
+    {
+      "name": "Search: 'authentication login' finds auth files",
+      "type": "search_relevance",
+      "query": "authentication login token",
+      "expected_top3": ["auth_service.py"]
+    }
+  ]
+}

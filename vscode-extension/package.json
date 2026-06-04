@@ -1,0 +1,130 @@
+{
+  "name": "codewiki-vscode",
+  "displayName": "CodeWiki - AI Code Knowledge Base",
+  "description": "VSCode extension for CodeWiki — ontology-based code analysis for precise AI modifications",
+  "version": "0.2.0",
+  "publisher": "codewiki",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other", "Programming Languages"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codewiki.index",
+        "title": "CodeWiki: Index Project"
+      },
+      {
+        "command": "codewiki.openWiki",
+        "title": "CodeWiki: Open Wiki"
+      },
+      {
+        "command": "codewiki.searchCode",
+        "title": "CodeWiki: Semantic Search"
+      },
+      {
+        "command": "codewiki.showGraph",
+        "title": "CodeWiki: Show Knowledge Graph"
+      },
+      {
+        "command": "codewiki.askQuestion",
+        "title": "CodeWiki: Ask about Code"
+      },
+      {
+        "command": "codewiki.analyzeImpact",
+        "title": "CodeWiki: Analyze Impact"
+      },
+      {
+        "command": "codewiki.preCheck",
+        "title": "CodeWiki: Pre-check Modification"
+      },
+      {
+        "command": "codewiki.showRelations",
+        "title": "CodeWiki: Show Relations"
+      },
+      {
+        "command": "codewiki.generateWiki",
+        "title": "CodeWiki: Generate Wiki"
+      },
+      {
+        "command": "codewiki.exportWiki",
+        "title": "CodeWiki: Export Wiki"
+      },
+      {
+        "command": "codewiki.status",
+        "title": "CodeWiki: Show Status"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codewiki",
+          "title": "CodeWiki",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "codewiki": [
+        {
+          "id": "codewiki.wikiPages",
+          "name": "Wiki Pages"
+        },
+        {
+          "id": "codewiki.entities",
+          "name": "Code Entities"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CodeWiki",
+      "properties": {
+        "codewiki.llmProvider": {
+          "type": "string",
+          "default": "openai",
+          "enum": ["openai", "anthropic", "deepseek", "ollama"],
+          "description": "LLM provider for wiki generation and code analysis"
+        },
+        "codewiki.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the selected LLM provider"
+        },
+        "codewiki.model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "LLM model to use"
+        },
+        "codewiki.cliPath": {
+          "type": "string",
+          "default": "npx tsx",
+          "description": "Command prefix for running the CodeWiki CLI (e.g., 'npx tsx', 'ts-node')"
+        },
+        "codewiki.autoIndex": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically index workspace on extension activation"
+        },
+        "codewiki.codeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CodeWiki code lenses above classes/functions"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}
