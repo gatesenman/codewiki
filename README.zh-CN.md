@@ -44,13 +44,20 @@
 
 ## 界面截图
 
-| 知识图谱 | 生成的 Wiki |
+| 知识图谱 | AI 生成的 Wiki（DeepSeek 真实生成） |
 | --- | --- |
-| ![知识图谱](docs/images/graph.png) | ![Wiki](docs/images/wiki.png) |
+| ![知识图谱](docs/images/graph.png) | ![生成的 Wiki](docs/images/wiki-generated.png) |
 
-| 语义搜索 | LLM 设置 |
+| AI 架构图 + 组件表 | 语义搜索 |
 | --- | --- |
-| ![语义搜索](docs/images/search.png) | ![设置](docs/images/settings.png) |
+| ![生成的架构图](docs/images/wiki-diagram.png) | ![语义搜索](docs/images/search.png) |
+
+| LLM 设置 | |
+| --- | --- |
+| ![设置](docs/images/settings.png) | |
+
+> 上面「AI 生成的 Wiki」截图是 CodeWiki 直接索引本仓库（354 entities / 832 relations）后，
+> 用 **DeepSeek** 实时生成的文档——包括 Mermaid 架构图，以及带真实 `文件:行号` 引用的组件表。
 
 ## 功能特性
 
