@@ -12,6 +12,19 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 }
 Write-Host ("Node: " + (node -v))
 
+# Self-bootstrap: when piped directly (irm ... | iex) outside a checkout, clone first.
+$RepoUrl = if ($env:CODEWIKI_REPO) { $env:CODEWIKI_REPO } else { "https://github.com/gaosichun888/codewiki.git" }
+$inCheckout = (Test-Path "package.json") -and (Select-String -Path "package.json" -Pattern '"name"\s*:\s*"codewiki"' -Quiet)
+if (-not $inCheckout) {
+  Write-Host "[0/4] Not inside a CodeWiki checkout - cloning $RepoUrl ..."
+  if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Host "ERROR: git is required to clone. Install git and retry."
+    exit 1
+  }
+  git clone --depth 1 $RepoUrl codewiki
+  Set-Location codewiki
+}
+
 Write-Host "[1/4] Installing dependencies..."
 npm install
 

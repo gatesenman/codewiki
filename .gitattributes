@@ -1,0 +1,2 @@
+# Keep shell scripts LF so they run on macOS/Linux even when committed from Windows
+*.sh text eol=lf

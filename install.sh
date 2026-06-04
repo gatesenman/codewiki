@@ -13,6 +13,18 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 echo "Node: $(node -v)"
 
+# Self-bootstrap: when piped directly (curl ... | bash) outside a checkout, clone first.
+REPO_URL="${CODEWIKI_REPO:-https://github.com/gaosichun888/codewiki.git}"
+if [ ! -f "package.json" ] || ! grep -q '"name": *"codewiki"' package.json 2>/dev/null; then
+  echo "[0/4] Not inside a CodeWiki checkout — cloning $REPO_URL ..."
+  if ! command -v git >/dev/null 2>&1; then
+    echo "ERROR: git is required to clone. Install git and retry."
+    exit 1
+  fi
+  git clone --depth 1 "$REPO_URL" codewiki
+  cd codewiki
+fi
+
 echo "[1/4] Installing dependencies..."
 npm install
 
