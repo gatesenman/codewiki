@@ -2,6 +2,10 @@
   "name": "codewiki",
   "version": "1.0.0",
   "description": "DeepWiki-like cross-platform desktop app for code wiki generation, knowledge graph, semantic search, and precise code agent",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gaosichun888/codewiki.git"
+  },
   "main": "dist-electron/main.js",
   "bin": {
     "codewiki": "./dist-cli/codewiki-cli.js"
