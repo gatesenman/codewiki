@@ -6,9 +6,11 @@ import { BookOpen, Clock, FileText, ChevronLeft, ChevronRight, ShieldCheck } fro
 import { useAppStore } from '../store'
 import { MermaidDiagram } from './MermaidDiagram'
 import { validateWikiPage } from '../services/wiki-generator'
+import { t } from '../services/i18n'
 
 export function WikiViewer() {
   const { currentProject, activePageId, setActivePageId } = useAppStore()
+  useAppStore(s => s.locale)
   const contentRef = useRef<HTMLDivElement>(null)
   const [showQuality, setShowQuality] = useState(false)
   const wikiPages = currentProject?.wikiPages || []
@@ -31,10 +33,9 @@ export function WikiViewer() {
     return (
       <div className="h-full flex flex-col items-center justify-center text-wiki-muted">
         <BookOpen size={48} className="mb-4 text-wiki-muted/30" />
-        <h2 className="text-lg font-medium mb-2">No Wiki Generated Yet</h2>
+        <h2 className="text-lg font-medium mb-2">{t('wikiNoneTitle')}</h2>
         <p className="text-sm text-wiki-muted/70 max-w-md text-center">
-          Click <strong>"Generate Wiki"</strong> in the top bar to create AI-powered documentation
-          for your project. You can also configure your LLM provider in Settings.
+          {t('wikiNoneDescBefore')}<strong>{t('wikiGenerateBtnLabel')}</strong>{t('wikiNoneDescAfter')}
         </p>
       </div>
     )
@@ -56,7 +57,7 @@ export function WikiViewer() {
             {activePage.fileSources && activePage.fileSources.length > 0 && (
               <span className="flex items-center gap-1">
                 <FileText size={12} />
-                {activePage.fileSources.length} source files
+                {activePage.fileSources.length} {t('wikiSourceFiles')}
               </span>
             )}
             {quality && (
@@ -69,14 +70,14 @@ export function WikiViewer() {
                     quality.grade === 'C' ? 'border-yellow-500/40 text-yellow-400' :
                     'border-red-500/40 text-red-400'
                   }`}
-                  title="文档质量校验"
+                  title={t('qualityCheckTitle')}
                 >
                   <ShieldCheck size={12} />
-                  质量 {quality.percent}% ({quality.grade})
+                  {t('qualityLabel')} {quality.percent}% ({quality.grade})
                 </button>
                 {showQuality && (
                   <div className="absolute z-20 mt-2 w-72 right-0 bg-wiki-card border border-wiki-border rounded-lg shadow-xl p-3 text-left">
-                    <div className="text-xs font-semibold text-wiki-text mb-2">文档结构校验 — {quality.score}/{quality.maxScore}</div>
+                    <div className="text-xs font-semibold text-wiki-text mb-2">{t('qualityStructureTitle')} — {quality.score}/{quality.maxScore}</div>
                     <div className="space-y-1.5">
                       {quality.checks.map(c => (
                         <div key={c.id} className="flex items-center justify-between text-xs">
