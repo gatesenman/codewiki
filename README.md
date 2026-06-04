@@ -60,6 +60,22 @@ A cross-platform desktop application that replicates DeepWiki's functionality, w
 - **MCP**: @modelcontextprotocol/sdk
 - **VSCode**: VSCode Extension API
 
+## Quick Install (one-click)
+
+Requires Node.js 18+ and git. Clones, builds, and packages for your platform automatically. See [INSTALL.md](INSTALL.md) for details and prebuilt downloads.
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+```
+
+Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gaosichun888/codewiki/releases).
+
 ## Getting Started
 
 ```bash
