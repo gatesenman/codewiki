@@ -45,13 +45,21 @@ knowledge base, plus a companion **VSCode extension**.
 
 ## Screenshots
 
-| Knowledge Graph | Generated Wiki |
+| Knowledge Graph | Generated Wiki (real DeepSeek output) |
 | --- | --- |
-| ![Knowledge graph](docs/images/graph.png) | ![Wiki](docs/images/wiki.png) |
+| ![Knowledge graph](docs/images/graph.png) | ![Generated wiki](docs/images/wiki-generated.png) |
 
-| Semantic Search | LLM Settings |
+| AI Architecture Diagram + Component Table | Semantic Search |
 | --- | --- |
-| ![Search](docs/images/search.png) | ![Settings](docs/images/settings.png) |
+| ![Generated architecture](docs/images/wiki-diagram.png) | ![Search](docs/images/search.png) |
+
+| LLM Settings | |
+| --- | --- |
+| ![Settings](docs/images/settings.png) | |
+
+> The "Generated Wiki" screenshots above are produced live by CodeWiki indexing this very
+> repository (354 entities / 832 relations) and generating documentation with **DeepSeek** —
+> including the Mermaid architecture diagram and the component table with real `file:line` references.
 
 ## Features
 
