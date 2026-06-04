@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme CSS Variables */
+:root,
+[data-theme="dark"] {
+  --wiki-bg: 13 17 23;
+  --wiki-sidebar: 22 27 34;
+  --wiki-card: 28 33 40;
+  --wiki-border: 48 54 61;
+  --wiki-text: 230 237 243;
+  --wiki-muted: 139 148 158;
+  --wiki-accent: 88 166 255;
+  --wiki-green: 63 185 80;
+  --wiki-purple: 188 140 255;
+  --wiki-orange: 210 153 34;
+  --scrollbar-track: #161b22;
+  --scrollbar-thumb: #30363d;
+  --scrollbar-thumb-hover: #484f58;
+}
+
+[data-theme="light"] {
+  --wiki-bg: 255 255 255;
+  --wiki-sidebar: 246 248 250;
+  --wiki-card: 240 242 245;
+  --wiki-border: 208 215 222;
+  --wiki-text: 31 35 40;
+  --wiki-muted: 101 109 118;
+  --wiki-accent: 9 105 218;
+  --wiki-green: 26 127 55;
+  --wiki-purple: 130 80 223;
+  --wiki-orange: 191 135 0;
+  --scrollbar-track: #f6f8fa;
+  --scrollbar-thumb: #d0d7de;
+  --scrollbar-thumb-hover: #afb8c1;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+}
+
+@layer components {
+  .wiki-content h1 {
+    @apply text-2xl font-bold text-wiki-text mt-8 mb-4 pb-2 border-b border-wiki-border;
+  }
+  .wiki-content h2 {
+    @apply text-xl font-semibold text-wiki-text mt-6 mb-3 pb-1.5 border-b border-wiki-border;
+  }
+  .wiki-content h3 {
+    @apply text-lg font-semibold text-wiki-text mt-5 mb-2;
+  }
+  .wiki-content p {
+    @apply text-wiki-text/90 leading-relaxed mb-4;
+  }
+  .wiki-content ul {
+    @apply list-disc list-inside mb-4 space-y-1 text-wiki-text/90;
+  }
+  .wiki-content ol {
+    @apply list-decimal list-inside mb-4 space-y-1 text-wiki-text/90;
+  }
+  .wiki-content code {
+    @apply bg-wiki-card px-1.5 py-0.5 rounded text-sm text-wiki-accent font-mono;
+  }
+  .wiki-content pre {
+    @apply bg-wiki-card rounded-lg p-4 mb-4 overflow-x-auto border border-wiki-border;
+  }
+  .wiki-content pre code {
+    @apply bg-transparent p-0 text-wiki-text;
+  }
+  .wiki-content blockquote {
+    @apply border-l-4 border-wiki-accent pl-4 py-1 mb-4 text-wiki-muted italic;
+  }
+  .wiki-content a {
+    @apply text-wiki-accent hover:underline;
+  }
+  .wiki-content table {
+    @apply w-full border-collapse mb-4;
+  }
+  .wiki-content th {
+    @apply bg-wiki-card border border-wiki-border px-4 py-2 text-left font-semibold;
+  }
+  .wiki-content td {
+    @apply border border-wiki-border px-4 py-2;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-wiki-muted hover:text-wiki-text hover:bg-wiki-card/50 cursor-pointer transition-colors;
+  }
+  .sidebar-item.active {
+    @apply text-wiki-text bg-wiki-card/70 font-medium;
+  }
+}
+
+/* Mermaid diagram styles */
+.mermaid {
+  @apply flex justify-center my-6;
+}
+
+.mermaid svg {
+  max-width: 100%;
+}
+
+/* Smooth page transitions */
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.25s ease-out;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Toast notifications */
+.toast {
+  @apply fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg border text-sm z-50;
+  animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(16px); }
+}
+
+.toast-success {
+  @apply bg-wiki-card border-wiki-green/30 text-wiki-green;
+}
+
+.toast-error {
+  @apply bg-wiki-card border-red-500/30 text-red-400;
+}
+
+.toast-info {
+  @apply bg-wiki-card border-wiki-accent/30 text-wiki-accent;
+}
+
+/* Skeleton loading */
+.skeleton {
+  @apply bg-wiki-card rounded animate-pulse;
+}
+
+/* Better focus styles */
+input:focus, select:focus, textarea:focus, button:focus-visible {
+  @apply outline-none ring-2 ring-wiki-accent/40;
+}
+
+/* Hover card lift effect */
+.card-hover {
+  @apply transition-all duration-200;
+}
+.card-hover:hover {
+  @apply shadow-lg shadow-black/20 -translate-y-0.5;
+}
+
+/* Pulse dot for active status */
+.pulse-dot {
+  @apply relative;
+}
+.pulse-dot::after {
+  content: '';
+  @apply absolute top-0 right-0 w-2 h-2 bg-wiki-green rounded-full;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Knowledge graph styles */
+.graph-tooltip {
+  @apply absolute bg-wiki-card border border-wiki-border rounded-lg p-3 shadow-xl text-sm pointer-events-none z-50;
+}

@@ -1,0 +1,261 @@
+{
+  "name": "CodeWiki Accuracy Test Suite v3 — Core Check System",
+  "project": "ts-project",
+  "test_cases": [
+    {
+      "name": "Extract UserService class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "UserService", "type": "Class", "file": "user.ts" },
+        { "name": "getUser", "type": "Method" },
+        { "name": "createUser", "type": "Method" },
+        { "name": "updateUser", "type": "Method" },
+        { "name": "deleteUser", "type": "Method" },
+        { "name": "listUsers", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Extract Database class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "Database", "type": "Class", "file": "database.ts" },
+        { "name": "connect", "type": "Method" },
+        { "name": "findOne", "type": "Method" },
+        { "name": "find", "type": "Method" },
+        { "name": "insert", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Extract AuthService class",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "AuthService", "type": "Class", "file": "auth.ts" },
+        { "name": "login", "type": "Method" },
+        { "name": "validateToken", "type": "Method" },
+        { "name": "logout", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Extract interfaces",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "User", "type": "Interface" },
+        { "name": "AuthToken", "type": "Interface" },
+        { "name": "AppConfig", "type": "Interface" }
+      ]
+    },
+    {
+      "name": "Extract arrow function (createAuthMiddleware)",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "createAuthMiddleware", "type": "Function" }
+      ]
+    },
+    {
+      "name": "Extract loadConfig function",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "loadConfig", "type": "Function" }
+      ]
+    },
+    {
+      "name": "Extract abstract class BaseCache with generics",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "BaseCache", "type": "Class", "file": "cache.ts" },
+        { "name": "serialize", "type": "Method" },
+        { "name": "deserialize", "type": "Method" },
+        { "name": "get", "type": "Method" },
+        { "name": "set", "type": "Method" },
+        { "name": "invalidate", "type": "Method" },
+        { "name": "clear", "type": "Method" }
+      ]
+    },
+    {
+      "name": "Extract subclasses of BaseCache",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "UserCache", "type": "Class", "file": "cache.ts" },
+        { "name": "SessionCache", "type": "Class", "file": "cache.ts" }
+      ]
+    },
+    {
+      "name": "Extract CacheOptions interface",
+      "type": "entity_extraction",
+      "expected_entities": [
+        { "name": "CacheOptions", "type": "Interface", "file": "cache.ts" }
+      ]
+    },
+    {
+      "name": "UserService contains methods",
+      "type": "relation_detection",
+      "expected_relations": [
+        { "source": "UserService", "target": "getUser", "type": "contains" },
+        { "source": "UserService", "target": "createUser", "type": "contains" },
+        { "source": "UserService", "target": "deleteUser", "type": "contains" }
+      ]
+    },
+    {
+      "name": "File imports detected",
+      "type": "relation_detection",
+      "expected_relations": [
+        { "source": "user.ts", "target": "database.ts", "type": "imports" },
+        { "source": "user.ts", "target": "logger.ts", "type": "imports" },
+        { "source": "auth.ts", "target": "user.ts", "type": "imports" }
+      ]
+    },
+    {
+      "name": "Cache imports Logger",
+      "type": "relation_detection",
+      "expected_relations": [
+        { "source": "cache.ts", "target": "logger.ts", "type": "imports" }
+      ]
+    },
+    {
+      "name": "BaseCache contains methods",
+      "type": "relation_detection",
+      "expected_relations": [
+        { "source": "BaseCache", "target": "get", "type": "contains" },
+        { "source": "BaseCache", "target": "set", "type": "contains" },
+        { "source": "BaseCache", "target": "invalidate", "type": "contains" }
+      ]
+    },
+    {
+      "name": "Impact: modifying UserService affects AuthService and UserController",
+      "type": "impact_analysis",
+      "modify_entity": "UserService",
+      "expected_impacted": ["AuthService", "UserController"],
+      "not_impacted": ["loadConfig"]
+    },
+    {
+      "name": "Impact: modifying Database affects UserService",
+      "type": "impact_analysis",
+      "modify_entity": "Database",
+      "expected_impacted": ["UserService"]
+    },
+    {
+      "name": "Impact: modifying Logger affects BaseCache",
+      "type": "impact_analysis",
+      "modify_entity": "Logger",
+      "expected_impacted": ["BaseCache"]
+    },
+    {
+      "name": "Search: 'user authentication' finds auth files",
+      "type": "search_relevance",
+      "query": "user authentication login",
+      "expected_top3": ["auth.ts", "user.ts"]
+    },
+    {
+      "name": "Search: 'database connection' finds database files",
+      "type": "search_relevance",
+      "query": "database connection query",
+      "expected_top3": ["database.ts"]
+    },
+    {
+      "name": "Search: 'cache invalidation' finds cache files",
+      "type": "search_relevance",
+      "query": "cache invalidation ttl",
+      "expected_top3": ["cache.ts"]
+    },
+    {
+      "name": "Validate: modifying UserService.getUser (high impact warning)",
+      "type": "validate_safety",
+      "validate_file": "user.ts",
+      "validate_range": [20, 24],
+      "should_warn": true
+    },
+    {
+      "name": "Validate: modifying config.ts (limited impact, no warning)",
+      "type": "validate_safety",
+      "validate_file": "config.ts",
+      "validate_range": [10, 18],
+      "should_warn": false
+    },
+
+    {
+      "name": "Callers: getUser is called by validateToken and UserController",
+      "type": "callers",
+      "entity": "getUser",
+      "expected_callers": ["validateToken", "UserController"]
+    },
+    {
+      "name": "Callers: listUsers is called by login",
+      "type": "callers",
+      "entity": "listUsers",
+      "expected_callers": ["login"]
+    },
+    {
+      "name": "Callees: getUser calls info and findOne",
+      "type": "callees",
+      "entity": "getUser",
+      "expected_callees": ["info", "findOne"]
+    },
+    {
+      "name": "Callees: createUser calls info and insert",
+      "type": "callees",
+      "entity": "createUser",
+      "expected_callees": ["info", "insert"]
+    },
+
+    {
+      "name": "Blast radius: Database has medium+ risk (many dependents)",
+      "type": "blast_radius",
+      "entity": "Database",
+      "min_dependents": 3,
+      "expected_risk": "medium"
+    },
+    {
+      "name": "Blast radius: Logger has wide impact",
+      "type": "blast_radius",
+      "entity": "Logger",
+      "min_dependents": 2
+    },
+
+    {
+      "name": "Dead code: AppConfig and loadConfig are detected as dead",
+      "type": "dead_code",
+      "expected_dead": ["AppConfig", "loadConfig"],
+      "not_dead": ["UserService", "Database", "Logger"]
+    },
+
+    {
+      "name": "Find references: UserService is referenced in auth.ts and user-controller.ts",
+      "type": "find_references",
+      "entity": "UserService",
+      "min_refs": 2,
+      "expected_ref_files": ["auth.ts", "user-controller.ts"]
+    },
+    {
+      "name": "Find references: Logger is referenced in user.ts and cache.ts",
+      "type": "find_references",
+      "entity": "Logger",
+      "min_refs": 2,
+      "expected_ref_files": ["user.ts", "cache.ts"]
+    },
+
+    {
+      "name": "PageRank: info and get are top symbols (most depended-upon)",
+      "type": "pagerank",
+      "expected_top_symbols": ["info", "get"]
+    },
+
+    {
+      "name": "Confidence: calls relations have confidence scores >= 0.5",
+      "type": "confidence",
+      "relation_type": "calls",
+      "min_confidence": 0.5
+    },
+    {
+      "name": "Confidence: imports relations have high confidence >= 0.8",
+      "type": "confidence",
+      "relation_type": "imports",
+      "min_confidence": 0.8
+    },
+    {
+      "name": "Confidence: contains relations have max confidence >= 0.9",
+      "type": "confidence",
+      "relation_type": "contains",
+      "min_confidence": 0.9
+    }
+  ]
+}
