@@ -97,9 +97,10 @@ knowledge base, plus a companion **VSCode extension**.
 - **Multi-File Awareness**: Understands cross-file dependencies
 
 ### MCP (Model Context Protocol) Server
-- **5 MCP Tools**: `read_wiki`, `search_code`, `get_entity_info`, `get_dependencies`, `get_impact_analysis`
-- **IDE Integration**: Any MCP-compatible IDE or agent can query the code knowledge base
-- **Stdio Protocol**: Standard MCP server that works with Claude, Cursor, etc.
+- **29 MCP Tools**: code search, ontology lookups, call-graph traversal, impact/blast-radius analysis, architecture overview, dead-code detection, reindexing, and more — see [docs/MCP.md](docs/MCP.md) for the full list
+- **IDE Integration**: Any MCP-compatible IDE or agent (Claude Desktop, Cursor, VS Code, Windsurf, Cline, …) can query the code knowledge base
+- **Stdio Protocol**: Standard MCP server over stdio
+- **Setup guide**: [docs/MCP.md](docs/MCP.md) ([中文](docs/MCP.zh-CN.md))
 
 ### VSCode Extension
 - **Sidebar Views**: Wiki pages, code entities, chat panel
@@ -157,19 +158,32 @@ npm run electron:build
 
 ## MCP Server Configuration
 
-Add to your MCP client config:
+Build the server, then point your MCP client at the compiled output:
+
+```bash
+npm install
+npm run build:mcp   # -> dist/server/mcp-server.js
+```
 
 ```json
 {
   "mcpServers": {
     "codewiki": {
       "command": "node",
-      "args": ["path/to/codewiki/dist/server/mcp-server.js"],
-      "env": { "PROJECT_PATH": "/path/to/your/project" }
+      "args": ["/abs/path/to/codewiki/dist/server/mcp-server.js"],
+      "env": { "PROJECT_PATH": "/abs/path/to/your/project" }
     }
   }
 }
 ```
+
+Use **absolute paths**. `PROJECT_PATH` is the project the server indexes; the
+optional `CODEWIKI_LOG_DIR` (default `~/.codewiki`) sets where the call log is
+written.
+
+Full setup for Claude Desktop, Cursor, VS Code, Windsurf and others, the complete
+tool reference, and troubleshooting are in **[docs/MCP.md](docs/MCP.md)**
+(中文：**[docs/MCP.zh-CN.md](docs/MCP.zh-CN.md)**).
 
 ## Project Structure
 
