@@ -25,10 +25,32 @@ export interface I18nStrings {
   insTitle: string
   insSubtitle: string
   insNoProject: string
+  insTabHealth: string
   insTabQuery: string
   insTabHistory: string
   insTabWiki: string
   insTabEval: string
+  // Health tool
+  insHealthHint: string
+  insHealthRefresh: string
+  insHealthEntities: string
+  insHealthFiles: string
+  insHealthAvgDegree: string
+  insHealthCircular: string
+  insHealthDead: string
+  insHealthGod: string
+  insHealthBreakdown: string
+  insHealthCircularTitle: string
+  insHealthNoCircular: string
+  insHealthFilesWord: string
+  insHealthEdgesWord: string
+  insHealthHotspots: string
+  insHealthNoHotspots: string
+  insHealthC_circularDeps: string
+  insHealthC_deadCode: string
+  insHealthC_coupling: string
+  insHealthC_godObjects: string
+  insHealthC_security: string
   insQueryPlaceholder: string
   insQueryRun: string
   insQueryHint: string
@@ -436,12 +458,33 @@ const en: I18nStrings = {
   navInsights: 'Insights',
 
   insTitle: 'Insights',
-  insSubtitle: 'Graph query, evolution, incremental wiki & evaluation — running on the indexed ontology.',
+  insSubtitle: 'Health, graph query, evolution, incremental wiki & evaluation — running on the indexed ontology.',
   insNoProject: 'Open and index a project first to use Insights.',
+  insTabHealth: 'Health',
   insTabQuery: 'NL Query',
   insTabHistory: 'Evolution',
   insTabWiki: 'Wiki Incremental',
   insTabEval: 'Evaluation',
+  insHealthHint: 'A–F health grade from circular dependencies, dead code, coupling & God Objects — computed on the ontology graph.',
+  insHealthRefresh: 'Recompute',
+  insHealthEntities: 'Entities',
+  insHealthFiles: 'Files',
+  insHealthAvgDegree: 'Avg degree',
+  insHealthCircular: 'Circular deps',
+  insHealthDead: 'Dead code',
+  insHealthGod: 'God objects',
+  insHealthBreakdown: 'Score breakdown',
+  insHealthCircularTitle: 'Circular dependencies',
+  insHealthNoCircular: 'No circular dependencies detected.',
+  insHealthFilesWord: 'files',
+  insHealthEdgesWord: 'edges',
+  insHealthHotspots: 'Coupling hotspots',
+  insHealthNoHotspots: 'No high-coupling hotspots.',
+  insHealthC_circularDeps: 'Circular deps',
+  insHealthC_deadCode: 'Dead code',
+  insHealthC_coupling: 'Coupling',
+  insHealthC_godObjects: 'God objects',
+  insHealthC_security: 'Security',
   insQueryPlaceholder: 'Ask in natural language, e.g. "who calls handleSearch" / "impact of getGraph" / "list all classes"',
   insQueryRun: 'Run',
   insQueryHint: 'Pattern-based NL → graph query (no LLM). Supports callers / callees / references / impact / deps / path / find.',
@@ -837,6 +880,27 @@ const zh: I18nStrings = {
   insTabHistory: '架构演变',
   insTabWiki: 'Wiki 增量',
   insTabEval: '评测',
+  insTabHealth: '健康',
+  insHealthHint: '基于循环依赖、死代码、耦合与上帝对象，在本体图上计算的 A–F 健康评分。',
+  insHealthRefresh: '重新计算',
+  insHealthEntities: '实体',
+  insHealthFiles: '文件',
+  insHealthAvgDegree: '平均度',
+  insHealthCircular: '循环依赖',
+  insHealthDead: '死代码',
+  insHealthGod: '上帝对象',
+  insHealthBreakdown: '评分构成',
+  insHealthCircularTitle: '循环依赖',
+  insHealthNoCircular: '未检测到循环依赖。',
+  insHealthFilesWord: '个文件',
+  insHealthEdgesWord: '条边',
+  insHealthHotspots: '高耦合热点',
+  insHealthNoHotspots: '无高耦合热点。',
+  insHealthC_circularDeps: '循环依赖',
+  insHealthC_deadCode: '死代码',
+  insHealthC_coupling: '耦合',
+  insHealthC_godObjects: '上帝对象',
+  insHealthC_security: '安全',
   insQueryPlaceholder: '用自然语言提问，例如「谁调用 handleSearch」/「getGraph 的影响」/「列出所有类」',
   insQueryRun: '运行',
   insQueryHint: '基于模式匹配的自然语言→图查询（无需 LLM）。支持 调用者/被调用/引用/影响/依赖/路径/查找。',

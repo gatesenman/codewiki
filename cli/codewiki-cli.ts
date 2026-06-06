@@ -2055,6 +2055,132 @@ function cmdDeadCode(projectPath: string): void {
   })
 }
 
+// ---- Health Score (circular deps + dead code + coupling + god objects) ----
+
+const HEALTH_DEP_RELS = new Set(['imports', 'dependsOn', 'calls', 'uses', 'extends', 'implements'])
+
+/** File-level circular dependency detection via iterative Tarjan SCC. */
+function detectCyclesCli(graph: OntologyGraph): Array<{ files: string[]; edges: number }> {
+  const byId = new Map<string, OntologyEntity>()
+  for (const e of graph.entities) byId.set(e.id, e)
+  const adj = new Map<string, Set<string>>()
+  const edgeCount = new Map<string, number>()
+  const ensure = (f: string) => { if (!adj.has(f)) adj.set(f, new Set()) }
+  for (const r of graph.relations) {
+    if (!HEALTH_DEP_RELS.has(r.type)) continue
+    const s = byId.get(r.source); const t = byId.get(r.target)
+    if (!s || !t || !s.filePath || !t.filePath || s.filePath === t.filePath) continue
+    ensure(s.filePath); ensure(t.filePath)
+    adj.get(s.filePath)!.add(t.filePath)
+    const k = `${s.filePath}|${t.filePath}`
+    edgeCount.set(k, (edgeCount.get(k) || 0) + 1)
+  }
+  let index = 0
+  const idx = new Map<string, number>(); const low = new Map<string, number>()
+  const onStack = new Set<string>(); const stack: string[] = []
+  const sccs: string[][] = []
+  for (const start of adj.keys()) {
+    if (idx.has(start)) continue
+    const work: Array<{ v: string; iter: Iterator<string> }> = [{ v: start, iter: adj.get(start)!.values() }]
+    idx.set(start, index); low.set(start, index); index++; stack.push(start); onStack.add(start)
+    while (work.length) {
+      const top = work[work.length - 1]
+      const next = top.iter.next()
+      if (!next.done) {
+        const w = next.value
+        if (!idx.has(w)) {
+          idx.set(w, index); low.set(w, index); index++; stack.push(w); onStack.add(w)
+          work.push({ v: w, iter: (adj.get(w) || new Set()).values() })
+        } else if (onStack.has(w)) {
+          low.set(top.v, Math.min(low.get(top.v)!, idx.get(w)!))
+        }
+      } else {
+        if (low.get(top.v) === idx.get(top.v)) {
+          const comp: string[] = []; let w: string
+          do { w = stack.pop()!; onStack.delete(w); comp.push(w) } while (w !== top.v)
+          if (comp.length > 1) sccs.push(comp)
+        }
+        work.pop()
+        if (work.length) { const p = work[work.length - 1].v; low.set(p, Math.min(low.get(p)!, low.get(top.v)!)) }
+      }
+    }
+  }
+  return sccs.map(files => {
+    let edges = 0
+    for (const a of files) for (const b of files) { if (a !== b) edges += edgeCount.get(`${a}|${b}`) || 0 }
+    return { files: files.sort(), edges }
+  }).sort((a, b) => b.files.length - a.files.length || b.edges - a.edges)
+}
+
+function ratioScoreCli(ratio: number, cap: number): number {
+  return Math.round(100 * (1 - Math.max(0, Math.min(cap, ratio)) / cap))
+}
+
+function cmdHealth(projectPath: string): void {
+  const absPath = path.resolve(projectPath)
+  const { graph } = getGraph(absPath)
+  const code = graph.entities.filter(e => e.type !== 'File' && e.type !== 'Module' && e.type !== 'Package')
+  const files = new Set(graph.entities.map(e => e.filePath).filter(Boolean))
+
+  const cycles = detectCyclesCli(graph)
+  // Dead code (same heuristic as cmdDeadCode, count only).
+  let dead = 0
+  for (const e of code) {
+    const incoming = graph.relations.filter(r => r.target === e.id && r.type !== 'contains')
+    const containsOthers = graph.relations.some(r => r.source === e.id && r.type === 'contains')
+    if (containsOthers && e.type === 'Class') continue
+    if (incoming.length > 0) continue
+    if (/test|spec|__mocks__/i.test(e.filePath) || /test/i.test(e.name)) continue
+    if (e.name === 'main' || e.name === 'default' || /(^|\/)(index|app|server|main)\./i.test(e.filePath)) continue
+    dead++
+  }
+  // Coupling + god objects.
+  const fanOut = new Map<string, number>(); const members = new Map<string, number>()
+  let depRel = 0
+  for (const r of graph.relations) {
+    if (r.type === 'contains') { members.set(r.source, (members.get(r.source) || 0) + 1); continue }
+    if (!HEALTH_DEP_RELS.has(r.type)) continue
+    depRel++
+    fanOut.set(r.source, (fanOut.get(r.source) || 0) + 1)
+  }
+  let godObjects = 0
+  for (const e of code) {
+    if ((fanOut.get(e.id) || 0) >= 20 || (members.get(e.id) || 0) >= 20) godObjects++
+  }
+  const avgDegree = code.length ? depRel / code.length : 0
+  const deadRatio = code.length ? dead / code.length : 0
+  const cycleRatio = files.size ? cycles.reduce((n, c) => n + c.files.length, 0) / files.size : 0
+  const godRatio = code.length ? godObjects / code.length : 0
+
+  const components = [
+    { key: 'circularDeps', weight: 0.3, score: ratioScoreCli(cycleRatio, 0.3), detail: `${cycles.length} cycles` },
+    { key: 'deadCode', weight: 0.25, score: ratioScoreCli(deadRatio, 0.4), detail: `${dead} (${Math.round(deadRatio * 100)}%)` },
+    { key: 'coupling', weight: 0.2, score: ratioScoreCli(Math.max(0, avgDegree - 2), 8), detail: avgDegree.toFixed(2) },
+    { key: 'godObjects', weight: 0.15, score: ratioScoreCli(godRatio, 0.1), detail: `${godObjects}` },
+    { key: 'security', weight: 0.1, score: 100, detail: 'n/a (use `codewiki scan`)' },
+  ]
+  const totalW = components.reduce((s, c) => s + c.weight, 0)
+  const score = Math.round(components.reduce((s, c) => s + c.score * c.weight, 0) / totalW)
+  const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F'
+
+  output({
+    command: 'health',
+    score,
+    grade,
+    components,
+    metrics: {
+      entityCount: graph.entities.length,
+      relationCount: graph.relations.length,
+      fileCount: files.size,
+      avgDegree: Number(avgDegree.toFixed(2)),
+      deadCode: dead,
+      circularDependencies: cycles.length,
+      godObjects,
+    },
+    topCycles: cycles.slice(0, 10).map(c => ({ files: c.files, edges: c.edges })),
+  })
+}
+
 // ---- Find References ----
 
 function cmdFindReferences(entityName: string, projectPath: string): void {
@@ -4386,6 +4512,10 @@ function main() {
       break
     case 'dead-code':
       cmdDeadCode(projectPath)
+      break
+    case 'health':
+    case 'health-score':
+      cmdHealth(projectPath)
       break
     case 'find-references':
     case 'references':
