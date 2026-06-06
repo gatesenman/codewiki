@@ -19,6 +19,7 @@ import type {
   OntologyEntityType, OntologyRelationType, FileNode,
   GraphNode, GraphLink,
 } from '../types'
+import { extractTsAst, isAstSupported } from './ts-ast-extractor'
 
 // Regex patterns for extracting code entities from different languages
 const PATTERNS = {
@@ -74,6 +75,8 @@ export class OntologyBuilder {
   // Scope tracking: maps qualifiedName -> entityId
   private qualifiedNameMap: Map<string, string> = new Map()
   private deferredRelations: Array<{ sourceId: string; targetName: string; type: OntologyRelationType }> = []
+  // Import specifiers captured by the AST extractor, keyed by file path.
+  private astImports: Map<string, string[]> = new Map()
 
   /**
    * Build ontology graph from a file tree and file contents
@@ -87,6 +90,7 @@ export class OntologyBuilder {
     this.fileModuleMap.clear()
     this.qualifiedNameMap.clear()
     this.deferredRelations = []
+    this.astImports.clear()
 
     const flatFiles = this.flattenFiles(files)
 
@@ -150,6 +154,17 @@ export class OntologyBuilder {
     this.entities.set(moduleId, moduleEntity)
     this.fileModuleMap.set(filePath, moduleId)
     this.qualifiedNameMap.set(`${filePath}::${file.name}`, moduleId)
+
+    // Prefer precise AST extraction for TS/JS; fall back to regex otherwise.
+    const ext = file.extension || file.name.split('.').pop()
+    if (isAstSupported(ext)) {
+      try {
+        this.extractEntitiesFromAst(file, content, moduleId, ext as string)
+        return
+      } catch {
+        // Parser failed (e.g. exotic syntax) — fall through to regex extraction.
+      }
+    }
 
     // Track class ranges for method-to-class association
     const classRanges: Array<{ id: string; name: string; startLine: number; endLine: number }> = []
@@ -369,6 +384,75 @@ export class OntologyBuilder {
     }
   }
 
+  /**
+   * AST-driven entity extraction for TS/JS. Produces the same entity/relation
+   * shape as the regex path (module `contains` entity, methods `contains`-ed by
+   * their class, deferred extends/implements), but with compiler-grade accuracy.
+   */
+  private extractEntitiesFromAst(
+    file: FileNode,
+    content: string,
+    moduleId: string,
+    ext: string,
+  ) {
+    const filePath = file.path
+    const { entities, imports } = extractTsAst(content, file.name, ext)
+    this.astImports.set(filePath, imports)
+
+    // Pass 1: create non-method entities so methods can resolve their parent.
+    const classIdByName = new Map<string, string>()
+    for (const e of entities) {
+      if (e.type === 'Method') continue
+      const entityId = uuid()
+      this.entities.set(entityId, {
+        id: entityId,
+        name: e.name,
+        type: e.type,
+        filePath,
+        line: e.line,
+        endLine: e.endLine,
+        signature: e.signature,
+      })
+      this.qualifiedNameMap.set(`${filePath}::${e.name}`, entityId)
+      this.relations.push({ id: uuid(), source: moduleId, target: entityId, type: 'contains' })
+
+      if (e.type === 'Class' || e.type === 'Interface') {
+        classIdByName.set(e.name, entityId)
+      }
+      for (const parent of e.extends || []) {
+        this.addDeferredRelation(entityId, parent, 'extends')
+      }
+      for (const iface of e.implements || []) {
+        this.addDeferredRelation(entityId, iface, 'implements')
+      }
+    }
+
+    // Pass 2: methods, linked to their enclosing class/interface.
+    for (const e of entities) {
+      if (e.type !== 'Method') continue
+      const parentId = e.parentName ? classIdByName.get(e.parentName) : undefined
+      const entityId = uuid()
+      this.entities.set(entityId, {
+        id: entityId,
+        name: e.name,
+        type: 'Method',
+        filePath,
+        line: e.line,
+        endLine: e.endLine,
+        signature: e.signature,
+      })
+      if (e.parentName) {
+        this.qualifiedNameMap.set(`${filePath}::${e.parentName}::${e.name}`, entityId)
+      }
+      this.relations.push({
+        id: uuid(),
+        source: parentId || moduleId,
+        target: entityId,
+        type: 'contains',
+      })
+    }
+  }
+
   private extractRelations(
     file: FileNode,
     content: string,
@@ -377,43 +461,20 @@ export class OntologyBuilder {
     const moduleId = this.fileModuleMap.get(file.path)
     if (!moduleId) return
 
-    // Extract import relations
-    for (const pattern of PATTERNS.importDecl) {
-      let match
-      const regex = new RegExp(pattern.source, pattern.flags)
-      while ((match = regex.exec(content)) !== null) {
-        const importPath = match[3] || match[1]
-        if (!importPath) continue
-
-        const normalizedImport = importPath.replace(/^[./]+/, '').replace(/\\/g, '/')
-
-        // Find target module - use strict suffix matching to reduce false positives
-        for (const [filePath, targetModuleId] of this.fileModuleMap) {
-          if (targetModuleId === moduleId) continue
-          const normalizedFile = filePath.replace(/\\/g, '/').replace(/\.(ts|tsx|js|jsx|py|go|rs)$/, '')
-
-          // Require the import path to match the end of the file path segment-by-segment
-          const fileSegments = normalizedFile.split('/')
-          const importSegments = normalizedImport.split('/')
-
-          let matches = true
-          for (let i = 0; i < importSegments.length; i++) {
-            const fileIdx = fileSegments.length - importSegments.length + i
-            if (fileIdx < 0 || fileSegments[fileIdx] !== importSegments[i]) {
-              matches = false
-              break
-            }
-          }
-
-          if (matches) {
-            this.relations.push({
-              id: uuid(),
-              source: moduleId,
-              target: targetModuleId,
-              type: 'imports',
-            })
-            break
-          }
+    // Extract import relations. Use precise AST import specifiers for TS/JS;
+    // fall back to regex patterns for other languages.
+    const astSpecifiers = this.astImports.get(file.path)
+    if (astSpecifiers) {
+      for (const importPath of astSpecifiers) {
+        this.resolveImportRelation(moduleId, importPath)
+      }
+    } else {
+      for (const pattern of PATTERNS.importDecl) {
+        let match
+        const regex = new RegExp(pattern.source, pattern.flags)
+        while ((match = regex.exec(content)) !== null) {
+          const importPath = match[3] || match[1]
+          if (importPath) this.resolveImportRelation(moduleId, importPath)
         }
       }
     }
@@ -454,6 +515,43 @@ export class OntologyBuilder {
             }
           }
         }
+      }
+    }
+  }
+
+  /**
+   * Resolve a single import specifier to a module entity and record an
+   * `imports` relation. Uses strict segment-suffix matching to reduce false
+   * positives, mirroring the original regex behaviour.
+   */
+  private resolveImportRelation(moduleId: string, importPath: string) {
+    const normalizedImport = importPath.replace(/^[./]+/, '').replace(/\\/g, '/')
+    if (!normalizedImport) return
+
+    for (const [filePath, targetModuleId] of this.fileModuleMap) {
+      if (targetModuleId === moduleId) continue
+      const normalizedFile = filePath.replace(/\\/g, '/').replace(/\.(ts|tsx|js|jsx|py|go|rs)$/, '')
+
+      const fileSegments = normalizedFile.split('/')
+      const importSegments = normalizedImport.split('/')
+
+      let matches = true
+      for (let i = 0; i < importSegments.length; i++) {
+        const fileIdx = fileSegments.length - importSegments.length + i
+        if (fileIdx < 0 || fileSegments[fileIdx] !== importSegments[i]) {
+          matches = false
+          break
+        }
+      }
+
+      if (matches) {
+        this.relations.push({
+          id: uuid(),
+          source: moduleId,
+          target: targetModuleId,
+          type: 'imports',
+        })
+        break
       }
     }
   }
