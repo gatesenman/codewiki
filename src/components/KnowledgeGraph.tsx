@@ -1,12 +1,23 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as d3 from 'd3'
-import { ZoomIn, ZoomOut, Maximize2, Filter } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize2, Filter, Palette } from 'lucide-react'
 import { useAppStore } from '../store'
 import { OntologyBuilder } from '../services/ontology'
 import { configManager } from '../services/config-manager'
+import { detectPatterns } from '../services/pattern-detector'
 import { t, tEntityType, tEntityTypePlural } from '../services/i18n'
 import { KnowledgeGraph3D } from './KnowledgeGraph3D'
 import type { GraphNode, GraphLink, OntologyEntityType } from '../types'
+
+type ColorMode = 'type' | 'coupling' | 'risk'
+
+// Green → amber → red ramp for the coupling heatmap.
+function couplingColor(t01: number): string {
+  const x = Math.max(0, Math.min(1, t01))
+  return x <= 0.5
+    ? d3.interpolateRgb('#3fb950', '#d29922')(x * 2)
+    : d3.interpolateRgb('#d29922', '#f85149')((x - 0.5) * 2)
+}
 
 const ENTITY_COLORS: Record<OntologyEntityType, string> = {
   Package: '#d29922',
@@ -41,6 +52,7 @@ export function KnowledgeGraph() {
   useAppStore(s => s.locale)
   const svgRef = useRef<SVGSVGElement>(null)
   const [filter, setFilter] = useState<OntologyEntityType | 'all'>('all')
+  const [colorMode, setColorMode] = useState<ColorMode>('type')
   const [tooltip, setTooltip] = useState<{ x: number; y: number; node: GraphNode } | null>(null)
   // Set when 3D rendering fails (no WebGL / library crash) so we degrade to 2D.
   const [force2D, setForce2D] = useState(false)
@@ -54,6 +66,35 @@ export function KnowledgeGraph() {
   useEffect(() => {
     if (render3D) setForce2D(false)
   }, [render3D])
+
+  // Per-node coupling degree + risk classification (for color modes).
+  const { degree, maxDegree, riskById } = useMemo(() => {
+    const deg = new Map<string, number>()
+    const risk = new Map<string, 'anti' | 'pattern'>()
+    if (!ontology) return { degree: deg, maxDegree: 1, riskById: risk }
+    const DEP = new Set(['imports', 'dependsOn', 'calls', 'uses', 'extends', 'implements', 'references'])
+    for (const r of ontology.relations) {
+      if (!DEP.has(r.type)) continue
+      deg.set(r.source, (deg.get(r.source) || 0) + 1)
+      deg.set(r.target, (deg.get(r.target) || 0) + 1)
+    }
+    let mx = 1
+    for (const v of deg.values()) if (v > mx) mx = v
+    const pr = detectPatterns(ontology)
+    for (const e of pr.entities) risk.set(e.entityId, e.tags.some(tg => tg.anti) ? 'anti' : 'pattern')
+    return { degree: deg, maxDegree: mx, riskById: risk }
+  }, [ontology])
+
+  const nodeColor = useCallback((node: GraphNode): string => {
+    if (colorMode === 'coupling') {
+      return couplingColor((degree.get(node.id) || 0) / maxDegree)
+    }
+    if (colorMode === 'risk') {
+      const r = riskById.get(node.id)
+      return r === 'anti' ? '#f85149' : r === 'pattern' ? '#58a6ff' : '#6e7681'
+    }
+    return ENTITY_COLORS[node.type] || '#8b949e'
+  }, [colorMode, degree, maxDegree, riskById])
 
   const buildGraph = useCallback(() => {
     if (use3D || !ontology || !svgRef.current) return
@@ -109,7 +150,7 @@ export function KnowledgeGraph() {
       .data(filteredNodes)
       .join('circle')
       .attr('r', (d: GraphNode) => ENTITY_SIZES[d.type] || 6)
-      .attr('fill', (d: GraphNode) => ENTITY_COLORS[d.type] || '#8b949e')
+      .attr('fill', (d: GraphNode) => nodeColor(d))
       .attr('stroke', '#0d1117')
       .attr('stroke-width', 1.5)
       .attr('cursor', 'pointer')
@@ -169,7 +210,7 @@ export function KnowledgeGraph() {
     })
 
     return () => simulation.stop()
-  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, use3D])
+  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, use3D, nodeColor])
 
   useEffect(() => {
     const cleanup = buildGraph()
@@ -206,11 +247,23 @@ export function KnowledgeGraph() {
           ))}
         </select>
 
+        <Palette size={14} className="text-wiki-muted" />
+        <select
+          value={colorMode}
+          onChange={(e) => setColorMode(e.target.value as ColorMode)}
+          className="text-xs bg-wiki-card border border-wiki-border rounded px-2 py-1 text-wiki-text"
+          title={t('graphColorMode')}
+        >
+          <option value="type">{t('graphColorType')}</option>
+          <option value="coupling">{t('graphColorCoupling')}</option>
+          <option value="risk">{t('graphColorRisk')}</option>
+        </select>
+
         <div className="flex-1" />
 
-        {/* Legend */}
+        {/* Legend (mode-aware) */}
         <div className="flex gap-3 text-[10px] text-wiki-muted">
-          {Object.entries(ENTITY_COLORS)
+          {colorMode === 'type' && Object.entries(ENTITY_COLORS)
             .filter(([type]) => typeCounts[type as OntologyEntityType])
             .map(([type, color]) => (
               <div key={type} className="flex items-center gap-1">
@@ -218,6 +271,20 @@ export function KnowledgeGraph() {
                 {tEntityType(type as OntologyEntityType)}
               </div>
             ))}
+          {colorMode === 'coupling' && (
+            <>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#3fb950' }} />{t('graphColorLow')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#d29922' }} />{t('graphColorMed')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#f85149' }} />{t('graphColorHigh')}</div>
+            </>
+          )}
+          {colorMode === 'risk' && (
+            <>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#f85149' }} />{t('graphColorAnti')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#58a6ff' }} />{t('graphColorPattern')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#6e7681' }} />{t('graphColorPlain')}</div>
+            </>
+          )}
         </div>
       </div>
 

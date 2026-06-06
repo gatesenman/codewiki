@@ -162,6 +162,16 @@ export interface I18nStrings {
   graphEmpty: string
   graphAllEntities: string
   graph3dFallback: string
+  graphColorMode: string
+  graphColorType: string
+  graphColorCoupling: string
+  graphColorRisk: string
+  graphColorLow: string
+  graphColorMed: string
+  graphColorHigh: string
+  graphColorAnti: string
+  graphColorPattern: string
+  graphColorPlain: string
 
   // Search
   searchPlaceholder: string
@@ -602,6 +612,16 @@ const en: I18nStrings = {
   graphEmpty: 'No code entities found. Index a project to see the knowledge graph.',
   graphAllEntities: 'All Entities',
   graph3dFallback: '3D rendering unavailable on this device (no WebGL / GPU) — showing the 2D graph instead.',
+  graphColorMode: 'Color by',
+  graphColorType: 'Type',
+  graphColorCoupling: 'Coupling',
+  graphColorRisk: 'Risk',
+  graphColorLow: 'Low',
+  graphColorMed: 'Medium',
+  graphColorHigh: 'High',
+  graphColorAnti: 'Anti-pattern',
+  graphColorPattern: 'Pattern',
+  graphColorPlain: 'Normal',
 
   searchPlaceholder: 'Search code, wiki, entities...',
   searchResults: 'Results',
@@ -1028,6 +1048,16 @@ const zh: I18nStrings = {
   graphEmpty: '未找到代码实体。请先索引一个项目以查看知识图谱。',
   graphAllEntities: '全部实体',
   graph3dFallback: '当前设备无法渲染 3D（无 WebGL / GPU），已自动切换到 2D 图谱。',
+  graphColorMode: '着色',
+  graphColorType: '类型',
+  graphColorCoupling: '耦合度',
+  graphColorRisk: '风险',
+  graphColorLow: '低',
+  graphColorMed: '中',
+  graphColorHigh: '高',
+  graphColorAnti: '反模式',
+  graphColorPattern: '设计模式',
+  graphColorPlain: '普通',
 
   searchPlaceholder: '搜索代码、文档、实体...',
   searchResults: '结果',
