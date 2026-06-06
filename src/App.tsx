@@ -2,12 +2,18 @@ import { useEffect } from 'react'
 import { useAppStore } from './store'
 import { Layout } from './components/Layout'
 import { WelcomeScreen } from './components/WelcomeScreen'
+import { useProjectWatcher } from './hooks/useProjectWatcher'
+import { t } from './services/i18n'
 
 export default function App() {
   const currentProject = useAppStore(s => s.currentProject)
+  const locale = useAppStore(s => s.locale)
   const config = useAppStore(s => s.config)
   const loadConfig = useAppStore(s => s.loadConfig)
   const loadRecentProjects = useAppStore(s => s.loadRecentProjects)
+
+  // Auto incremental reindex on file changes (when "Auto Re-index" is enabled)
+  useProjectWatcher()
 
   // Load saved config and recent projects on mount
   useEffect(() => {
@@ -36,12 +42,13 @@ export default function App() {
     document.documentElement.style.fontSize = `${config.ui.fontSize}px`
   }, [config.ui.fontSize])
 
-  // Update title
+  // Update title and document language
   useEffect(() => {
     document.title = currentProject
       ? `${currentProject.name} - CodeWiki`
-      : 'CodeWiki - AI Code Knowledge Base'
-  }, [currentProject])
+      : t('appWindowTitle')
+    document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
+  }, [currentProject, locale])
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-wiki-bg text-wiki-text">

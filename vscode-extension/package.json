@@ -4,6 +4,13 @@
   "description": "VSCode extension for CodeWiki — ontology-based code analysis for precise AI modifications",
   "version": "0.2.0",
   "publisher": "codewiki",
+  "license": "MIT",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gaosichun888/codewiki.git",
+    "directory": "vscode-extension"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -120,11 +127,13 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies -o codewiki-vscode-0.2.0.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
     "@types/node": "^20.0.0",
+    "@vscode/vsce": "^3.0.0",
     "typescript": "^5.3.0"
   }
 }

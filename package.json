@@ -1,7 +1,9 @@
 {
   "name": "codewiki",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "DeepWiki-like cross-platform desktop app for code wiki generation, knowledge graph, semantic search, and precise code agent",
+  "author": "gaosichun888",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/gaosichun888/codewiki.git"
@@ -15,6 +17,7 @@
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
     "build:cli": "tsc -p cli/tsconfig.json",
     "build:mcp": "tsc -p server/tsconfig.json",
+    "build:vscode": "cd vscode-extension && npm install && npm run package",
     "cli": "npx ts-node cli/codewiki-cli.ts",
     "test:accuracy": "npx ts-node cli/codewiki-cli.ts test test-fixtures",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -50,8 +53,18 @@
     "asar": true,
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.png"
     },
@@ -65,16 +78,38 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
-        { "target": "zip", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.png"
     },
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Development",
       "maintainer": "CodeWiki <support@codewiki.ai>",
@@ -83,6 +118,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "3d-force-graph": "^1.80.0",
     "d3": "^7.9.0",
     "d3-force": "^3.0.0",
     "glob": "^11.0.0",
@@ -99,6 +135,9 @@
     "rehype-highlight": "^7.0.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
+    "three": "^0.184.0",
+    "three-spritetext": "^1.10.0",
+    "typescript": "^5.6.3",
     "uuid": "^10.0.0",
     "zustand": "^5.0.0"
   },
@@ -109,6 +148,7 @@
     "@types/node": "^25.9.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.184.1",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
@@ -119,7 +159,6 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3",
     "vite": "^6.0.1",
     "vite-plugin-electron": "^0.28.8",
     "vite-plugin-electron-renderer": "^0.14.6",
