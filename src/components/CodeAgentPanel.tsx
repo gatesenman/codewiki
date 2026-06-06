@@ -8,6 +8,7 @@ import { services } from '../services/service-registry'
 import { PatchService, type PatchIO, type RollbackToken } from '../services/patch-service'
 import { TestRunner, stepsFromConfig, type CommandExecutor, type VerifyResult } from '../services/test-runner'
 import { CodeAgentPlanner, LocalStorageMemory, type PlannerAnalyzer, type PlannerVerifier, type PlanRun } from '../services/agent-planner'
+import { t } from '../services/i18n'
 import type { CodeModification } from '../types'
 
 interface AgentResult {
@@ -20,6 +21,7 @@ interface AgentResult {
 export function CodeAgentPanel() {
   const { currentProject, settings } = useAppStore()
   const verifyConfig = useAppStore(s => s.config.verify)
+  useAppStore(s => s.locale)
   const [request, setRequest] = useState('')
   const [result, setResult] = useState<AgentResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -88,10 +90,10 @@ export function CodeAgentPanel() {
           return merged
         })
       } else {
-        setError(`Apply failed (no changes written): ${res.errors.join('; ')}`)
+        setError(`${t('agentFailedToApply')}${res.errors.join('; ')}`)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Apply failed')
+      setError(err instanceof Error ? err.message : t('agentApplyFailed'))
     } finally {
       setApplying(false)
     }
@@ -144,7 +146,7 @@ export function CodeAgentPanel() {
       )
       setResult(agentResult)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed')
+      setError(err instanceof Error ? err.message : t('agentAnalysisFailed'))
     } finally {
       setLoading(false)
     }
@@ -207,14 +209,13 @@ export function CodeAgentPanel() {
       <div className="px-6 py-3 border-b border-wiki-border bg-wiki-sidebar">
         <div className="flex items-center gap-2 mb-2">
           <Bot size={18} className="text-wiki-green" />
-          <h2 className="text-sm font-semibold">Code Agent</h2>
+          <h2 className="text-sm font-semibold">{t('agentTitle')}</h2>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-wiki-green/10 text-wiki-green border border-wiki-green/20">
-            Ontology-Constrained
+            {t('agentBadge')}
           </span>
         </div>
         <p className="text-xs text-wiki-muted">
-          Precise code modifications using ontology-based impact analysis. Prevents hallucination by
-          verifying all changes against the code knowledge graph.
+          {t('agentHeaderDesc')}
         </p>
       </div>
 
@@ -223,7 +224,7 @@ export function CodeAgentPanel() {
         <textarea
           value={request}
           onChange={(e) => setRequest(e.target.value)}
-          placeholder="Describe the code change you want to make... e.g., 'Add validation to the UserService.createUser method' or 'Rename the handleSubmit function and update all callers'"
+          placeholder={t('agentPlaceholder')}
           rows={3}
           className="w-full px-4 py-3 rounded-lg bg-wiki-bg border border-wiki-border text-sm text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent resize-none"
         />
@@ -231,21 +232,19 @@ export function CodeAgentPanel() {
           <div className="flex items-center gap-2 text-[10px] text-wiki-muted">
             <Shield size={12} />
             <span>
-              {currentProject?.ontologyGraph.entities.length || 0} entities &bull;{' '}
-              {currentProject?.ontologyGraph.relations.length || 0} relations in knowledge graph
+              {currentProject?.ontologyGraph.entities.length || 0} {t('footerEntities')} &bull;{' '}
+              {currentProject?.ontologyGraph.relations.length || 0} {t('footerRelations')} {t('agentInKnowledgeGraph')}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePlan}
               disabled={planning || loading || !request.trim() || currentProject?.type !== 'local'}
-              title={canVerify
-                ? 'Analyze, apply, run verification, and auto-retry on failure'
-                : 'Analyze and apply automatically (enable Verification in Settings to add a test/build gate)'}
+              title={canVerify ? t('agentAutoFixTitleVerify') : t('agentAutoFixTitlePlain')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-wiki-accent/15 text-wiki-accent text-sm font-medium hover:bg-wiki-accent/25 disabled:opacity-50 transition-colors"
             >
               {planning ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-              {planning ? 'Working...' : 'Auto-fix'}
+              {planning ? t('agentWorking') : t('agentAutoFix')}
             </button>
             <button
               onClick={handleAnalyze}
@@ -253,7 +252,7 @@ export function CodeAgentPanel() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-wiki-green/15 text-wiki-green text-sm font-medium hover:bg-wiki-green/25 disabled:opacity-50 transition-colors"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {loading ? 'Analyzing...' : 'Analyze & Plan'}
+              {loading ? t('agentAnalyzing') : t('agentAnalyzePlan')}
             </button>
           </div>
         </div>
@@ -304,7 +303,7 @@ export function CodeAgentPanel() {
             <div>
               <h3 className="text-sm font-semibold text-wiki-text mb-2 flex items-center gap-2">
                 <Code size={14} />
-                Analysis
+                {t('agentAnalysisTitle')}
               </h3>
               <div className="p-4 rounded-lg bg-wiki-card border border-wiki-border text-sm text-wiki-text/90 whitespace-pre-wrap">
                 {result.analysis}
@@ -316,7 +315,7 @@ export function CodeAgentPanel() {
               <div>
                 <h3 className="text-sm font-semibold text-wiki-text mb-2 flex items-center gap-2">
                   <GitBranch size={14} />
-                  Impacted Files ({result.impactedFiles.length})
+                  {t('agentImpactedFiles')} ({result.impactedFiles.length})
                 </h3>
                 <div className="space-y-1">
                   {result.impactedFiles.map((file, i) => (
@@ -335,29 +334,29 @@ export function CodeAgentPanel() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-wiki-text flex items-center gap-2">
                     <CheckCircle2 size={14} className="text-wiki-green" />
-                    Proposed Modifications ({result.modifications.length})
+                    {t('agentProposedMods')} ({result.modifications.length})
                   </h3>
                   <div className="flex items-center gap-2">
                     {canVerify && (
                       <button
                         onClick={handleVerify}
                         disabled={verifying || applying}
-                        title={`Run: ${verifySteps.map(s => s.command).join(' && ')}`}
+                        title={`${t('agentVerifyRun')}${verifySteps.map(s => s.command).join(' && ')}`}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-wiki-accent/15 text-wiki-accent text-xs font-medium hover:bg-wiki-accent/25 disabled:opacity-50 transition-colors"
                       >
                         {verifying ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
-                        Verify
+                        {t('agentVerify')}
                       </button>
                     )}
                     {rollbackToken && Object.keys(rollbackToken).length > 0 && (
                       <button
                         onClick={handleRollback}
                         disabled={applying}
-                        title="Restore all modified files to their state before applying"
+                        title={t('agentRollbackTitle')}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-wiki-orange/15 text-wiki-orange text-xs font-medium hover:bg-wiki-orange/25 disabled:opacity-50 transition-colors"
                       >
                         {applying ? <Loader2 size={12} className="animate-spin" /> : <Undo2 size={12} />}
-                        Rollback ({Object.keys(rollbackToken).length})
+                        {t('agentRollback')} ({Object.keys(rollbackToken).length})
                       </button>
                     )}
                     <button
@@ -366,7 +365,7 @@ export function CodeAgentPanel() {
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-wiki-green/15 text-wiki-green text-xs font-medium hover:bg-wiki-green/25 disabled:opacity-50 transition-colors"
                     >
                       {applying ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                      Apply All ({result.modifications.length - appliedMods.size} remaining)
+                      {t('agentApplyAll')} ({result.modifications.length - appliedMods.size} {t('agentRemaining')})
                     </button>
                   </div>
                 </div>
@@ -377,12 +376,12 @@ export function CodeAgentPanel() {
                         <FileText size={12} className="text-wiki-muted" />
                         <span className="text-xs font-mono text-wiki-text">{mod.filePath}</span>
                         <span className="text-[10px] text-wiki-muted">
-                          lines {mod.startLine}-{mod.endLine}
+                          {t('agentLinesLabel')} {mod.startLine}-{mod.endLine}
                         </span>
                         <span className="flex-1" />
                         {appliedMods.has(i) ? (
                           <span className="text-[10px] text-wiki-green flex items-center gap-1">
-                            <CheckCircle2 size={10} /> Applied
+                            <CheckCircle2 size={10} /> {t('agentApplied')}
                           </span>
                         ) : (
                           <button
@@ -390,7 +389,7 @@ export function CodeAgentPanel() {
                             disabled={applying}
                             className="text-[10px] px-2 py-1 rounded bg-wiki-accent/15 text-wiki-accent hover:bg-wiki-accent/25 disabled:opacity-50 transition-colors"
                           >
-                            Apply
+                            {t('agentApply')}
                           </button>
                         )}
                       </div>
@@ -399,7 +398,7 @@ export function CodeAgentPanel() {
                       </div>
                       {mod.originalContent && (
                         <div className="border-t border-wiki-border">
-                          <div className="px-3 py-1 text-[10px] text-red-400 bg-red-500/5">- Original</div>
+                          <div className="px-3 py-1 text-[10px] text-red-400 bg-red-500/5">- {t('agentOriginal')}</div>
                           <pre className="px-3 py-2 text-xs text-red-400/80 bg-red-500/5 overflow-x-auto">
                             <code>{mod.originalContent}</code>
                           </pre>
@@ -407,7 +406,7 @@ export function CodeAgentPanel() {
                       )}
                       {mod.newContent && (
                         <div className="border-t border-wiki-border">
-                          <div className="px-3 py-1 text-[10px] text-wiki-green bg-green-500/5">+ Modified</div>
+                          <div className="px-3 py-1 text-[10px] text-wiki-green bg-green-500/5">+ {t('agentModified')}</div>
                           <pre className="px-3 py-2 text-xs text-wiki-green/80 bg-green-500/5 overflow-x-auto">
                             <code>{mod.newContent}</code>
                           </pre>
@@ -458,7 +457,7 @@ export function CodeAgentPanel() {
               <div>
                 <h3 className="text-sm font-semibold text-wiki-orange mb-2 flex items-center gap-2">
                   <AlertTriangle size={14} />
-                  Warnings
+                  {t('agentWarnings')}
                 </h3>
                 <div className="space-y-2">
                   {result.warnings.map((warning, i) => (
@@ -475,17 +474,16 @@ export function CodeAgentPanel() {
         {!result && !loading && !error && (
           <div className="text-center py-12 text-wiki-muted">
             <Bot size={40} className="mx-auto mb-3 text-wiki-muted/30" />
-            <h3 className="text-sm font-medium mb-2">Ontology-Constrained Code Agent</h3>
+            <h3 className="text-sm font-medium mb-2">{t('agentEmptyTitle')}</h3>
             <p className="text-xs text-wiki-muted/60 max-w-md mx-auto mb-6">
-              Describe the code change you want. The agent will analyze the ontology graph
-              to identify all affected entities and propose precise modifications without hallucination.
+              {t('agentEmptyDesc')}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {[
-                'Add input validation to the main form handler',
-                'Refactor the database query functions into a repository pattern',
-                'Add error handling to all API endpoints',
-                'Rename UserService to AccountService and update all references',
+                t('agentSuggestion1'),
+                t('agentSuggestion2'),
+                t('agentSuggestion3'),
+                t('agentSuggestion4'),
               ].map(suggestion => (
                 <button
                   key={suggestion}

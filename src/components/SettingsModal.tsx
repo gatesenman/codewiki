@@ -6,7 +6,8 @@ import {
 import { listWikiTemplates } from '../services/wiki-prompt-templates'
 import { useAppStore } from '../store'
 import type { CodeWikiConfig } from '../services/config-manager'
-import type { Locale } from '../services/i18n'
+import { t } from '../services/i18n'
+import type { Locale, I18nStrings } from '../services/i18n'
 
 interface Props {
   onClose: () => void
@@ -21,18 +22,19 @@ const PROVIDERS = [
   { id: 'ollama' as const, name: 'Ollama (Local)', models: ['llama3.1', 'codellama', 'mistral', 'qwen2.5-coder'] },
 ]
 
-const TABS: { id: SettingsTab; label: string; icon: typeof Server }[] = [
-  { id: 'ai', label: 'AI / LLM', icon: Cpu },
-  { id: 'indexing', label: 'Indexing', icon: FolderCog },
-  { id: 'ontology', label: 'Ontology', icon: GitBranch },
-  { id: 'search', label: 'Search', icon: Search },
-  { id: 'wiki', label: 'Wiki', icon: BookOpen },
-  { id: 'ui', label: 'Interface', icon: Palette },
-  { id: 'behavior', label: 'Behavior', icon: Eye },
+const TABS: { id: SettingsTab; labelKey: keyof I18nStrings; icon: typeof Server }[] = [
+  { id: 'ai', labelKey: 'settingsAi', icon: Cpu },
+  { id: 'indexing', labelKey: 'settingsIndexing', icon: FolderCog },
+  { id: 'ontology', labelKey: 'settingsOntology', icon: GitBranch },
+  { id: 'search', labelKey: 'settingsSearch', icon: Search },
+  { id: 'wiki', labelKey: 'settingsWiki', icon: BookOpen },
+  { id: 'ui', labelKey: 'settingsInterface', icon: Palette },
+  { id: 'behavior', labelKey: 'settingsBehavior', icon: Eye },
 ]
 
 export function SettingsModal({ onClose }: Props) {
   const { config, updateConfig, resetConfig, setAppLocale } = useAppStore()
+  useAppStore(s => s.locale)
   const [activeTab, setActiveTab] = useState<SettingsTab>('ai')
   const [localConfig, setLocalConfig] = useState<CodeWikiConfig>(JSON.parse(JSON.stringify(config)))
 
@@ -66,7 +68,7 @@ export function SettingsModal({ onClose }: Props) {
       <div className="w-[720px] max-h-[85vh] bg-wiki-sidebar border border-wiki-border rounded-xl shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-wiki-border shrink-0">
-          <h2 className="text-lg font-semibold">Settings</h2>
+          <h2 className="text-lg font-semibold">{t('settingsTitle')}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-wiki-card text-wiki-muted hover:text-wiki-text">
             <X size={18} />
           </button>
@@ -88,7 +90,7 @@ export function SettingsModal({ onClose }: Props) {
                   }`}
                 >
                   <Icon size={14} />
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               )
             })}
@@ -113,20 +115,20 @@ export function SettingsModal({ onClose }: Props) {
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-wiki-muted hover:text-wiki-text transition-colors"
           >
             <RotateCcw size={14} />
-            Reset to Defaults
+            {t('settingsReset')}
           </button>
           <div className="flex gap-3">
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-wiki-border text-sm text-wiki-muted hover:text-wiki-text transition-colors"
             >
-              Cancel
+              {t('settingsCancel')}
             </button>
             <button
               onClick={handleSave}
               className="px-4 py-2 rounded-lg bg-wiki-accent text-white text-sm font-medium hover:bg-wiki-accent/80 transition-colors"
             >
-              Save Settings
+              {t('settingsSave')}
             </button>
           </div>
         </div>
@@ -206,7 +208,7 @@ function AISettings({ config, updateLocal }: TabProps) {
       <div>
         <label className="flex items-center gap-2 text-sm font-medium text-wiki-text mb-2">
           <Server size={14} />
-          LLM Provider
+          {t('settingsProvider')}
         </label>
         <div className="grid grid-cols-2 gap-2">
           {PROVIDERS.map(provider => (
@@ -229,19 +231,19 @@ function AISettings({ config, updateLocal }: TabProps) {
       <div>
         <label className="flex items-center gap-2 text-sm font-medium text-wiki-text mb-2">
           <Key size={14} />
-          API Key {config.llm.provider === 'ollama' && <span className="text-wiki-muted">(optional)</span>}
+          {t('settingsApiKey')} {config.llm.provider === 'ollama' && <span className="text-wiki-muted">({t('settingsApiKeyOptional')})</span>}
         </label>
         <input
           type="password"
           value={config.llm.apiKey}
           onChange={e => updateLocal('llm', { apiKey: e.target.value })}
-          placeholder={`Enter your ${currentProvider.name} API key...`}
+          placeholder={t('settingsApiKeyPlaceholder').replace('{provider}', currentProvider.name)}
           className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
         />
       </div>
 
       {/* Model */}
-      <SettingRow label="Model">
+      <SettingRow label={t('settingsModel')}>
         <select
           value={config.llm.model}
           onChange={e => updateLocal('llm', { model: e.target.value })}
@@ -256,7 +258,7 @@ function AISettings({ config, updateLocal }: TabProps) {
       {/* API Base URL */}
       <div>
         <label className="text-sm font-medium text-wiki-text mb-2 block">
-          API Base URL <span className="text-wiki-muted">(optional)</span>
+          {t('settingsApiBaseUrl')} <span className="text-wiki-muted">({t('settingsOptional')})</span>
         </label>
         <input
           type="text"
@@ -268,16 +270,16 @@ function AISettings({ config, updateLocal }: TabProps) {
       </div>
 
       <div className="border-t border-wiki-border pt-4 space-y-4">
-        <SettingRow label="Temperature" description="Controls randomness. Lower = more focused.">
+        <SettingRow label={t('settingsTemperature')} description={t('settingsTemperatureDesc')}>
           <NumberInput value={config.llm.temperature} onChange={v => updateLocal('llm', { temperature: v })} min={0} max={2} step={0.1} />
         </SettingRow>
-        <SettingRow label="Max Tokens" description="Maximum response length.">
+        <SettingRow label={t('settingsMaxTokens')} description={t('settingsMaxTokensDesc')}>
           <NumberInput value={config.llm.maxTokens} onChange={v => updateLocal('llm', { maxTokens: v })} min={256} max={128000} step={256} />
         </SettingRow>
-        <SettingRow label="Context Window" description="Max characters per file sent to LLM.">
+        <SettingRow label={t('settingsContextWindow')} description={t('settingsContextWindowDesc')}>
           <NumberInput value={config.llm.contextWindow} onChange={v => updateLocal('llm', { contextWindow: v })} min={1000} max={100000} step={1000} />
         </SettingRow>
-        <SettingRow label="Stream Response" description="Enable streaming output.">
+        <SettingRow label={t('settingsStreamResponse')} description={t('settingsStreamResponseDesc')}>
           <Toggle checked={config.llm.streamResponse} onChange={v => updateLocal('llm', { streamResponse: v })} />
         </SettingRow>
       </div>
@@ -291,13 +293,13 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
 
   return (
     <>
-      <SettingRow label="Max Directory Depth" description="How deep to traverse folders.">
+      <SettingRow label={t('settingsMaxDepth')} description={t('settingsMaxDepthDesc')}>
         <NumberInput value={config.indexing.maxDepth} onChange={v => updateLocal('indexing', { maxDepth: v })} min={1} max={20} />
       </SettingRow>
-      <SettingRow label="Max File Size" description="Skip files larger than this (bytes).">
+      <SettingRow label={t('settingsMaxFileSize')} description={t('settingsMaxFileSizeDesc')}>
         <NumberInput value={config.indexing.maxFileSize} onChange={v => updateLocal('indexing', { maxFileSize: v })} min={1000} max={10000000} step={10000} />
       </SettingRow>
-      <SettingRow label="Auto Re-index" description="Watch the project folder and incrementally re-index on file changes (local projects).">
+      <SettingRow label={t('settingsAutoReindex')} description={t('settingsAutoReindexDesc')}>
         <Toggle checked={config.indexing.autoReindex} onChange={v => updateLocal('indexing', { autoReindex: v })} />
       </SettingRow>
 
@@ -306,7 +308,7 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
         <div className="flex items-center justify-between mb-2">
           <label className="flex items-center gap-2 text-sm font-medium text-wiki-text">
             <FileCode size={14} />
-            File Extensions ({config.indexing.extensions.length})
+            {t('settingsFileExtensions')} ({config.indexing.extensions.length})
           </label>
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2">
@@ -343,7 +345,7 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
       <div className="border-t border-wiki-border pt-4">
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm font-medium text-wiki-text">
-            Ignored Directories ({config.indexing.ignoreDirs.length})
+            {t('settingsIgnoredDirs')} ({config.indexing.ignoreDirs.length})
           </label>
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2">
@@ -381,19 +383,19 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
 function OntologySettings({ config, updateLocal }: TabProps) {
   return (
     <>
-      <SettingRow label="Impact Analysis Depth" description="BFS traversal depth for impact analysis.">
+      <SettingRow label={t('settingsImpactDepth')} description={t('settingsImpactDepthDesc')}>
         <NumberInput value={config.ontology.impactDepth} onChange={v => updateLocal('ontology', { impactDepth: v })} min={1} max={10} />
       </SettingRow>
-      <SettingRow label="Warning: Entity Count" description="Warn when impact exceeds this many entities.">
+      <SettingRow label={t('settingsWarnEntities')} description={t('settingsWarnEntitiesDesc')}>
         <NumberInput value={config.ontology.warningThreshold.entities} onChange={v => updateLocal('ontology', { warningThreshold: { ...config.ontology.warningThreshold, entities: v } })} min={1} max={100} />
       </SettingRow>
-      <SettingRow label="Warning: File Count" description="Warn when impact spans more than this many files.">
+      <SettingRow label={t('settingsWarnFiles')} description={t('settingsWarnFilesDesc')}>
         <NumberInput value={config.ontology.warningThreshold.files} onChange={v => updateLocal('ontology', { warningThreshold: { ...config.ontology.warningThreshold, files: v } })} min={1} max={50} />
       </SettingRow>
-      <SettingRow label="Extract Decorators" description="Include decorators in ontology extraction.">
+      <SettingRow label={t('settingsExtractDecorators')} description={t('settingsExtractDecoratorsDesc')}>
         <Toggle checked={config.ontology.extractDecorators} onChange={v => updateLocal('ontology', { extractDecorators: v })} />
       </SettingRow>
-      <SettingRow label="Extract Arrow Functions" description="Include arrow functions and React components.">
+      <SettingRow label={t('settingsExtractArrow')} description={t('settingsExtractArrowDesc')}>
         <Toggle checked={config.ontology.extractArrowFunctions} onChange={v => updateLocal('ontology', { extractArrowFunctions: v })} />
       </SettingRow>
     </>
@@ -405,7 +407,7 @@ function WikiSettings({ config, updateLocal }: TabProps) {
   const active = templates.find(t => t.id === config.wiki.promptStyle) || templates[0]
   return (
     <>
-      <SettingRow label="文档风格模板" description="选择 wiki 生成的提示词风格。不同风格会产生不同的文档结构与详略程度。">
+      <SettingRow label={t('settingsWikiStyle')} description={t('settingsWikiStyleDesc')}>
         <SelectInput
           value={config.wiki.promptStyle}
           options={templates.map(t => ({ value: t.id, label: t.label }))}
@@ -415,13 +417,13 @@ function WikiSettings({ config, updateLocal }: TabProps) {
       <div className="rounded-lg border border-wiki-border bg-wiki-bg p-3 text-xs text-wiki-muted leading-relaxed">
         {active.description}
       </div>
-      <SettingRow label="页面数量" description="生成 wiki 的目标页面数。">
+      <SettingRow label={t('settingsPageCount')} description={t('settingsPageCountDesc')}>
         <NumberInput value={config.wiki.pageCount} onChange={v => updateLocal('wiki', { pageCount: v })} min={1} max={20} />
       </SettingRow>
-      <SettingRow label="含 Mermaid 图表" description="在 wiki 中生成架构/流程图。">
+      <SettingRow label={t('settingsIncludeMermaid')} description={t('settingsIncludeMermaidDesc')}>
         <Toggle checked={config.wiki.includeMermaid} onChange={v => updateLocal('wiki', { includeMermaid: v })} />
       </SettingRow>
-      <SettingRow label="打开项目时自动生成" description="索引完成后自动生成 wiki。">
+      <SettingRow label={t('settingsAutoGenerate')} description={t('settingsAutoGenerateDesc')}>
         <Toggle checked={config.wiki.autoGenerate} onChange={v => updateLocal('wiki', { autoGenerate: v })} />
       </SettingRow>
     </>
@@ -431,13 +433,13 @@ function WikiSettings({ config, updateLocal }: TabProps) {
 function SearchSettings({ config, updateLocal }: TabProps) {
   return (
     <>
-      <SettingRow label="Max Results" description="Maximum number of search results.">
+      <SettingRow label={t('settingsMaxResults')} description={t('settingsMaxResultsDesc')}>
         <NumberInput value={config.search.maxResults} onChange={v => updateLocal('search', { maxResults: v })} min={1} max={100} />
       </SettingRow>
-      <SettingRow label="Min Score" description="Minimum similarity threshold (0-1).">
+      <SettingRow label={t('settingsMinScore')} description={t('settingsMinScoreDesc')}>
         <NumberInput value={config.search.minScore} onChange={v => updateLocal('search', { minScore: v })} min={0} max={1} step={0.01} />
       </SettingRow>
-      <SettingRow label="Snippet Length" description="Max characters shown per result snippet.">
+      <SettingRow label={t('settingsSnippetLength')} description={t('settingsSnippetLengthDesc')}>
         <NumberInput value={config.search.snippetLength} onChange={v => updateLocal('search', { snippetLength: v })} min={100} max={2000} step={100} />
       </SettingRow>
       <SettingRow label="Hybrid Search (Embeddings)" description="Combine TF-IDF with dense embeddings (RRF). Requires an OpenAI key or local Ollama; rebuild index after enabling.">
@@ -447,15 +449,15 @@ function SearchSettings({ config, updateLocal }: TabProps) {
       <div className="border-t border-wiki-border pt-4 space-y-4">
         <h4 className="text-sm font-medium text-wiki-text flex items-center gap-2">
           <GitBranch size={14} />
-          Knowledge Graph
+          {t('settingsKnowledgeGraph')}
         </h4>
-        <SettingRow label="Force Strength" description="Repulsion between nodes.">
+        <SettingRow label={t('settingsForceStrength')} description={t('settingsForceStrengthDesc')}>
           <NumberInput value={config.graph.forceStrength} onChange={v => updateLocal('graph', { forceStrength: v })} min={-1000} max={0} step={10} />
         </SettingRow>
-        <SettingRow label="Link Distance" description="Distance between connected nodes.">
+        <SettingRow label={t('settingsLinkDistance')} description={t('settingsLinkDistanceDesc')}>
           <NumberInput value={config.graph.linkDistance} onChange={v => updateLocal('graph', { linkDistance: v })} min={20} max={500} step={10} />
         </SettingRow>
-        <SettingRow label="Max Nodes" description="Maximum nodes to render.">
+        <SettingRow label={t('settingsMaxNodes')} description={t('settingsMaxNodesDesc')}>
           <NumberInput value={config.graph.maxNodes} onChange={v => updateLocal('graph', { maxNodes: v })} min={50} max={5000} step={50} />
         </SettingRow>
       </div>
@@ -466,18 +468,18 @@ function SearchSettings({ config, updateLocal }: TabProps) {
 function UISettings({ config, updateLocal }: TabProps) {
   return (
     <>
-      <SettingRow label="Theme" description="Application color theme.">
+      <SettingRow label={t('settingsTheme')} description={t('settingsThemeDesc')}>
         <SelectInput
           value={config.ui.theme}
           options={[
-            { value: 'dark', label: 'Dark' },
-            { value: 'light', label: 'Light' },
-            { value: 'system', label: 'System' },
+            { value: 'dark', label: t('settingsThemeDark') },
+            { value: 'light', label: t('settingsThemeLight') },
+            { value: 'system', label: t('settingsThemeSystem') },
           ]}
           onChange={v => updateLocal('ui', { theme: v })}
         />
       </SettingRow>
-      <SettingRow label="Language" description="Interface language.">
+      <SettingRow label={t('settingsLanguage')} description={t('settingsLanguageDesc')}>
         <SelectInput
           value={config.ui.language}
           options={[
@@ -487,26 +489,26 @@ function UISettings({ config, updateLocal }: TabProps) {
           onChange={v => updateLocal('ui', { language: v })}
         />
       </SettingRow>
-      <SettingRow label="Font Size" description="Base font size in pixels.">
+      <SettingRow label={t('settingsFontSize')} description={t('settingsFontSizeDesc')}>
         <NumberInput value={config.ui.fontSize} onChange={v => updateLocal('ui', { fontSize: v })} min={10} max={24} />
       </SettingRow>
-      <SettingRow label="Sidebar Width" description="Sidebar width in pixels.">
+      <SettingRow label={t('settingsSidebarWidth')} description={t('settingsSidebarWidthDesc')}>
         <NumberInput value={config.ui.sidebarWidth} onChange={v => updateLocal('ui', { sidebarWidth: v })} min={180} max={400} step={10} />
       </SettingRow>
-      <SettingRow label="Sidebar Position" description="Which side to show the sidebar.">
+      <SettingRow label={t('settingsSidebarPosition')} description={t('settingsSidebarPositionDesc')}>
         <SelectInput
           value={config.ui.sidebarPosition}
           options={[
-            { value: 'left', label: 'Left' },
-            { value: 'right', label: 'Right' },
+            { value: 'left', label: t('settingsPosLeft') },
+            { value: 'right', label: t('settingsPosRight') },
           ]}
           onChange={v => updateLocal('ui', { sidebarPosition: v })}
         />
       </SettingRow>
-      <SettingRow label="Show Line Numbers" description="Show line numbers in code view.">
+      <SettingRow label={t('settingsShowLineNumbers')} description={t('settingsShowLineNumbersDesc')}>
         <Toggle checked={config.ui.showLineNumbers} onChange={v => updateLocal('ui', { showLineNumbers: v })} />
       </SettingRow>
-      <SettingRow label="Word Wrap" description="Wrap long lines in code view.">
+      <SettingRow label={t('settingsWordWrap')} description={t('settingsWordWrapDesc')}>
         <Toggle checked={config.ui.wordWrap} onChange={v => updateLocal('ui', { wordWrap: v })} />
       </SettingRow>
     </>
@@ -516,31 +518,31 @@ function UISettings({ config, updateLocal }: TabProps) {
 function BehaviorSettings({ config, updateLocal }: TabProps) {
   return (
     <>
-      <SettingRow label="Auto Save" description="Automatically save project data.">
+      <SettingRow label={t('settingsAutoSave')} description={t('settingsAutoSaveDesc')}>
         <Toggle checked={config.behavior.autoSave} onChange={v => updateLocal('behavior', { autoSave: v })} />
       </SettingRow>
-      <SettingRow label="Auto Save Interval" description="Save interval in seconds.">
+      <SettingRow label={t('settingsAutoSaveInterval')} description={t('settingsAutoSaveIntervalDesc')}>
         <NumberInput value={config.behavior.autoSaveInterval / 1000} onChange={v => updateLocal('behavior', { autoSaveInterval: v * 1000 })} min={5} max={300} />
       </SettingRow>
-      <SettingRow label="Confirm Before Apply" description="Show confirmation before applying code changes.">
+      <SettingRow label={t('settingsConfirmApply')} description={t('settingsConfirmApplyDesc')}>
         <Toggle checked={config.behavior.confirmBeforeApply} onChange={v => updateLocal('behavior', { confirmBeforeApply: v })} />
       </SettingRow>
-      <SettingRow label="Remember Last Project" description="Reopen the last project on startup.">
+      <SettingRow label={t('settingsRememberProject')} description={t('settingsRememberProjectDesc')}>
         <Toggle checked={config.behavior.rememberLastProject} onChange={v => updateLocal('behavior', { rememberLastProject: v })} />
       </SettingRow>
-      <SettingRow label="Max Recent Projects" description="Number of recent projects to remember.">
+      <SettingRow label={t('settingsMaxRecent')} description={t('settingsMaxRecentDesc')}>
         <NumberInput value={config.behavior.maxRecentProjects} onChange={v => updateLocal('behavior', { maxRecentProjects: v })} min={1} max={50} />
       </SettingRow>
 
       <div className="border-t border-wiki-border pt-4 space-y-4">
         <h4 className="text-sm font-medium text-wiki-text flex items-center gap-2">
           <Bell size={14} />
-          Notifications
+          {t('settingsNotifications')}
         </h4>
-        <SettingRow label="Show Progress" description="Display indexing progress notifications.">
+        <SettingRow label={t('settingsShowProgress')} description={t('settingsShowProgressDesc')}>
           <Toggle checked={config.notifications.showProgress} onChange={v => updateLocal('notifications', { showProgress: v })} />
         </SettingRow>
-        <SettingRow label="Impact Warnings" description="Show warnings for high-impact changes.">
+        <SettingRow label={t('settingsImpactWarning')} description={t('settingsImpactWarningDesc')}>
           <Toggle checked={config.notifications.showImpactWarning} onChange={v => updateLocal('notifications', { showImpactWarning: v })} />
         </SettingRow>
       </div>

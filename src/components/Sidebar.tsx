@@ -4,6 +4,7 @@ import {
   Hash, Box, Braces, Code, Database,
 } from 'lucide-react'
 import { useAppStore } from '../store'
+import { t, tEntityTypePlural } from '../services/i18n'
 import type { WikiPage, OntologyEntity, OntologyEntityType } from '../types'
 
 const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
@@ -25,6 +26,7 @@ export function Sidebar() {
     currentProject, activePageId, setActivePageId,
     sidebarCollapsed, viewMode, setViewMode,
   } = useAppStore()
+  useAppStore(s => s.locale)
 
   if (sidebarCollapsed) return null
 
@@ -37,12 +39,12 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto">
         <div className="px-3 pt-3 pb-1">
           <h3 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">
-            Wiki Pages
+            {t('sidebarWikiPages')}
           </h3>
         </div>
         {wikiPages.length === 0 ? (
           <div className="px-3 py-4 text-xs text-wiki-muted/60 text-center">
-            No wiki pages yet.<br/>Click "Generate Wiki" to create documentation.
+            {t('sidebarNoWikiPages')}<br/>{t('sidebarGenerateHint')}
           </div>
         ) : (
           <div className="px-1.5 pb-2">
@@ -67,7 +69,7 @@ export function Sidebar() {
           <>
             <div className="px-3 pt-4 pb-1 border-t border-wiki-border">
               <h3 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">
-                Code Entities ({ontology.entities.length})
+                {t('sidebarCodeEntities')} ({ontology.entities.length})
               </h3>
             </div>
             <OntologyTree />
@@ -79,9 +81,9 @@ export function Sidebar() {
       {currentProject && (
         <div className="px-3 py-2 border-t border-wiki-border bg-wiki-bg/50">
           <div className="flex items-center justify-between text-[10px] text-wiki-muted/60">
-            <span>{ontology?.entities.length || 0} entities</span>
-            <span>{ontology?.relations.length || 0} relations</span>
-            <span>{wikiPages.length} pages</span>
+            <span>{ontology?.entities.length || 0} {t('footerEntities')}</span>
+            <span>{ontology?.relations.length || 0} {t('footerRelations')}</span>
+            <span>{wikiPages.length} {t('footerPages')}</span>
           </div>
         </div>
       )}
@@ -143,7 +145,7 @@ function OntologyTree() {
             >
               {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               <Icon size={14} />
-              <span className="truncate">{type === 'Class' ? 'Classes' : type + 's'}</span>
+              <span className="truncate">{tEntityTypePlural(type)}</span>
               <span className="ml-auto text-[10px] text-wiki-muted/60">{entities.length}</span>
             </button>
             {isOpen && (
@@ -162,7 +164,7 @@ function OntologyTree() {
                 ))}
                 {entities.length > 50 && (
                   <div className="sidebar-item text-[10px] py-0.5 text-wiki-muted/50">
-                    +{entities.length - 50} more
+                    +{entities.length - 50} {t('more')}
                   </div>
                 )}
               </div>
