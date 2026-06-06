@@ -23,6 +23,38 @@ itself.
 - [Available tools](#available-tools)
 - [Troubleshooting](#troubleshooting)
 
+## Quick start (recommended): one-click config with the CLI
+
+If you installed the CLI (`./install-cli.sh`, or `npm run install:cli`, or
+`npm i -g .`), you don't have to write any JSON by hand. From inside the project
+you want to query, run:
+
+```bash
+codewiki init --ide cursor        # writes .cursor/mcp.json
+codewiki init --ide vscode        # writes .vscode/mcp.json
+codewiki init --ide claude-code   # writes ./.mcp.json
+codewiki init --ide all           # writes config for every supported IDE
+codewiki init --ide cursor --print   # preview without writing files
+```
+
+`init` auto-detects the absolute path of the bundled MCP server (compiled
+`dist/server/mcp-server.js`, or `ts-node` on the source as a fallback), fills in
+`PROJECT_PATH`, and **merges** into any existing config without clobbering other
+servers. It also writes `.codewiki/agent-usage.md` (usage rules for the code
+agent) and a default `.codewikirc`.
+
+Supported `--ide` values: `cursor`, `vscode`, `claude` (Claude Desktop),
+`claude-code`, `windsurf`, `cline`, `codex`, `all`.
+
+Print per-IDE setup guidance any time:
+
+```bash
+codewiki mcp-guide cursor     # instructions for one IDE
+codewiki mcp-guide --verify   # show how to smoke-test the server
+```
+
+The rest of this document is the manual reference for each client.
+
 ## Build
 
 Requires Node.js 18+.

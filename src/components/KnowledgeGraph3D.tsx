@@ -13,7 +13,25 @@ interface Graph3DProps {
   nodeSize: number
   showLabels: boolean
   rotationSpeed: number
+  forceStrength: number
+  linkDistance: number
   onSelect: (id: string) => void
+  /** Called when 3D rendering cannot run (no WebGL / library throws), so the
+   *  parent can fall back to the 2D SVG instead of showing a blank canvas. */
+  onError?: () => void
+}
+
+/** True when the browser can actually create a WebGL context. */
+function webglAvailable(): boolean {
+  try {
+    const canvas = document.createElement('canvas')
+    return !!(
+      window.WebGLRenderingContext &&
+      (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+    )
+  } catch {
+    return false
+  }
 }
 
 /** A node after the library merges our GraphNode fields onto its NodeObject. */
@@ -27,17 +45,24 @@ type N = NodeObject & GraphNode
  */
 export function KnowledgeGraph3D({
   nodes, links, colors, sizes, selectedId,
-  nodeSize, showLabels, rotationSpeed, onSelect,
+  nodeSize, showLabels, rotationSpeed, forceStrength, linkDistance, onSelect, onError,
 }: Graph3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const rotateRef = useRef(rotationSpeed)
   const selectRef = useRef(onSelect)
+  const errorRef = useRef(onError)
   rotateRef.current = rotationSpeed
   selectRef.current = onSelect
+  errorRef.current = onError
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
+
+    if (!webglAvailable()) {
+      errorRef.current?.()
+      return
+    }
 
     const data = {
       nodes: nodes.map(n => ({ id: n.id, name: n.name, type: n.type, filePath: n.filePath })),
@@ -47,7 +72,15 @@ export function KnowledgeGraph3D({
       })),
     }
 
-    const graph: ForceGraph3DInstance = new ForceGraph3D(el, { controlType: 'orbit' })
+    let graph: ForceGraph3DInstance
+    try {
+      graph = new ForceGraph3D(el, { controlType: 'orbit' })
+    } catch {
+      // WebGL/three failed to initialize — let the parent fall back to 2D.
+      el.innerHTML = ''
+      errorRef.current?.()
+      return
+    }
 
     graph
       .backgroundColor('#0d1117')
@@ -71,6 +104,13 @@ export function KnowledgeGraph3D({
       .width(el.clientWidth)
       .height(el.clientHeight)
 
+    // Apply configurable force physics.
+    const chargeForce = graph.d3Force('charge')
+    if (chargeForce) chargeForce.strength(forceStrength)
+    const linkForce = graph.d3Force('link')
+    if (linkForce) linkForce.distance(linkDistance)
+    graph.d3ReheatSimulation()
+
     if (showLabels) {
       graph.nodeThreeObjectExtend(true).nodeThreeObject((n: NodeObject) => {
         const node = n as N
@@ -87,13 +127,20 @@ export function KnowledgeGraph3D({
     let frame = 0
     let angle = 0
     const distance = 600
+    let failed = false
     const tick = () => {
-      const speed = rotateRef.current
-      if (speed > 0) {
-        angle += speed * 0.002
-        graph.cameraPosition({ x: distance * Math.sin(angle), z: distance * Math.cos(angle) })
+      try {
+        const speed = rotateRef.current
+        if (speed > 0) {
+          angle += speed * 0.002
+          graph.cameraPosition({ x: distance * Math.sin(angle), z: distance * Math.cos(angle) })
+        }
+        frame = requestAnimationFrame(tick)
+      } catch {
+        // Library crashed mid-render (e.g. lost WebGL context) — stop the loop
+        // and fall back to 2D rather than spamming the console.
+        if (!failed) { failed = true; errorRef.current?.() }
       }
-      frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
 
@@ -103,10 +150,10 @@ export function KnowledgeGraph3D({
     return () => {
       cancelAnimationFrame(frame)
       window.removeEventListener('resize', onResize)
-      graph._destructor()
+      try { graph._destructor() } catch { /* ignore teardown errors */ }
       el.innerHTML = ''
     }
-  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels])
+  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels, forceStrength, linkDistance])
 
   return <div ref={containerRef} className="flex-1 w-full bg-wiki-bg" />
 }

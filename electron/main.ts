@@ -60,10 +60,12 @@ ipcMain.handle('select-folder', async () => {
   return result.filePaths[0]
 })
 
-// Read directory tree
-ipcMain.handle('read-directory', async (_event, dirPath: string) => {
+// Read directory tree. Optional `opts` lets the renderer pass the user's
+// indexing settings (extensions / ignored dirs / max depth / max file size);
+// when omitted, sensible built-in defaults are used.
+ipcMain.handle('read-directory', async (_event, dirPath: string, opts?: ScanOptions) => {
   try {
-    return readDirectoryRecursive(dirPath, dirPath, 0)
+    return readDirectoryRecursive(dirPath, dirPath, 0, resolveScanOptions(opts))
   } catch (err) {
     console.error('Error reading directory:', err)
     return []
@@ -300,8 +302,35 @@ const CODE_EXTENSIONS = new Set([
   '.dockerfile', '.proto', '.graphql', '.prisma',
 ])
 
-function readDirectoryRecursive(dirPath: string, basePath: string, depth: number): FileNode[] {
-  if (depth > 8) return []
+interface ScanOptions {
+  extensions?: string[]
+  ignoreDirs?: string[]
+  maxDepth?: number
+  maxFileSize?: number
+}
+
+interface ResolvedScanOptions {
+  extensions: Set<string>
+  ignoreDirs: Set<string>
+  maxDepth: number
+  maxFileSize: number
+}
+
+function resolveScanOptions(opts?: ScanOptions): ResolvedScanOptions {
+  return {
+    extensions: opts?.extensions && opts.extensions.length > 0
+      ? new Set(opts.extensions.map(e => e.toLowerCase()))
+      : CODE_EXTENSIONS,
+    ignoreDirs: opts?.ignoreDirs && opts.ignoreDirs.length > 0
+      ? new Set(opts.ignoreDirs)
+      : IGNORED_DIRS,
+    maxDepth: typeof opts?.maxDepth === 'number' && opts.maxDepth > 0 ? opts.maxDepth : 8,
+    maxFileSize: typeof opts?.maxFileSize === 'number' && opts.maxFileSize > 0 ? opts.maxFileSize : 500000,
+  }
+}
+
+function readDirectoryRecursive(dirPath: string, basePath: string, depth: number, opts: ResolvedScanOptions): FileNode[] {
+  if (depth > opts.maxDepth) return []
   const entries = fs.readdirSync(dirPath, { withFileTypes: true })
   const nodes: FileNode[] = []
 
@@ -311,8 +340,8 @@ function readDirectoryRecursive(dirPath: string, basePath: string, depth: number
     const relativePath = path.relative(basePath, fullPath)
 
     if (entry.isDirectory()) {
-      if (IGNORED_DIRS.has(entry.name)) continue
-      const children = readDirectoryRecursive(fullPath, basePath, depth + 1)
+      if (opts.ignoreDirs.has(entry.name)) continue
+      const children = readDirectoryRecursive(fullPath, basePath, depth + 1, opts)
       if (children.length > 0) {
         nodes.push({
           name: entry.name,
@@ -324,9 +353,9 @@ function readDirectoryRecursive(dirPath: string, basePath: string, depth: number
       }
     } else if (entry.isFile()) {
       const ext = path.extname(entry.name).toLowerCase()
-      if (CODE_EXTENSIONS.has(ext) || entry.name === 'Makefile' || entry.name === 'Dockerfile') {
+      if (opts.extensions.has(ext) || entry.name === 'Makefile' || entry.name === 'Dockerfile') {
         const stats = fs.statSync(fullPath)
-        if (stats.size < 500000) {
+        if (stats.size < opts.maxFileSize) {
           nodes.push({
             name: entry.name,
             path: fullPath,

@@ -6,6 +6,7 @@
  */
 
 import type { AppSettings } from '../types'
+import { configManager } from './config-manager'
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant'
@@ -29,6 +30,43 @@ export class LLMService {
 
   updateSettings(settings: AppSettings) {
     this.settings = settings
+  }
+
+  /** Whether streaming responses are enabled in settings. */
+  get streamEnabled(): boolean {
+    return configManager.getConfig().llm.streamResponse
+  }
+
+  /** Tuning derived from the `llm` settings section. */
+  private tuning() {
+    const llm = configManager.getConfig().llm
+    return {
+      temperature: llm.temperature,
+      maxTokens: llm.maxTokens,
+      contextWindow: llm.contextWindow,
+    }
+  }
+
+  /**
+   * Trim conversation history so the prompt stays within the configured
+   * context window (rough 4 chars/token heuristic). The system prompt and the
+   * latest user message are always retained.
+   */
+  private fitContext(messages: LLMMessage[]): LLMMessage[] {
+    const { contextWindow } = this.tuning()
+    const budgetChars = Math.max(2000, contextWindow * 4)
+    let total = messages.reduce((n, m) => n + m.content.length, 0)
+    if (total <= budgetChars) return messages
+    const result = [...messages]
+    // Drop oldest non-system, non-last messages until within budget.
+    let i = 0
+    while (total > budgetChars && result.length > 2) {
+      while (i < result.length && (result[i].role === 'system' || i === result.length - 1)) i++
+      if (i >= result.length) break
+      total -= result[i].content.length
+      result.splice(i, 1)
+    }
+    return result
   }
 
   async chat(messages: LLMMessage[]): Promise<LLMResponse> {
@@ -67,9 +105,10 @@ export class LLMService {
       },
       body: JSON.stringify({
         model: this.settings.model,
-        messages,
+        messages: this.fitContext(messages),
         stream: true,
-        temperature: 0.3,
+        temperature: this.tuning().temperature,
+        max_tokens: this.tuning().maxTokens,
       }),
     })
 
@@ -115,9 +154,9 @@ export class LLMService {
       },
       body: JSON.stringify({
         model: this.settings.model,
-        messages,
-        temperature: 0.3,
-        max_tokens: 16384,
+        messages: this.fitContext(messages),
+        temperature: this.tuning().temperature,
+        max_tokens: this.tuning().maxTokens,
       }),
     })
 
@@ -150,8 +189,8 @@ export class LLMService {
       body: JSON.stringify({
         model: this.settings.model || 'claude-sonnet-4-20250514',
         system: systemMsg?.content || '',
-        messages: nonSystemMsgs.map(m => ({ role: m.role, content: m.content })),
-        max_tokens: 16384,
+        messages: this.fitContext(nonSystemMsgs).map(m => ({ role: m.role, content: m.content })),
+        max_tokens: this.tuning().maxTokens,
       }),
     })
 
@@ -179,9 +218,9 @@ export class LLMService {
       },
       body: JSON.stringify({
         model: this.settings.model,
-        messages,
-        temperature: 0.3,
-        max_tokens: 16384,
+        messages: this.fitContext(messages),
+        temperature: this.tuning().temperature,
+        max_tokens: this.tuning().maxTokens,
       }),
     })
 

@@ -1,12 +1,22 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as d3 from 'd3'
-import { ZoomIn, ZoomOut, Maximize2, Filter } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize2, Filter, Palette } from 'lucide-react'
 import { useAppStore } from '../store'
 import { OntologyBuilder } from '../services/ontology'
-import { configManager } from '../services/config-manager'
+import { detectPatterns } from '../services/pattern-detector'
 import { t, tEntityType, tEntityTypePlural } from '../services/i18n'
 import { KnowledgeGraph3D } from './KnowledgeGraph3D'
 import type { GraphNode, GraphLink, OntologyEntityType } from '../types'
+
+type ColorMode = 'type' | 'coupling' | 'risk'
+
+// Green → amber → red ramp for the coupling heatmap.
+function couplingColor(t01: number): string {
+  const x = Math.max(0, Math.min(1, t01))
+  return x <= 0.5
+    ? d3.interpolateRgb('#3fb950', '#d29922')(x * 2)
+    : d3.interpolateRgb('#d29922', '#f85149')((x - 0.5) * 2)
+}
 
 const ENTITY_COLORS: Record<OntologyEntityType, string> = {
   Package: '#d29922',
@@ -41,19 +51,72 @@ export function KnowledgeGraph() {
   useAppStore(s => s.locale)
   const svgRef = useRef<SVGSVGElement>(null)
   const [filter, setFilter] = useState<OntologyEntityType | 'all'>('all')
+  const [colorMode, setColorMode] = useState<ColorMode>('type')
   const [tooltip, setTooltip] = useState<{ x: number; y: number; node: GraphNode } | null>(null)
+  // Set when 3D rendering fails (no WebGL / library crash) so we degrade to 2D.
+  const [force2D, setForce2D] = useState(false)
 
   const ontology = currentProject?.ontologyGraph
-  const graphCfg = configManager.getConfig().graph
+  const graphCfg = useAppStore(s => s.config.graph)
   const render3D = graphCfg.render3D
+  const use3D = render3D && !force2D
+
+  // Re-attempt 3D whenever the user turns the setting back on.
+  useEffect(() => {
+    if (render3D) setForce2D(false)
+  }, [render3D])
+
+  // Per-node coupling degree + risk classification (for color modes).
+  const { degree, maxDegree, riskById } = useMemo(() => {
+    const deg = new Map<string, number>()
+    const risk = new Map<string, 'anti' | 'pattern'>()
+    if (!ontology) return { degree: deg, maxDegree: 1, riskById: risk }
+    const DEP = new Set(['imports', 'dependsOn', 'calls', 'uses', 'extends', 'implements', 'references'])
+    for (const r of ontology.relations) {
+      if (!DEP.has(r.type)) continue
+      deg.set(r.source, (deg.get(r.source) || 0) + 1)
+      deg.set(r.target, (deg.get(r.target) || 0) + 1)
+    }
+    let mx = 1
+    for (const v of deg.values()) if (v > mx) mx = v
+    const pr = detectPatterns(ontology)
+    for (const e of pr.entities) risk.set(e.entityId, e.tags.some(tg => tg.anti) ? 'anti' : 'pattern')
+    return { degree: deg, maxDegree: mx, riskById: risk }
+  }, [ontology])
+
+  const nodeColor = useCallback((node: GraphNode): string => {
+    if (colorMode === 'coupling') {
+      return couplingColor((degree.get(node.id) || 0) / maxDegree)
+    }
+    if (colorMode === 'risk') {
+      const r = riskById.get(node.id)
+      return r === 'anti' ? '#f85149' : r === 'pattern' ? '#58a6ff' : '#6e7681'
+    }
+    return ENTITY_COLORS[node.type] || '#8b949e'
+  }, [colorMode, degree, maxDegree, riskById])
 
   const buildGraph = useCallback(() => {
-    if (render3D || !ontology || !svgRef.current) return
+    if (use3D || !ontology || !svgRef.current) return
 
     const { nodes, links } = OntologyBuilder.toGraphVisualization(ontology)
 
     // Apply filter
-    const filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+    let filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+
+    // Cap to the configured maximum, keeping the most-connected nodes.
+    if (graphCfg.maxNodes > 0 && filteredNodes.length > graphCfg.maxNodes) {
+      const degree = new Map<string, number>()
+      for (const l of links) {
+        const s = typeof l.source === 'string' ? l.source : l.source.id
+        const tg = typeof l.target === 'string' ? l.target : l.target.id
+        degree.set(s, (degree.get(s) || 0) + 1)
+        degree.set(tg, (degree.get(tg) || 0) + 1)
+      }
+      filteredNodes = [...filteredNodes]
+        .sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0))
+        .slice(0, graphCfg.maxNodes)
+    }
+
     const filteredNodeIds = new Set(filteredNodes.map(n => n.id))
     const filteredLinks = links.filter(
       l => filteredNodeIds.has(typeof l.source === 'string' ? l.source : l.source.id) &&
@@ -80,11 +143,11 @@ export function KnowledgeGraph() {
     const simulation = d3.forceSimulation(filteredNodes as d3.SimulationNodeDatum[])
       .force('link', d3.forceLink(filteredLinks)
         .id((d: unknown) => (d as GraphNode).id)
-        .distance(80)
+        .distance(graphCfg.linkDistance)
         .strength(0.5))
-      .force('charge', d3.forceManyBody().strength(-200))
+      .force('charge', d3.forceManyBody().strength(graphCfg.forceStrength))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(20))
+      .force('collision', d3.forceCollide().radius(graphCfg.collisionRadius))
 
     // Links
     const link = g.append('g')
@@ -100,8 +163,8 @@ export function KnowledgeGraph() {
       .selectAll('circle')
       .data(filteredNodes)
       .join('circle')
-      .attr('r', (d: GraphNode) => ENTITY_SIZES[d.type] || 6)
-      .attr('fill', (d: GraphNode) => ENTITY_COLORS[d.type] || '#8b949e')
+      .attr('r', (d: GraphNode) => (ENTITY_SIZES[d.type] || 6) * graphCfg.nodeSize)
+      .attr('fill', (d: GraphNode) => nodeColor(d))
       .attr('stroke', '#0d1117')
       .attr('stroke-width', 1.5)
       .attr('cursor', 'pointer')
@@ -135,7 +198,7 @@ export function KnowledgeGraph() {
     // (2D) Labels
     const labels = g.append('g')
       .selectAll('text')
-      .data(filteredNodes)
+      .data(graphCfg.showLabels ? filteredNodes : [])
       .join('text')
       .text((d: GraphNode) => d.name)
       .attr('font-size', 9)
@@ -161,7 +224,9 @@ export function KnowledgeGraph() {
     })
 
     return () => simulation.stop()
-  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, render3D])
+  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, use3D, nodeColor,
+      graphCfg.forceStrength, graphCfg.linkDistance, graphCfg.collisionRadius,
+      graphCfg.maxNodes, graphCfg.nodeSize, graphCfg.showLabels])
 
   useEffect(() => {
     const cleanup = buildGraph()
@@ -198,11 +263,23 @@ export function KnowledgeGraph() {
           ))}
         </select>
 
+        <Palette size={14} className="text-wiki-muted" />
+        <select
+          value={colorMode}
+          onChange={(e) => setColorMode(e.target.value as ColorMode)}
+          className="text-xs bg-wiki-card border border-wiki-border rounded px-2 py-1 text-wiki-text"
+          title={t('graphColorMode')}
+        >
+          <option value="type">{t('graphColorType')}</option>
+          <option value="coupling">{t('graphColorCoupling')}</option>
+          <option value="risk">{t('graphColorRisk')}</option>
+        </select>
+
         <div className="flex-1" />
 
-        {/* Legend */}
+        {/* Legend (mode-aware) */}
         <div className="flex gap-3 text-[10px] text-wiki-muted">
-          {Object.entries(ENTITY_COLORS)
+          {colorMode === 'type' && Object.entries(ENTITY_COLORS)
             .filter(([type]) => typeCounts[type as OntologyEntityType])
             .map(([type, color]) => (
               <div key={type} className="flex items-center gap-1">
@@ -210,12 +287,33 @@ export function KnowledgeGraph() {
                 {tEntityType(type as OntologyEntityType)}
               </div>
             ))}
+          {colorMode === 'coupling' && (
+            <>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#3fb950' }} />{t('graphColorLow')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#d29922' }} />{t('graphColorMed')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#f85149' }} />{t('graphColorHigh')}</div>
+            </>
+          )}
+          {colorMode === 'risk' && (
+            <>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#f85149' }} />{t('graphColorAnti')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#58a6ff' }} />{t('graphColorPattern')}</div>
+              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#6e7681' }} />{t('graphColorPlain')}</div>
+            </>
+          )}
         </div>
       </div>
 
+      {/* 3D unavailable: degraded to 2D */}
+      {render3D && force2D && (
+        <div className="px-4 py-1.5 text-[11px] text-amber-500 bg-amber-500/10 border-b border-wiki-border">
+          {t('graph3dFallback')}
+        </div>
+      )}
+
       {/* Graph canvas */}
-      {render3D ? (
-        <Graph3DCanvas filter={filter} />
+      {use3D ? (
+        <Graph3DCanvas filter={filter} onError={() => setForce2D(true)} />
       ) : (
         <svg ref={svgRef} className="flex-1 w-full bg-wiki-bg" />
       )}
@@ -243,14 +341,29 @@ export function KnowledgeGraph() {
 }
 
 /** Computes filtered graph data and renders the 3D (three.js) canvas. */
-function Graph3DCanvas({ filter }: { filter: OntologyEntityType | 'all' }) {
+function Graph3DCanvas({ filter, onError }: { filter: OntologyEntityType | 'all'; onError: () => void }) {
   const { currentProject, selectedGraphNode, setSelectedGraphNode } = useAppStore()
   const ontology = currentProject?.ontologyGraph
-  const cfg = configManager.getConfig().graph
+  const cfg = useAppStore(s => s.config.graph)
   if (!ontology) return null
 
   const { nodes, links } = OntologyBuilder.toGraphVisualization(ontology)
-  const filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+  let filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+
+  // Cap to the configured maximum, keeping the most-connected nodes.
+  if (cfg.maxNodes > 0 && filteredNodes.length > cfg.maxNodes) {
+    const degree = new Map<string, number>()
+    for (const l of links) {
+      const s = typeof l.source === 'string' ? l.source : l.source.id
+      const tg = typeof l.target === 'string' ? l.target : l.target.id
+      degree.set(s, (degree.get(s) || 0) + 1)
+      degree.set(tg, (degree.get(tg) || 0) + 1)
+    }
+    filteredNodes = [...filteredNodes]
+      .sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0))
+      .slice(0, cfg.maxNodes)
+  }
+
   const ids = new Set(filteredNodes.map(n => n.id))
   const filteredLinks = links.filter(
     l => ids.has(typeof l.source === 'string' ? l.source : l.source.id) &&
@@ -267,7 +380,10 @@ function Graph3DCanvas({ filter }: { filter: OntologyEntityType | 'all' }) {
       nodeSize={cfg.nodeSize}
       showLabels={cfg.showLabels}
       rotationSpeed={cfg.rotationSpeed}
+      forceStrength={cfg.forceStrength}
+      linkDistance={cfg.linkDistance}
       onSelect={(id) => setSelectedGraphNode(id === selectedGraphNode ? null : id)}
+      onError={onError}
     />
   )
 }
