@@ -2116,14 +2116,15 @@ function ratioScoreCli(ratio: number, cap: number): number {
   return Math.round(100 * (1 - Math.max(0, Math.min(cap, ratio)) / cap))
 }
 
-function cmdHealth(projectPath: string): void {
-  const absPath = path.resolve(projectPath)
-  const { graph } = getGraph(absPath)
+function buildHealthReport(graph: OntologyGraph): {
+  score: number; grade: string
+  components: Array<{ key: string; weight: number; score: number; detail: string }>
+  metrics: Record<string, number>
+  topCycles: Array<{ files: string[]; edges: number }>
+} {
   const code = graph.entities.filter(e => e.type !== 'File' && e.type !== 'Module' && e.type !== 'Package')
   const files = new Set(graph.entities.map(e => e.filePath).filter(Boolean))
-
   const cycles = detectCyclesCli(graph)
-  // Dead code (same heuristic as cmdDeadCode, count only).
   let dead = 0
   for (const e of code) {
     const incoming = graph.relations.filter(r => r.target === e.id && r.type !== 'contains')
@@ -2134,7 +2135,6 @@ function cmdHealth(projectPath: string): void {
     if (e.name === 'main' || e.name === 'default' || /(^|\/)(index|app|server|main)\./i.test(e.filePath)) continue
     dead++
   }
-  // Coupling + god objects.
   const fanOut = new Map<string, number>(); const members = new Map<string, number>()
   let depRel = 0
   for (const r of graph.relations) {
@@ -2151,7 +2151,6 @@ function cmdHealth(projectPath: string): void {
   const deadRatio = code.length ? dead / code.length : 0
   const cycleRatio = files.size ? cycles.reduce((n, c) => n + c.files.length, 0) / files.size : 0
   const godRatio = code.length ? godObjects / code.length : 0
-
   const components = [
     { key: 'circularDeps', weight: 0.3, score: ratioScoreCli(cycleRatio, 0.3), detail: `${cycles.length} cycles` },
     { key: 'deadCode', weight: 0.25, score: ratioScoreCli(deadRatio, 0.4), detail: `${dead} (${Math.round(deadRatio * 100)}%)` },
@@ -2162,12 +2161,8 @@ function cmdHealth(projectPath: string): void {
   const totalW = components.reduce((s, c) => s + c.weight, 0)
   const score = Math.round(components.reduce((s, c) => s + c.score * c.weight, 0) / totalW)
   const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F'
-
-  output({
-    command: 'health',
-    score,
-    grade,
-    components,
+  return {
+    score, grade, components,
     metrics: {
       entityCount: graph.entities.length,
       relationCount: graph.relations.length,
@@ -2178,7 +2173,13 @@ function cmdHealth(projectPath: string): void {
       godObjects,
     },
     topCycles: cycles.slice(0, 10).map(c => ({ files: c.files, edges: c.edges })),
-  })
+  }
+}
+
+function cmdHealth(projectPath: string): void {
+  const absPath = path.resolve(projectPath)
+  const { graph } = getGraph(absPath)
+  output({ command: 'health', ...buildHealthReport(graph) })
 }
 
 // ---- Git churn / ownership (CodeFlow-inspired) ----
@@ -2304,9 +2305,12 @@ function maskSecretLine(line: string): string {
     .replace(/\b(gh[pousr]_[A-Za-z0-9]{6,}|github_pat_[A-Za-z0-9_]{6,}|sk-[A-Za-z0-9]{6,}|AKIA[0-9A-Z]{6,}|xox[baprs]-[A-Za-z0-9-]{6,})\b/g, '***')
 }
 
-function cmdScan(projectPath: string): void {
-  const absPath = path.resolve(projectPath)
-  const { fileContents } = getGraph(absPath)
+function buildScanReport(absPath: string, fileContents: Map<string, string>): {
+  filesScanned: number; total: number
+  bySeverity: { high: number; medium: number; low: number }
+  byRule: Record<string, number>
+  findings: Array<{ file: string; line: number; rule: string; severity: string; message: string; snippet: string }>
+} {
   const findings: Array<{ file: string; line: number; rule: string; severity: string; message: string; snippet: string }> = []
   const commentRe = /^\s*(?:\/\/|#|\*|<!--)/
   let scanned = 0
@@ -2334,14 +2338,21 @@ function cmdScan(projectPath: string): void {
   for (const f of findings) { bySeverity[f.severity as 'high' | 'medium' | 'low']++; byRule[f.rule] = (byRule[f.rule] || 0) + 1 }
   const order: Record<string, number> = { high: 0, medium: 1, low: 2 }
   findings.sort((a, b) => order[a.severity] - order[b.severity] || a.file.localeCompare(b.file) || a.line - b.line)
-  output({ command: 'scan', filesScanned: scanned, total: findings.length, bySeverity, byRule, findings })
+  return { filesScanned: scanned, total: findings.length, bySeverity, byRule, findings }
+}
+
+function cmdScan(projectPath: string): void {
+  const absPath = path.resolve(projectPath)
+  const { fileContents } = getGraph(absPath)
+  output({ command: 'scan', ...buildScanReport(absPath, fileContents) })
 }
 
 // ---- Design pattern / anti-pattern detection ----
 
-function cmdPatterns(projectPath: string): void {
-  const absPath = path.resolve(projectPath)
-  const { graph } = getGraph(absPath)
+function buildPatternReport(absPath: string, graph: OntologyGraph): {
+  total: number; counts: Record<string, number>
+  entities: Array<{ name: string; type: string; file: string; patterns: string[]; antiPatterns: string[] }>
+} {
   const byId = new Map(graph.entities.map(e => [e.id, e]))
   const DEP = new Set(['imports', 'dependsOn', 'calls', 'uses', 'extends', 'implements'])
   const fanIn = new Map<string, number>()
@@ -2383,7 +2394,85 @@ function cmdPatterns(projectPath: string): void {
     }
   }
   entities.sort((a, b) => (b.patterns.length + b.antiPatterns.length) - (a.patterns.length + a.antiPatterns.length))
-  output({ command: 'patterns', total: entities.length, counts, entities })
+  return { total: entities.length, counts, entities }
+}
+
+function cmdPatterns(projectPath: string): void {
+  const absPath = path.resolve(projectPath)
+  const { graph } = getGraph(absPath)
+  output({ command: 'patterns', ...buildPatternReport(absPath, graph) })
+}
+
+// ---- Aggregate analysis report (multi-format export) ----
+
+function escapeMd(s: string): string {
+  return s.replace(/\|/g, '\\|')
+}
+
+function reportToMarkdown(absPath: string, health: ReturnType<typeof buildHealthReport>, scan: ReturnType<typeof buildScanReport>, patterns: ReturnType<typeof buildPatternReport>): string {
+  const L: string[] = []
+  const name = path.basename(absPath)
+  L.push(`# CodeWiki Analysis Report — ${name}`, '')
+  L.push(`Generated: ${new Date().toISOString()}`, '')
+  L.push(`## Health: ${health.grade} (${health.score}/100)`, '')
+  L.push('| Component | Weight | Score | Detail |', '|---|---|---|---|')
+  for (const c of health.components) L.push(`| ${c.key} | ${Math.round(c.weight * 100)}% | ${c.score} | ${escapeMd(c.detail)} |`)
+  L.push('')
+  L.push('| Metric | Value |', '|---|---|')
+  for (const [k, v] of Object.entries(health.metrics)) L.push(`| ${k} | ${v} |`)
+  L.push('')
+  if (health.topCycles.length) {
+    L.push('### Circular dependencies', '')
+    for (const c of health.topCycles) L.push(`- ${c.files.length} files, ${c.edges} edges: ${c.files.slice(0, 6).map(escapeMd).join(' → ')}${c.files.length > 6 ? ' →…' : ''}`)
+    L.push('')
+  }
+  L.push(`## Security: ${scan.total} findings (high ${scan.bySeverity.high} / medium ${scan.bySeverity.medium} / low ${scan.bySeverity.low})`, '')
+  if (scan.findings.length) {
+    L.push('| Severity | Rule | Location | Message |', '|---|---|---|---|')
+    for (const f of scan.findings.slice(0, 100)) L.push(`| ${f.severity} | ${f.rule} | ${escapeMd(f.file)}:${f.line} | ${escapeMd(f.message)} |`)
+    if (scan.findings.length > 100) L.push('', `_…and ${scan.findings.length - 100} more._`)
+    L.push('')
+  } else {
+    L.push('No security findings.', '')
+  }
+  L.push(`## Design patterns: ${patterns.total} entities`, '')
+  if (Object.keys(patterns.counts).length) {
+    L.push('| Pattern | Count |', '|---|---|')
+    for (const [k, v] of Object.entries(patterns.counts)) L.push(`| ${k} | ${v} |`)
+    L.push('')
+    L.push('| Entity | Type | File | Patterns | Anti-patterns |', '|---|---|---|---|---|')
+    for (const e of patterns.entities.slice(0, 100)) L.push(`| ${escapeMd(e.name)} | ${e.type} | ${escapeMd(e.file)} | ${e.patterns.join(', ') || '—'} | ${e.antiPatterns.join(', ') || '—'} |`)
+    L.push('')
+  } else {
+    L.push('No notable patterns detected.', '')
+  }
+  return L.join('\n')
+}
+
+function cmdReport(projectPath: string, format: string, outFile: string | null): void {
+  const absPath = path.resolve(projectPath)
+  const { graph, fileContents } = getGraph(absPath)
+  const health = buildHealthReport(graph)
+  const scan = buildScanReport(absPath, fileContents)
+  const patterns = buildPatternReport(absPath, graph)
+  const fmt = (format || 'json').toLowerCase()
+  let content: string
+  if (fmt === 'md' || fmt === 'markdown') {
+    content = reportToMarkdown(absPath, health, scan, patterns)
+  } else {
+    content = JSON.stringify({
+      command: 'report',
+      project: path.basename(absPath),
+      generated: new Date().toISOString(),
+      health, security: scan, patterns,
+    }, null, 2)
+  }
+  if (outFile) {
+    fs.writeFileSync(path.resolve(outFile), content, 'utf-8')
+    output({ command: 'report', format: fmt, out: path.resolve(outFile), bytes: content.length })
+  } else {
+    process.stdout.write(content + '\n')
+  }
 }
 
 // ---- Find References ----
@@ -4738,6 +4827,10 @@ function main() {
     case 'patterns':
     case 'design-patterns':
       cmdPatterns(projectPath)
+      break
+    case 'report':
+    case 'analysis-report':
+      cmdReport(projectPath, positional[0] || 'json', outputFile || null)
       break
     case 'find-references':
     case 'references':
