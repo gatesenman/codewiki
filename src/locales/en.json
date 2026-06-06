@@ -424,5 +424,20 @@
   "edit": "Edit",
   "save": "Save",
   "export": "Export",
-  "import_": "Import"
+  "import_": "Import",
+  "navCodeMap": "Code Map",
+  "codeMapEmpty": "No Code Map Available",
+  "codeMapEmptyHint": "Index a project to generate the code map.",
+  "codeMapTreemap": "Treemap",
+  "codeMapModuleGraph": "Module Graph",
+  "codeMapExplorer": "Explorer",
+  "codeMapFiles": "files",
+  "codeMapEntities": "entities",
+  "codeMapRelations": "relations",
+  "codeMapFileTree": "File Tree",
+  "codeMapSelectFile": "Select a file to view details",
+  "codeMapInbound": "inbound",
+  "codeMapOutbound": "outbound",
+  "codeMapLines": "lines",
+  "codeMapEntitiesInFile": "Entities"
 }

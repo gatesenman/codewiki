@@ -29,6 +29,23 @@ export interface I18nStrings {
   navChat: string
   navAgent: string
   navInsights: string
+  navCodeMap: string
+
+  // Code Map
+  codeMapEmpty: string
+  codeMapEmptyHint: string
+  codeMapTreemap: string
+  codeMapModuleGraph: string
+  codeMapExplorer: string
+  codeMapFiles: string
+  codeMapEntities: string
+  codeMapRelations: string
+  codeMapFileTree: string
+  codeMapSelectFile: string
+  codeMapInbound: string
+  codeMapOutbound: string
+  codeMapLines: string
+  codeMapEntitiesInFile: string
 
   // Insights panel
   insTitle: string

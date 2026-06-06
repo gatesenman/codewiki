@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { AppState } from './types'
 
-export type ViewMode = 'wiki' | 'graph' | 'search' | 'chat' | 'agent' | 'insights'
+export type ViewMode = 'wiki' | 'graph' | 'search' | 'chat' | 'agent' | 'insights' | 'codemap'
 
 export interface UiSlice {
   viewMode: ViewMode
