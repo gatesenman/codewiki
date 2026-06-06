@@ -62,6 +62,14 @@ export interface GraphConfig {
   linkDistance: number
   collisionRadius: number
   maxNodes: number
+  /** Render the knowledge graph in 3D (GitNexus-style) instead of 2D SVG. */
+  render3D: boolean
+  /** Base node radius/size multiplier. */
+  nodeSize: number
+  /** Show entity name labels on nodes. */
+  showLabels: boolean
+  /** Auto-rotation speed for the 3D scene (0 = no auto-rotate). */
+  rotationSpeed: number
 }
 
 export interface UIConfig {
@@ -103,6 +111,45 @@ export interface NotificationConfig {
   soundEnabled: boolean
 }
 
+export interface PrivacyConfig {
+  /** Respect a .codewikiignore file at the project root. */
+  useIgnoreFile: boolean
+  /** Apply built-in sensitive-path globs (.env, secrets, keys, etc.). */
+  excludeSensitiveDefaults: boolean
+  /** Redact detected secrets/API keys from indexed content and snippets. */
+  redactSecrets: boolean
+  /** Extra ignore globs supplied by the user. */
+  extraPatterns: string[]
+}
+
+export interface EmbeddingsConfig {
+  /** Embedding provider used for hybrid retrieval. */
+  provider: 'openai' | 'ollama'
+  /** Model name (e.g. text-embedding-3-small, nomic-embed-text). */
+  model: string
+  /** Override base URL (for Ollama or OpenAI-compatible gateways). */
+  baseUrl: string
+  /** RRF fusion constant k (higher = flatter rank weighting). */
+  rrfK: number
+}
+
+export interface McpConfig {
+  /** Expose the built-in MCP server. */
+  enabled: boolean
+  /** PROJECT_PATH passed to the MCP server. */
+  projectPath: string
+  /** CODEWIKI_LOG_DIR for the MCP call log. */
+  logDir: string
+  /** CODEWIKI_CONSUMER label reported by clients. */
+  consumer: string
+  /** Transport used by the server. */
+  transport: 'stdio' | 'http'
+  /** Port for the http transport. */
+  port: number
+  /** Tools to expose; empty array means all registered tools. */
+  enabledTools: string[]
+}
+
 export interface CodeWikiConfig {
   indexing: IndexingConfig
   llm: LLMConfig
@@ -114,6 +161,9 @@ export interface CodeWikiConfig {
   behavior: BehaviorConfig
   notifications: NotificationConfig
   verify: VerifyConfig
+  privacy: PrivacyConfig
+  embeddings: EmbeddingsConfig
+  mcp: McpConfig
 }
 
 export const DEFAULT_CONFIG: CodeWikiConfig = {
@@ -169,6 +219,10 @@ export const DEFAULT_CONFIG: CodeWikiConfig = {
     linkDistance: 80,
     collisionRadius: 20,
     maxNodes: 500,
+    render3D: true,
+    nodeSize: 1,
+    showLabels: true,
+    rotationSpeed: 0,
   },
   ui: {
     theme: 'dark',
@@ -199,6 +253,27 @@ export const DEFAULT_CONFIG: CodeWikiConfig = {
     buildCommand: '',
     lintCommand: '',
     timeoutMs: 120000,
+  },
+  privacy: {
+    useIgnoreFile: true,
+    excludeSensitiveDefaults: true,
+    redactSecrets: true,
+    extraPatterns: [],
+  },
+  embeddings: {
+    provider: 'openai',
+    model: 'text-embedding-3-small',
+    baseUrl: '',
+    rrfK: 60,
+  },
+  mcp: {
+    enabled: false,
+    projectPath: '',
+    logDir: '',
+    consumer: 'codewiki-desktop',
+    transport: 'stdio',
+    port: 7333,
+    enabledTools: [],
   },
 }
 

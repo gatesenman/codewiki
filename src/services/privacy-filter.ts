@@ -69,8 +69,24 @@ function globToRegExp(glob: string): { body: string; dirOnly: boolean } {
   return { body, dirOnly }
 }
 
+export interface PrivacyOptions {
+  /** Apply rules from the project's `.codewikiignore` content. Default true. */
+  useIgnoreFile?: boolean
+  /** Apply the built-in DEFAULT_SENSITIVE_GLOBS. Default true. */
+  excludeSensitiveDefaults?: boolean
+  /** Mask detected secrets in content. Default true. */
+  redactSecrets?: boolean
+  /** Extra user-supplied ignore globs (applied after defaults/file). */
+  extraPatterns?: string[]
+}
+
 /** Parse `.codewikiignore` text plus default sensitive globs into rules. */
-export function parseIgnore(text: string | null | undefined): IgnoreRule[] {
+export function parseIgnore(text: string | null | undefined, options: PrivacyOptions = {}): IgnoreRule[] {
+  const {
+    useIgnoreFile = true,
+    excludeSensitiveDefaults = true,
+    extraPatterns = [],
+  } = options
   const rules: IgnoreRule[] = []
   const add = (line: string) => {
     let l = line.trim()
@@ -80,8 +96,9 @@ export function parseIgnore(text: string | null | undefined): IgnoreRule[] {
     const { body, dirOnly } = globToRegExp(l)
     rules.push({ self: new RegExp(body + '$'), under: new RegExp(body + '/'), negated, dirOnly })
   }
-  for (const g of DEFAULT_SENSITIVE_GLOBS) add(g)
-  if (text) for (const line of text.split('\n')) add(line)
+  if (excludeSensitiveDefaults) for (const g of DEFAULT_SENSITIVE_GLOBS) add(g)
+  if (useIgnoreFile && text) for (const line of text.split('\n')) add(line)
+  for (const g of extraPatterns) add(g)
   return rules
 }
 
@@ -111,11 +128,12 @@ export interface PrivacyFilter {
 }
 
 /** Build a reusable filter from `.codewikiignore` content. */
-export function createPrivacyFilter(ignoreText: string | null | undefined): PrivacyFilter {
-  const rules = parseIgnore(ignoreText)
+export function createPrivacyFilter(ignoreText: string | null | undefined, options: PrivacyOptions = {}): PrivacyFilter {
+  const rules = parseIgnore(ignoreText, options)
+  const doRedact = options.redactSecrets !== false
   return {
     isIgnored: (rp, isDir = false) => isIgnored(rp, rules, isDir),
-    redact: redactSecrets,
+    redact: doRedact ? redactSecrets : (content: string) => content,
   }
 }
 

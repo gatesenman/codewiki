@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   X, Key, Server, Cpu, Palette, Monitor, FolderCog,
   Eye, Bell, RotateCcw, Search, GitBranch, FileCode, BookOpen, TerminalSquare,
+  Shield, Plug,
 } from 'lucide-react'
 import { listWikiTemplates } from '../services/wiki-prompt-templates'
 import { useAppStore } from '../store'
@@ -13,7 +14,7 @@ interface Props {
   onClose: () => void
 }
 
-type SettingsTab = 'ai' | 'indexing' | 'ui' | 'behavior' | 'ontology' | 'search' | 'wiki'
+type SettingsTab = 'ai' | 'indexing' | 'ui' | 'behavior' | 'ontology' | 'search' | 'wiki' | 'privacy' | 'verify' | 'mcp'
 
 const PROVIDERS = [
   { id: 'openai' as const, name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1', 'o3-mini'] },
@@ -30,6 +31,9 @@ const TABS: { id: SettingsTab; labelKey: keyof I18nStrings; icon: typeof Server 
   { id: 'wiki', labelKey: 'settingsWiki', icon: BookOpen },
   { id: 'ui', labelKey: 'settingsInterface', icon: Palette },
   { id: 'behavior', labelKey: 'settingsBehavior', icon: Eye },
+  { id: 'privacy', labelKey: 'settingsPrivacy', icon: Shield },
+  { id: 'verify', labelKey: 'settingsVerify', icon: TerminalSquare },
+  { id: 'mcp', labelKey: 'settingsMcp', icon: Plug },
 ]
 
 export function SettingsModal({ onClose }: Props) {
@@ -105,6 +109,9 @@ export function SettingsModal({ onClose }: Props) {
             {activeTab === 'wiki' && <WikiSettings config={localConfig} updateLocal={updateLocal} />}
             {activeTab === 'ui' && <UISettings config={localConfig} updateLocal={updateLocal} />}
             {activeTab === 'behavior' && <BehaviorSettings config={localConfig} updateLocal={updateLocal} />}
+            {activeTab === 'privacy' && <PrivacySettings config={localConfig} updateLocal={updateLocal} />}
+            {activeTab === 'verify' && <VerifySettings config={localConfig} updateLocal={updateLocal} />}
+            {activeTab === 'mcp' && <McpSettings config={localConfig} updateLocal={updateLocal} />}
           </div>
         </div>
 
@@ -442,15 +449,68 @@ function SearchSettings({ config, updateLocal }: TabProps) {
       <SettingRow label={t('settingsSnippetLength')} description={t('settingsSnippetLengthDesc')}>
         <NumberInput value={config.search.snippetLength} onChange={v => updateLocal('search', { snippetLength: v })} min={100} max={2000} step={100} />
       </SettingRow>
-      <SettingRow label="Hybrid Search (Embeddings)" description="Combine TF-IDF with dense embeddings (RRF). Requires an OpenAI key or local Ollama; rebuild index after enabling.">
+      <SettingRow label={t('settingsHybridSearch')} description={t('settingsHybridSearchDesc')}>
         <Toggle checked={config.search.useEmbeddings} onChange={v => updateLocal('search', { useEmbeddings: v })} />
       </SettingRow>
+      {config.search.useEmbeddings && (
+        <div className="space-y-4 pl-1 border-l-2 border-wiki-accent/30 ml-1">
+          <div className="pl-3 space-y-4">
+            <SettingRow label={t('settingsEmbedProvider')} description={t('settingsEmbedProviderDesc')}>
+              <SelectInput
+                value={config.embeddings.provider}
+                options={[
+                  { value: 'openai', label: 'OpenAI' },
+                  { value: 'ollama', label: 'Ollama (Local)' },
+                ]}
+                onChange={v => updateLocal('embeddings', { provider: v as typeof config.embeddings.provider })}
+              />
+            </SettingRow>
+            <div>
+              <label className="text-sm text-wiki-text mb-1 block">{t('settingsEmbedModel')}</label>
+              <input
+                type="text" value={config.embeddings.model}
+                onChange={e => updateLocal('embeddings', { model: e.target.value })}
+                placeholder="text-embedding-3-small"
+                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+              />
+              <p className="text-xs text-wiki-muted mt-1">{t('settingsEmbedModelDesc')}</p>
+            </div>
+            <div>
+              <label className="text-sm text-wiki-text mb-1 block">{t('settingsEmbedBaseUrl')}</label>
+              <input
+                type="text" value={config.embeddings.baseUrl}
+                onChange={e => updateLocal('embeddings', { baseUrl: e.target.value })}
+                placeholder="http://localhost:11434"
+                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+              />
+              <p className="text-xs text-wiki-muted mt-1">{t('settingsEmbedBaseUrlDesc')}</p>
+            </div>
+            <SettingRow label={t('settingsRrfK')} description={t('settingsRrfKDesc')}>
+              <NumberInput value={config.embeddings.rrfK} onChange={v => updateLocal('embeddings', { rrfK: v })} min={1} max={200} step={1} />
+            </SettingRow>
+          </div>
+        </div>
+      )}
 
       <div className="border-t border-wiki-border pt-4 space-y-4">
         <h4 className="text-sm font-medium text-wiki-text flex items-center gap-2">
           <GitBranch size={14} />
           {t('settingsKnowledgeGraph')}
         </h4>
+        <SettingRow label={t('settingsRender3D')} description={t('settingsRender3DDesc')}>
+          <Toggle checked={config.graph.render3D} onChange={v => updateLocal('graph', { render3D: v })} />
+        </SettingRow>
+        <SettingRow label={t('settingsShowLabels')} description={t('settingsShowLabelsDesc')}>
+          <Toggle checked={config.graph.showLabels} onChange={v => updateLocal('graph', { showLabels: v })} />
+        </SettingRow>
+        <SettingRow label={t('settingsNodeSize')} description={t('settingsNodeSizeDesc')}>
+          <NumberInput value={config.graph.nodeSize} onChange={v => updateLocal('graph', { nodeSize: v })} min={0.5} max={4} step={0.1} />
+        </SettingRow>
+        {config.graph.render3D && (
+          <SettingRow label={t('settingsRotationSpeed')} description={t('settingsRotationSpeedDesc')}>
+            <NumberInput value={config.graph.rotationSpeed} onChange={v => updateLocal('graph', { rotationSpeed: v })} min={0} max={5} step={0.1} />
+          </SettingRow>
+        )}
         <SettingRow label={t('settingsForceStrength')} description={t('settingsForceStrengthDesc')}>
           <NumberInput value={config.graph.forceStrength} onChange={v => updateLocal('graph', { forceStrength: v })} min={-1000} max={0} step={10} />
         </SettingRow>
@@ -546,49 +606,143 @@ function BehaviorSettings({ config, updateLocal }: TabProps) {
           <Toggle checked={config.notifications.showImpactWarning} onChange={v => updateLocal('notifications', { showImpactWarning: v })} />
         </SettingRow>
       </div>
+    </>
+  )
+}
 
-      <div className="border-t border-wiki-border pt-4 space-y-4">
-        <h4 className="text-sm font-medium text-wiki-text flex items-center gap-2">
-          <TerminalSquare size={14} />
-          Verification
-        </h4>
-        <SettingRow label="Enable Verify" description="Let the Code Agent run project commands (lint/build/test) to verify edits.">
-          <Toggle checked={config.verify.enabled} onChange={v => updateLocal('verify', { enabled: v })} />
+function VerifySettings({ config, updateLocal }: TabProps) {
+  return (
+    <>
+      <SettingRow label={t('settingsVerifyEnable')} description={t('settingsVerifyEnableDesc')}>
+        <Toggle checked={config.verify.enabled} onChange={v => updateLocal('verify', { enabled: v })} />
+      </SettingRow>
+      {config.verify.enabled && (
+        <>
+          <div>
+            <label className="text-sm text-wiki-text mb-1 block">{t('settingsLintCommand')}</label>
+            <input
+              type="text" value={config.verify.lintCommand}
+              onChange={e => updateLocal('verify', { lintCommand: e.target.value })}
+              placeholder="e.g. npm run lint"
+              className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-wiki-text mb-1 block">{t('settingsBuildCommand')}</label>
+            <input
+              type="text" value={config.verify.buildCommand}
+              onChange={e => updateLocal('verify', { buildCommand: e.target.value })}
+              placeholder="e.g. npm run build"
+              className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-wiki-text mb-1 block">{t('settingsTestCommand')}</label>
+            <input
+              type="text" value={config.verify.testCommand}
+              onChange={e => updateLocal('verify', { testCommand: e.target.value })}
+              placeholder="e.g. npm test"
+              className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+            />
+          </div>
+          <SettingRow label={t('settingsTimeout')} description={t('settingsTimeoutDesc')}>
+            <NumberInput value={Math.round(config.verify.timeoutMs / 1000)} onChange={v => updateLocal('verify', { timeoutMs: v * 1000 })} min={5} max={1800} step={5} />
+          </SettingRow>
+        </>
+      )}
+    </>
+  )
+}
+
+function PrivacySettings({ config, updateLocal }: TabProps) {
+  return (
+    <>
+      <SettingRow label={t('settingsUseIgnoreFile')} description={t('settingsUseIgnoreFileDesc')}>
+        <Toggle checked={config.privacy.useIgnoreFile} onChange={v => updateLocal('privacy', { useIgnoreFile: v })} />
+      </SettingRow>
+      <SettingRow label={t('settingsExcludeSensitive')} description={t('settingsExcludeSensitiveDesc')}>
+        <Toggle checked={config.privacy.excludeSensitiveDefaults} onChange={v => updateLocal('privacy', { excludeSensitiveDefaults: v })} />
+      </SettingRow>
+      <SettingRow label={t('settingsRedactSecrets')} description={t('settingsRedactSecretsDesc')}>
+        <Toggle checked={config.privacy.redactSecrets} onChange={v => updateLocal('privacy', { redactSecrets: v })} />
+      </SettingRow>
+      <div>
+        <label className="text-sm text-wiki-text mb-1 block">{t('settingsExtraPatterns')}</label>
+        <textarea
+          value={config.privacy.extraPatterns.join('\n')}
+          onChange={e => updateLocal('privacy', { extraPatterns: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
+          placeholder={t('settingsExtraPatternsPlaceholder')}
+          rows={4}
+          className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent resize-y"
+        />
+        <p className="text-xs text-wiki-muted mt-1">{t('settingsExtraPatternsDesc')}</p>
+      </div>
+    </>
+  )
+}
+
+function McpSettings({ config, updateLocal }: TabProps) {
+  return (
+    <>
+      <SettingRow label={t('settingsMcpEnable')} description={t('settingsMcpEnableDesc')}>
+        <Toggle checked={config.mcp.enabled} onChange={v => updateLocal('mcp', { enabled: v })} />
+      </SettingRow>
+      <SettingRow label={t('settingsMcpTransport')} description={t('settingsMcpTransportDesc')}>
+        <SelectInput
+          value={config.mcp.transport}
+          options={[
+            { value: 'stdio', label: 'stdio' },
+            { value: 'http', label: 'http' },
+          ]}
+          onChange={v => updateLocal('mcp', { transport: v as typeof config.mcp.transport })}
+        />
+      </SettingRow>
+      {config.mcp.transport === 'http' && (
+        <SettingRow label={t('settingsMcpPort')} description={t('settingsMcpPortDesc')}>
+          <NumberInput value={config.mcp.port} onChange={v => updateLocal('mcp', { port: v })} min={1024} max={65535} step={1} />
         </SettingRow>
-        {config.verify.enabled && (
-          <>
-            <div>
-              <label className="text-sm text-wiki-text mb-1 block">Lint Command</label>
-              <input
-                type="text" value={config.verify.lintCommand}
-                onChange={e => updateLocal('verify', { lintCommand: e.target.value })}
-                placeholder="e.g. npm run lint"
-                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-wiki-text mb-1 block">Build Command</label>
-              <input
-                type="text" value={config.verify.buildCommand}
-                onChange={e => updateLocal('verify', { buildCommand: e.target.value })}
-                placeholder="e.g. npm run build"
-                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-wiki-text mb-1 block">Test Command</label>
-              <input
-                type="text" value={config.verify.testCommand}
-                onChange={e => updateLocal('verify', { testCommand: e.target.value })}
-                placeholder="e.g. npm test"
-                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
-              />
-            </div>
-            <SettingRow label="Timeout" description="Max seconds per command before it is killed.">
-              <NumberInput value={Math.round(config.verify.timeoutMs / 1000)} onChange={v => updateLocal('verify', { timeoutMs: v * 1000 })} min={5} max={1800} step={5} />
-            </SettingRow>
-          </>
-        )}
+      )}
+      <div>
+        <label className="text-sm text-wiki-text mb-1 block">{t('settingsMcpProjectPath')}</label>
+        <input
+          type="text" value={config.mcp.projectPath}
+          onChange={e => updateLocal('mcp', { projectPath: e.target.value })}
+          placeholder="/path/to/project"
+          className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+        />
+        <p className="text-xs text-wiki-muted mt-1">{t('settingsMcpProjectPathDesc')}</p>
+      </div>
+      <div>
+        <label className="text-sm text-wiki-text mb-1 block">{t('settingsMcpLogDir')}</label>
+        <input
+          type="text" value={config.mcp.logDir}
+          onChange={e => updateLocal('mcp', { logDir: e.target.value })}
+          placeholder="~/.codewiki/logs"
+          className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+        />
+        <p className="text-xs text-wiki-muted mt-1">{t('settingsMcpLogDirDesc')}</p>
+      </div>
+      <SettingRow label={t('settingsMcpConsumer')} description={t('settingsMcpConsumerDesc')}>
+        <input
+          type="text" value={config.mcp.consumer}
+          onChange={e => updateLocal('mcp', { consumer: e.target.value })}
+          className="w-40 px-2 py-1 rounded bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text focus:outline-none focus:border-wiki-accent"
+        />
+      </SettingRow>
+      <div>
+        <label className="text-sm text-wiki-text mb-1 block">{t('settingsMcpTools')}</label>
+        <textarea
+          value={config.mcp.enabledTools.join('\n')}
+          onChange={e => updateLocal('mcp', { enabledTools: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
+          placeholder={t('settingsMcpToolsPlaceholder')}
+          rows={4}
+          className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent resize-y"
+        />
+        <p className="text-xs text-wiki-muted mt-1">{t('settingsMcpToolsDesc')}</p>
+      </div>
+      <div className="rounded-lg border border-wiki-border bg-wiki-bg p-3 text-xs text-wiki-muted leading-relaxed flex items-start gap-2">
+        <Server size={14} className="mt-0.5 shrink-0" />
+        <span>{t('settingsMcpDocsHint')}</span>
       </div>
     </>
   )
