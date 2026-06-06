@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Bot, Send, AlertTriangle, FileText, CheckCircle2,
   Loader2, GitBranch, Code, Shield, Undo2, PlayCircle, XCircle, Wand2,
@@ -8,6 +8,7 @@ import { services } from '../services/service-registry'
 import { PatchService, type PatchIO, type RollbackToken } from '../services/patch-service'
 import { TestRunner, stepsFromConfig, type CommandExecutor, type VerifyResult } from '../services/test-runner'
 import { CodeAgentPlanner, LocalStorageMemory, type PlannerAnalyzer, type PlannerVerifier, type PlanRun } from '../services/agent-planner'
+import { generateUnifiedDiff } from '../services/diff-utils'
 import { t } from '../services/i18n'
 import type { CodeModification } from '../types'
 
@@ -406,21 +407,31 @@ export function CodeAgentPanel() {
                       <div className="p-3 text-xs text-wiki-muted">
                         {mod.description}
                       </div>
-                      {mod.originalContent && (
-                        <div className="border-t border-wiki-border">
-                          <div className="px-3 py-1 text-[10px] text-red-400 bg-red-500/5">- {t('agentOriginal')}</div>
-                          <pre className="px-3 py-2 text-xs text-red-400/80 bg-red-500/5 overflow-x-auto">
-                            <code>{mod.originalContent}</code>
-                          </pre>
-                        </div>
-                      )}
-                      {mod.newContent && (
-                        <div className="border-t border-wiki-border">
-                          <div className="px-3 py-1 text-[10px] text-wiki-green bg-green-500/5">+ {t('agentModified')}</div>
-                          <pre className="px-3 py-2 text-xs text-wiki-green/80 bg-green-500/5 overflow-x-auto">
-                            <code>{mod.newContent}</code>
-                          </pre>
-                        </div>
+                      {mod.originalContent && mod.newContent ? (
+                        <UnifiedDiffView
+                          original={mod.originalContent}
+                          modified={mod.newContent}
+                          filePath={mod.filePath}
+                        />
+                      ) : (
+                        <>
+                          {mod.originalContent && (
+                            <div className="border-t border-wiki-border">
+                              <div className="px-3 py-1 text-[10px] text-red-400 bg-red-500/5">- {t('agentOriginal')}</div>
+                              <pre className="px-3 py-2 text-xs text-red-400/80 bg-red-500/5 overflow-x-auto">
+                                <code>{mod.originalContent}</code>
+                              </pre>
+                            </div>
+                          )}
+                          {mod.newContent && (
+                            <div className="border-t border-wiki-border">
+                              <div className="px-3 py-1 text-[10px] text-wiki-green bg-green-500/5">+ {t('agentModified')}</div>
+                              <pre className="px-3 py-2 text-xs text-wiki-green/80 bg-green-500/5 overflow-x-auto">
+                                <code>{mod.newContent}</code>
+                              </pre>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ))}
@@ -507,6 +518,47 @@ export function CodeAgentPanel() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Unified diff viewer ──────────────────────────────────────────────────
+
+function UnifiedDiffView({ original, modified, filePath }: {
+  original: string
+  modified: string
+  filePath: string
+}) {
+  const diffLines = useMemo(
+    () => generateUnifiedDiff(original, modified, filePath),
+    [original, modified, filePath],
+  )
+
+  return (
+    <div className="border-t border-wiki-border overflow-x-auto">
+      <pre className="text-[11px] leading-5 font-mono">
+        {diffLines.map((line, i) => {
+          const bg = line.type === 'add'
+            ? 'bg-green-500/10'
+            : line.type === 'remove'
+              ? 'bg-red-500/10'
+              : line.type === 'header'
+                ? 'bg-wiki-card'
+                : ''
+          const color = line.type === 'add'
+            ? 'text-wiki-green'
+            : line.type === 'remove'
+              ? 'text-red-400'
+              : line.type === 'header'
+                ? 'text-wiki-accent'
+                : 'text-wiki-muted'
+          return (
+            <div key={i} className={`px-3 ${bg} ${color}`}>
+              {line.content}
+            </div>
+          )
+        })}
+      </pre>
     </div>
   )
 }

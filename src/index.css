@@ -218,6 +218,35 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
   50% { opacity: 0.5; }
 }
 
+/* Responsive design */
+@media (max-width: 768px) {
+  /* Collapse sidebar on small screens */
+  .sidebar-responsive {
+    @apply absolute z-30 h-full;
+  }
+
+  /* Stack topbar items */
+  .topbar-nav {
+    @apply overflow-x-auto;
+  }
+
+  /* Reduce padding on small screens */
+  .wiki-content {
+    @apply px-4;
+  }
+
+  /* Make entity detail panel overlay */
+  .entity-detail-responsive {
+    @apply absolute right-0 z-20 h-full;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-nav {
+    @apply gap-0.5;
+  }
+}
+
 /* Knowledge graph styles */
 .graph-tooltip {
   @apply absolute bg-wiki-card border border-wiki-border rounded-lg p-3 shadow-xl text-sm pointer-events-none z-50;

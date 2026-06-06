@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
-import { BookOpen, Clock, FileText, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react'
+import { BookOpen, Clock, FileText, ChevronLeft, ChevronRight, ShieldCheck, Download } from 'lucide-react'
 import { useAppStore } from '../store'
 import { MermaidDiagram } from './MermaidDiagram'
 import { validateWikiPage } from '../services/wiki-generator'
+import { exportWiki, type ExportFormat } from '../services/wiki-export'
 import { t } from '../services/i18n'
 import { getCodeTheme, wrapClass } from '../services/code-style'
 
@@ -64,6 +65,7 @@ export function WikiViewer() {
                 {activePage.fileSources.length} {t('wikiSourceFiles')}
               </span>
             )}
+            {currentProject && <WikiExportButton project={currentProject} />}
             {quality && (
               <div className="relative">
                 <button
@@ -162,6 +164,50 @@ export function WikiViewer() {
           ) : <div />}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Wiki Export dropdown ─────────────────────────────────────────────────
+
+function WikiExportButton({ project }: { project: import('../types').WikiProject }) {
+  const [showMenu, setShowMenu] = useState(false)
+
+  const handleExport = (format: ExportFormat) => {
+    const result = exportWiki(project, format, { toc: true, metadata: true, graphStats: true })
+    const blob = new Blob([result.content], { type: result.mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = result.filename
+    a.click()
+    URL.revokeObjectURL(url)
+    setShowMenu(false)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowMenu(v => !v)}
+        className="flex items-center gap-1 text-wiki-muted hover:text-wiki-accent transition-colors"
+        title={t('wikiExport')}
+      >
+        <Download size={12} />
+        <span>{t('wikiExport')}</span>
+      </button>
+      {showMenu && (
+        <div className="absolute z-20 mt-2 w-40 right-0 bg-wiki-card border border-wiki-border rounded-lg shadow-xl overflow-hidden">
+          {(['markdown', 'json', 'html'] as ExportFormat[]).map(fmt => (
+            <button
+              key={fmt}
+              onClick={() => handleExport(fmt)}
+              className="w-full px-3 py-2 text-left text-xs text-wiki-text hover:bg-wiki-accent/10 transition-colors"
+            >
+              {fmt === 'markdown' ? 'Markdown (.md)' : fmt === 'json' ? 'JSON (.json)' : 'HTML (.html)'}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

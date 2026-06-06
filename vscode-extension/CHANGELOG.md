@@ -1,5 +1,39 @@
 # Change Log
 
+## 0.5.1
+
+Enhanced developer experience with LSP-like features and editor integration.
+
+### Added
+- **Definition Provider**: Go-to-definition via ontology graph — `F12` / `Ctrl+Click` resolves entity definitions from cached ontology data.
+- **Reference Provider**: Find All References via ontology — `Shift+F12` shows definition + incoming/outgoing relations as reference locations.
+- **Document Symbol Provider**: Breadcrumb / Outline view (`Ctrl+Shift+O`) lists all CodeWiki entities in the current file with type, relation count, and range info.
+- **Editor context menu**: Right-click in the editor to access Pre-check, Impact Analysis, and Show Relations directly from the context menu (grouped under `codewiki`).
+- Hide `goToEntity` from command palette (internal command only).
+
+### Changed
+- Version 0.5.0 → 0.5.1.
+
+## 0.5.0
+
+Major feature release — interactive graph, hover info, file watching, real entity tree.
+
+### Added
+- **Knowledge Graph Webview** (`codewiki.showGraph`): interactive SVG graph with force-directed layout, type-based color coding, filter bar, zoom/pan, tooltips, and click-to-navigate to source.
+- **Hover Provider**: hover over identifiers to see CodeWiki entity info — type, file, signature, relation count, and up to 5 outgoing/incoming relations.
+- **File Watcher**: automatically re-indexes the project on file save/create/delete (3-second debounce).
+- **Generate Wiki command** (`codewiki.generateWiki`): calls `wiki-generate` CLI to actually generate wiki pages (previously aliased to `index`).
+- **Go to Entity command** (`codewiki.goToEntity`): internal command for tree view and graph click-to-navigate.
+- **Code quality diagnostics**: health check now reports dead code (`DiagnosticTag.Unnecessary`), God Objects (`Warning`), and High Coupling (`Information`) to the Problems panel.
+- Usage Panel buttons: added "Knowledge Graph" and "Generate Wiki".
+
+### Changed
+- **EntityTreeProvider**: fetches real entity data from CLI / `.codewiki/*.json` cache, groups by type (Class, Interface, Function, Method, Component, Type, Enum, Module, Variable), each entity is clickable and navigates to source.
+- **WikiTreeProvider**: reads generated wiki pages from `.codewiki/wiki/*.md`; falls back to static page list when no wiki is generated.
+- **CodeLens**: when cached data is available, shows `entity.type · N relations` instead of hardcoded "Pre-check" text.
+- Reduced `any` usage throughout; replaced with `Record<string, unknown>` + type assertions, and dedicated `CliEntity` / `CliRelation` interfaces.
+- Version 0.4.0 → 0.5.0.
+
 ## 0.4.0
 
 Polish pass — diagnostics, onboarding, status-bar grade, richer tree.

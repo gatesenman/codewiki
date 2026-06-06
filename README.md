@@ -150,22 +150,22 @@ irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | i
 
 Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gaosichun888/codewiki/releases).
 
-## Download (latest: v1.0.2)
+## Download (latest: v1.0.4)
 
-Grab a prebuilt installer for your platform from the [v1.0.2 release](https://github.com/gaosichun888/codewiki/releases/tag/v1.0.2):
+Grab a prebuilt installer for your platform from the [latest release](https://github.com/gaosichun888/codewiki/releases/latest):
 
 | Platform | Download |
 |---|---|
-| Windows (installer) | [`CodeWiki.Setup.1.0.2.exe`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki.Setup.1.0.2.exe) |
-| Windows (portable) | [`CodeWiki.1.0.2.exe`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki.1.0.2.exe) |
-| macOS (Apple Silicon) | [`CodeWiki-1.0.2-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2-arm64.dmg) |
-| macOS (Intel) | [`CodeWiki-1.0.2.dmg`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2.dmg) |
-| Linux (AppImage) | [`CodeWiki-1.0.2.AppImage`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2.AppImage) |
-| Linux (Debian/Ubuntu) | [`codewiki_1.0.2_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/codewiki_1.0.2_amd64.deb) |
-| VSCode extension | [`codewiki-vscode-0.2.0.vsix`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/codewiki-vscode-0.2.0.vsix) |
+| Windows (installer) | [`CodeWiki.Setup.1.0.4.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows (portable) | [`CodeWiki.1.0.4.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS (Apple Silicon) | [`CodeWiki-1.0.4-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS (Intel) | [`CodeWiki-1.0.4.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux (AppImage) | [`CodeWiki-1.0.4.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux (Debian/Ubuntu) | [`codewiki_1.0.4_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| VSCode extension | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
 
 > macOS builds are unsigned: on first launch use right-click → Open, or allow it under System Settings → Privacy & Security.
-> Install the VSCode extension with `code --install-extension codewiki-vscode-0.2.0.vsix`.
+> Install the VSCode extension with `code --install-extension codewiki-vscode-0.5.1.vsix`.
 
 ## Getting Started (from source)
 
