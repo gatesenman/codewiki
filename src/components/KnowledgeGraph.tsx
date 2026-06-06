@@ -3,7 +3,9 @@ import * as d3 from 'd3'
 import { ZoomIn, ZoomOut, Maximize2, Filter } from 'lucide-react'
 import { useAppStore } from '../store'
 import { OntologyBuilder } from '../services/ontology'
+import { configManager } from '../services/config-manager'
 import { t, tEntityType, tEntityTypePlural } from '../services/i18n'
+import { KnowledgeGraph3D } from './KnowledgeGraph3D'
 import type { GraphNode, GraphLink, OntologyEntityType } from '../types'
 
 const ENTITY_COLORS: Record<OntologyEntityType, string> = {
@@ -42,9 +44,11 @@ export function KnowledgeGraph() {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; node: GraphNode } | null>(null)
 
   const ontology = currentProject?.ontologyGraph
+  const graphCfg = configManager.getConfig().graph
+  const render3D = graphCfg.render3D
 
   const buildGraph = useCallback(() => {
-    if (!ontology || !svgRef.current) return
+    if (render3D || !ontology || !svgRef.current) return
 
     const { nodes, links } = OntologyBuilder.toGraphVisualization(ontology)
 
@@ -128,7 +132,7 @@ export function KnowledgeGraph() {
           event.subject.fy = null
         }) as any)
 
-    // Labels
+    // (2D) Labels
     const labels = g.append('g')
       .selectAll('text')
       .data(filteredNodes)
@@ -157,7 +161,7 @@ export function KnowledgeGraph() {
     })
 
     return () => simulation.stop()
-  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode])
+  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, render3D])
 
   useEffect(() => {
     const cleanup = buildGraph()
@@ -210,7 +214,11 @@ export function KnowledgeGraph() {
       </div>
 
       {/* Graph canvas */}
-      <svg ref={svgRef} className="flex-1 w-full bg-wiki-bg" />
+      {render3D ? (
+        <Graph3DCanvas filter={filter} />
+      ) : (
+        <svg ref={svgRef} className="flex-1 w-full bg-wiki-bg" />
+      )}
 
       {/* Tooltip */}
       {tooltip && (
@@ -231,5 +239,35 @@ export function KnowledgeGraph() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Computes filtered graph data and renders the 3D (three.js) canvas. */
+function Graph3DCanvas({ filter }: { filter: OntologyEntityType | 'all' }) {
+  const { currentProject, selectedGraphNode, setSelectedGraphNode } = useAppStore()
+  const ontology = currentProject?.ontologyGraph
+  const cfg = configManager.getConfig().graph
+  if (!ontology) return null
+
+  const { nodes, links } = OntologyBuilder.toGraphVisualization(ontology)
+  const filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+  const ids = new Set(filteredNodes.map(n => n.id))
+  const filteredLinks = links.filter(
+    l => ids.has(typeof l.source === 'string' ? l.source : l.source.id) &&
+         ids.has(typeof l.target === 'string' ? l.target : l.target.id)
+  )
+
+  return (
+    <KnowledgeGraph3D
+      nodes={filteredNodes}
+      links={filteredLinks}
+      colors={ENTITY_COLORS}
+      sizes={ENTITY_SIZES}
+      selectedId={selectedGraphNode}
+      nodeSize={cfg.nodeSize}
+      showLabels={cfg.showLabels}
+      rotationSpeed={cfg.rotationSpeed}
+      onSelect={(id) => setSelectedGraphNode(id === selectedGraphNode ? null : id)}
+    />
   )
 }
