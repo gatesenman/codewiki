@@ -95,9 +95,10 @@
 - **跨文件感知**：理解跨文件依赖
 
 ### MCP（Model Context Protocol）服务器
-- **5 个 MCP 工具**：`read_wiki`、`search_code`、`get_entity_info`、`get_dependencies`、`get_impact_analysis`
-- **IDE 集成**：任何兼容 MCP 的 IDE 或 Agent 都能查询该代码知识库
-- **Stdio 协议**：标准 MCP 服务器，可与 Claude、Cursor 等配合
+- **29 个 MCP 工具**：代码搜索、本体查询、调用图遍历、影响/爆炸半径分析、架构概览、死代码检测、重建索引等 —— 完整列表见 [docs/MCP.zh-CN.md](docs/MCP.zh-CN.md)
+- **IDE 集成**：任何兼容 MCP 的 IDE 或 Agent（Claude Desktop、Cursor、VS Code、Windsurf、Cline……）都能查询该代码知识库
+- **Stdio 协议**：标准 MCP 服务器，通过 stdio 通信
+- **配置指南**：[docs/MCP.zh-CN.md](docs/MCP.zh-CN.md)（[English](docs/MCP.md)）
 
 ### VSCode 扩展
 - **侧边栏视图**：Wiki 页面、代码实体、聊天面板
@@ -157,19 +158,30 @@ npm run electron:build
 
 ## MCP 服务器配置
 
-加入你的 MCP 客户端配置：
+先构建服务器，再让 MCP 客户端指向编译产物：
+
+```bash
+npm install
+npm run build:mcp   # -> dist/server/mcp-server.js
+```
 
 ```json
 {
   "mcpServers": {
     "codewiki": {
       "command": "node",
-      "args": ["path/to/codewiki/dist/server/mcp-server.js"],
-      "env": { "PROJECT_PATH": "/path/to/your/project" }
+      "args": ["/abs/path/to/codewiki/dist/server/mcp-server.js"],
+      "env": { "PROJECT_PATH": "/abs/path/to/your/project" }
     }
   }
 }
 ```
+
+请使用**绝对路径**。`PROJECT_PATH` 是服务器要索引的项目；可选的
+`CODEWIKI_LOG_DIR`（默认 `~/.codewiki`）设置调用日志的写入位置。
+
+Claude Desktop、Cursor、VS Code、Windsurf 等的完整配置、全部工具说明与排错，详见
+**[docs/MCP.zh-CN.md](docs/MCP.zh-CN.md)**（English: **[docs/MCP.md](docs/MCP.md)**）。
 
 ## 项目结构
 
