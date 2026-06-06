@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   Activity, Search, History, FileText, FlaskConical,
   Camera, Trash2, ArrowRight, AlertTriangle, CheckCircle2,
+  HeartPulse, RefreshCw,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { t, tEntityType } from '../services/i18n'
@@ -17,9 +18,10 @@ import {
   runEval, compareToBaseline,
   type EvalCase, type EvalReport, type Regression,
 } from '../services/eval-harness'
+import { analyzeHealth, type HealthReport } from '../services/health-analyzer'
 import type { OntologyEntityType, OntologyGraph, WikiPage } from '../types'
 
-type InsightTab = 'query' | 'history' | 'wiki' | 'eval'
+type InsightTab = 'health' | 'query' | 'history' | 'wiki' | 'eval'
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
@@ -29,7 +31,7 @@ export function InsightsPanel() {
   const graph = currentProject?.ontologyGraph
   const wikiPages = currentProject?.wikiPages ?? []
 
-  const [tab, setTab] = useState<InsightTab>('query')
+  const [tab, setTab] = useState<InsightTab>('health')
 
   if (!currentProject || !graph) {
     return (
@@ -41,6 +43,7 @@ export function InsightsPanel() {
   }
 
   const TABS: Array<{ id: InsightTab; label: string; icon: typeof Search }> = [
+    { id: 'health', label: t('insTabHealth'), icon: HeartPulse },
     { id: 'query', label: t('insTabQuery'), icon: Search },
     { id: 'history', label: t('insTabHistory'), icon: History },
     { id: 'wiki', label: t('insTabWiki'), icon: FileText },
@@ -77,11 +80,132 @@ export function InsightsPanel() {
 
       {/* Body */}
       <div className="flex-1 overflow-auto p-6">
+        {tab === 'health' && <HealthTool graph={graph} />}
         {tab === 'query' && <QueryTool graph={graph} />}
         {tab === 'history' && <HistoryTool graph={graph} />}
         {tab === 'wiki' && <WikiTool graph={graph} wikiPages={wikiPages} />}
         {tab === 'eval' && <EvalTool graph={graph} />}
       </div>
+    </div>
+  )
+}
+
+// ---- Health (health-analyzer) --------------------------------------------
+
+const GRADE_COLOR: Record<HealthReport['grade'], string> = {
+  A: 'text-green-500 border-green-500/40 bg-green-500/10',
+  B: 'text-lime-500 border-lime-500/40 bg-lime-500/10',
+  C: 'text-amber-500 border-amber-500/40 bg-amber-500/10',
+  D: 'text-orange-500 border-orange-500/40 bg-orange-500/10',
+  F: 'text-red-500 border-red-500/40 bg-red-500/10',
+}
+
+function barColor(score: number): string {
+  if (score >= 80) return 'bg-green-500'
+  if (score >= 60) return 'bg-amber-500'
+  return 'bg-red-500'
+}
+
+function HealthTool({ graph }: { graph: OntologyGraph }) {
+  const setSelectedEntityId = useAppStore(s => s.setSelectedEntityId)
+  const [nonce, setNonce] = useState(0)
+  const report = useMemo(() => analyzeHealth(graph), [graph, nonce])
+  const shortFile = (p: string) => p.split(/[\\/]/).pop() || p
+
+  return (
+    <div className="max-w-3xl space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-xs text-wiki-muted">{t('insHealthHint')}</p>
+        <button
+          onClick={() => setNonce(n => n + 1)}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-wiki-muted hover:text-wiki-text hover:bg-wiki-card/50"
+        >
+          <RefreshCw size={12} /> {t('insHealthRefresh')}
+        </button>
+      </div>
+
+      {/* Grade + score */}
+      <div className="flex items-center gap-4">
+        <div className={`w-20 h-20 rounded-xl border flex flex-col items-center justify-center ${GRADE_COLOR[report.grade]}`}>
+          <span className="text-3xl font-bold leading-none">{report.grade}</span>
+          <span className="text-xs mt-1 opacity-80">{report.score}/100</span>
+        </div>
+        <div className="flex-1 grid grid-cols-3 gap-2">
+          <Metric label={t('insHealthEntities')} value={report.metrics.entityCount} />
+          <Metric label={t('insHealthFiles')} value={report.metrics.fileCount} />
+          <Metric label={t('insHealthAvgDegree')} value={report.metrics.avgDegree} />
+          <Metric label={t('insHealthCircular')} value={report.metrics.circularDepCount} danger={report.metrics.circularDepCount > 0} />
+          <Metric label={t('insHealthDead')} value={report.deadCode.length} danger={report.deadCode.length > 0} />
+          <Metric label={t('insHealthGod')} value={report.hotspots.filter(h => h.godObject).length} danger={report.hotspots.some(h => h.godObject)} />
+        </div>
+      </div>
+
+      {/* Components breakdown */}
+      <div className="space-y-2">
+        <div className="text-xs font-semibold text-wiki-text">{t('insHealthBreakdown')}</div>
+        {report.components.map(c => (
+          <div key={c.key} className="flex items-center gap-3">
+            <span className="w-28 text-xs text-wiki-muted">{t(('insHealthC_' + c.key) as Parameters<typeof t>[0]) || c.key}</span>
+            <div className="flex-1 h-2 rounded-full bg-wiki-card overflow-hidden">
+              <div className={`h-full ${barColor(c.score)}`} style={{ width: `${c.score}%` }} />
+            </div>
+            <span className="w-10 text-right text-xs text-wiki-text">{c.score}</span>
+            <span className="w-28 text-right text-[11px] text-wiki-muted truncate">{c.detail}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Circular dependencies */}
+      <div className="space-y-2">
+        <div className="text-xs font-semibold text-wiki-text flex items-center gap-1.5">
+          <AlertTriangle size={13} className={report.cycles.length ? 'text-red-500' : 'text-green-500'} />
+          {t('insHealthCircularTitle')} ({report.cycles.length})
+        </div>
+        {report.cycles.length === 0 ? (
+          <div className="text-sm text-green-500 flex items-center gap-1.5"><CheckCircle2 size={14} /> {t('insHealthNoCircular')}</div>
+        ) : (
+          <div className="space-y-1.5">
+            {report.cycles.slice(0, 8).map((c, i) => (
+              <div key={i} className="text-xs bg-wiki-card rounded-md px-3 py-2">
+                <span className="text-red-400 font-medium">{c.files.length} {t('insHealthFilesWord')} · {c.edges} {t('insHealthEdgesWord')}</span>
+                <span className="text-wiki-muted ml-2">{c.files.map(shortFile).join(' → ')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Coupling hotspots */}
+      <div className="space-y-2">
+        <div className="text-xs font-semibold text-wiki-text">{t('insHealthHotspots')} ({report.hotspots.length})</div>
+        {report.hotspots.length === 0 ? (
+          <div className="text-sm text-wiki-muted">{t('insHealthNoHotspots')}</div>
+        ) : (
+          <div className="space-y-1">
+            {report.hotspots.slice(0, 10).map(h => (
+              <button
+                key={h.id}
+                onClick={() => setSelectedEntityId(h.id)}
+                className="w-full flex items-center gap-2 text-left text-sm px-3 py-1.5 rounded-md hover:bg-wiki-card/60"
+              >
+                {h.godObject && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">God</span>}
+                <span className="font-medium text-wiki-text">{h.name}</span>
+                <span className="text-[11px] text-wiki-muted">{tEntityType(h.type as OntologyEntityType)}</span>
+                <span className="ml-auto text-[11px] text-wiki-muted">in {h.fanIn} · out {h.fanOut}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Metric({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
+  return (
+    <div className="bg-wiki-card rounded-md px-3 py-2">
+      <div className={`text-lg font-semibold ${danger ? 'text-red-400' : 'text-wiki-text'}`}>{value}</div>
+      <div className="text-[11px] text-wiki-muted">{label}</div>
     </div>
   )
 }
