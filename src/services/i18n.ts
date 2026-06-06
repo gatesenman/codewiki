@@ -26,6 +26,7 @@ export interface I18nStrings {
   insSubtitle: string
   insNoProject: string
   insTabHealth: string
+  insTabSecurity: string
   insTabQuery: string
   insTabHistory: string
   insTabWiki: string
@@ -51,6 +52,15 @@ export interface I18nStrings {
   insHealthC_coupling: string
   insHealthC_godObjects: string
   insHealthC_security: string
+  // Security tool
+  insSecHint: string
+  insSecScan: string
+  insSecScanning: string
+  insSecClean: string
+  insSecNoFs: string
+  insSev_high: string
+  insSev_medium: string
+  insSev_low: string
   insQueryPlaceholder: string
   insQueryRun: string
   insQueryHint: string
@@ -461,6 +471,7 @@ const en: I18nStrings = {
   insSubtitle: 'Health, graph query, evolution, incremental wiki & evaluation — running on the indexed ontology.',
   insNoProject: 'Open and index a project first to use Insights.',
   insTabHealth: 'Health',
+  insTabSecurity: 'Security',
   insTabQuery: 'NL Query',
   insTabHistory: 'Evolution',
   insTabWiki: 'Wiki Incremental',
@@ -485,6 +496,14 @@ const en: I18nStrings = {
   insHealthC_coupling: 'Coupling',
   insHealthC_godObjects: 'God objects',
   insHealthC_security: 'Security',
+  insSecHint: 'Rule-based scan for hardcoded secrets, eval(), SQL/shell injection, unsafe HTML & debug statements.',
+  insSecScan: 'Scan',
+  insSecScanning: 'Scanning…',
+  insSecClean: 'No security findings.',
+  insSecNoFs: 'File access unavailable (run in the desktop app to scan source).',
+  insSev_high: 'High',
+  insSev_medium: 'Medium',
+  insSev_low: 'Low',
   insQueryPlaceholder: 'Ask in natural language, e.g. "who calls handleSearch" / "impact of getGraph" / "list all classes"',
   insQueryRun: 'Run',
   insQueryHint: 'Pattern-based NL → graph query (no LLM). Supports callers / callees / references / impact / deps / path / find.',
@@ -881,6 +900,7 @@ const zh: I18nStrings = {
   insTabWiki: 'Wiki 增量',
   insTabEval: '评测',
   insTabHealth: '健康',
+  insTabSecurity: '安全',
   insHealthHint: '基于循环依赖、死代码、耦合与上帝对象，在本体图上计算的 A–F 健康评分。',
   insHealthRefresh: '重新计算',
   insHealthEntities: '实体',
@@ -901,6 +921,14 @@ const zh: I18nStrings = {
   insHealthC_coupling: '耦合',
   insHealthC_godObjects: '上帝对象',
   insHealthC_security: '安全',
+  insSecHint: '基于规则扫描硬编码密钥、eval()、SQL/Shell 注入、不安全 HTML 与调试语句。',
+  insSecScan: '扫描',
+  insSecScanning: '扫描中…',
+  insSecClean: '未发现安全问题。',
+  insSecNoFs: '无法访问文件（请在桌面应用中运行以扫描源码）。',
+  insSev_high: '高危',
+  insSev_medium: '中危',
+  insSev_low: '低危',
   insQueryPlaceholder: '用自然语言提问，例如「谁调用 handleSearch」/「getGraph 的影响」/「列出所有类」',
   insQueryRun: '运行',
   insQueryHint: '基于模式匹配的自然语言→图查询（无需 LLM）。支持 调用者/被调用/引用/影响/依赖/路径/查找。',

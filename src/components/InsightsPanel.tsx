@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react'
 import {
   Activity, Search, History, FileText, FlaskConical,
   Camera, Trash2, ArrowRight, AlertTriangle, CheckCircle2,
-  HeartPulse, RefreshCw,
+  HeartPulse, RefreshCw, ShieldAlert, Loader2,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { t, tEntityType } from '../services/i18n'
@@ -19,9 +19,10 @@ import {
   type EvalCase, type EvalReport, type Regression,
 } from '../services/eval-harness'
 import { analyzeHealth, type HealthReport } from '../services/health-analyzer'
+import { scanSecurity, type SecurityReport, type Severity } from '../services/security-scan'
 import type { OntologyEntityType, OntologyGraph, WikiPage } from '../types'
 
-type InsightTab = 'health' | 'query' | 'history' | 'wiki' | 'eval'
+type InsightTab = 'health' | 'security' | 'query' | 'history' | 'wiki' | 'eval'
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
@@ -44,6 +45,7 @@ export function InsightsPanel() {
 
   const TABS: Array<{ id: InsightTab; label: string; icon: typeof Search }> = [
     { id: 'health', label: t('insTabHealth'), icon: HeartPulse },
+    { id: 'security', label: t('insTabSecurity'), icon: ShieldAlert },
     { id: 'query', label: t('insTabQuery'), icon: Search },
     { id: 'history', label: t('insTabHistory'), icon: History },
     { id: 'wiki', label: t('insTabWiki'), icon: FileText },
@@ -81,6 +83,7 @@ export function InsightsPanel() {
       {/* Body */}
       <div className="flex-1 overflow-auto p-6">
         {tab === 'health' && <HealthTool graph={graph} />}
+        {tab === 'security' && <SecurityTool graph={graph} />}
         {tab === 'query' && <QueryTool graph={graph} />}
         {tab === 'history' && <HistoryTool graph={graph} />}
         {tab === 'wiki' && <WikiTool graph={graph} wikiPages={wikiPages} />}
@@ -206,6 +209,92 @@ function Metric({ label, value, danger }: { label: string; value: number; danger
     <div className="bg-wiki-card rounded-md px-3 py-2">
       <div className={`text-lg font-semibold ${danger ? 'text-red-400' : 'text-wiki-text'}`}>{value}</div>
       <div className="text-[11px] text-wiki-muted">{label}</div>
+    </div>
+  )
+}
+
+// ---- Security (security-scan) --------------------------------------------
+
+const SEV_COLOR: Record<Severity, string> = {
+  high: 'text-red-400 bg-red-500/15',
+  medium: 'text-amber-400 bg-amber-500/15',
+  low: 'text-sky-400 bg-sky-500/15',
+}
+
+function SecurityTool({ graph }: { graph: OntologyGraph }) {
+  const [report, setReport] = useState<SecurityReport | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const run = useCallback(async () => {
+    setScanning(true); setError(null)
+    try {
+      const paths = Array.from(new Set(graph.entities.map(e => e.filePath).filter(Boolean)))
+      if (!window.electronAPI?.readFile) {
+        setError(t('insSecNoFs')); setScanning(false); return
+      }
+      const files: Array<{ path: string; content: string }> = []
+      for (const p of paths) {
+        try {
+          const content = await window.electronAPI.readFile(p)
+          if (content) files.push({ path: p, content })
+        } catch { /* skip unreadable */ }
+      }
+      setReport(scanSecurity(files))
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setScanning(false)
+    }
+  }, [graph])
+
+  const shortFile = (p: string) => p.split(/[\\/]/).slice(-2).join('/')
+
+  return (
+    <div className="max-w-3xl space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-xs text-wiki-muted">{t('insSecHint')}</p>
+        <button
+          onClick={run}
+          disabled={scanning}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-wiki-accent/10 text-wiki-accent hover:bg-wiki-accent/20 disabled:opacity-50"
+        >
+          {scanning ? <Loader2 size={13} className="animate-spin" /> : <ShieldAlert size={13} />}
+          {scanning ? t('insSecScanning') : t('insSecScan')}
+        </button>
+      </div>
+
+      {error && <div className="text-sm text-red-400 flex items-center gap-1.5"><AlertTriangle size={14} /> {error}</div>}
+
+      {report && (
+        <>
+          <div className="flex items-center gap-2">
+            {(['high', 'medium', 'low'] as Severity[]).map(s => (
+              <div key={s} className={`px-3 py-1.5 rounded-md text-xs font-medium ${SEV_COLOR[s]}`}>
+                {t(('insSev_' + s) as Parameters<typeof t>[0])}: {report.bySeverity[s]}
+              </div>
+            ))}
+            <span className="text-xs text-wiki-muted ml-auto">{report.filesScanned} {t('insHealthFilesWord')}</span>
+          </div>
+
+          {report.findings.length === 0 ? (
+            <div className="text-sm text-green-500 flex items-center gap-1.5"><CheckCircle2 size={14} /> {t('insSecClean')}</div>
+          ) : (
+            <div className="space-y-1.5">
+              {report.findings.slice(0, 200).map((f, i) => (
+                <div key={i} className="bg-wiki-card rounded-md px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={`px-1.5 py-0.5 rounded ${SEV_COLOR[f.severity]}`}>{f.rule}</span>
+                    <span className="text-wiki-text">{f.message}</span>
+                    <span className="ml-auto text-wiki-muted">{shortFile(f.file)}:{f.line}</span>
+                  </div>
+                  <pre className="mt-1 text-[11px] text-wiki-muted font-mono whitespace-pre-wrap break-all">{f.snippet}</pre>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
