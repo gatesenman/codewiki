@@ -20,6 +20,12 @@ import type {
   GraphNode, GraphLink,
 } from '../types'
 import { extractTsAst, isAstSupported } from './ts-ast-extractor'
+import {
+  ensureTreeSitter,
+  isTreeSitterSupported,
+  isTreeSitterReady,
+  extractTreeSitter,
+} from './treesitter-extractor'
 
 export interface OntologyExtractionOptions {
   /** Include arrow functions / React components as entities. */
@@ -112,12 +118,15 @@ export class OntologyBuilder {
 
     const flatFiles = this.flattenFiles(files)
 
+    // Pre-init tree-sitter for multi-language AST; non-blocking, falls back to regex.
+    await ensureTreeSitter()
+
     // Phase 1: Extract entities from each file
     for (const file of flatFiles) {
       if (file.type !== 'file') continue
       const content = await readFile(file.path)
       if (!content) continue
-      this.extractEntities(file, content)
+      await this.extractEntities(file, content)
     }
 
     // Phase 2: Resolve relations (imports, calls, etc.)
@@ -155,7 +164,7 @@ export class OntologyBuilder {
     return result
   }
 
-  private extractEntities(file: FileNode, content: string) {
+  private async extractEntities(file: FileNode, content: string) {
     const lines = content.split('\n')
     const filePath = file.path
 
@@ -181,6 +190,19 @@ export class OntologyBuilder {
         return
       } catch {
         // Parser failed (e.g. exotic syntax) — fall through to regex extraction.
+      }
+    }
+
+    // Try tree-sitter for non-TS/JS languages (Python, Go, Java, Rust, C#, etc.)
+    if (isTreeSitterReady() && isTreeSitterSupported(ext)) {
+      try {
+        const result = await extractTreeSitter(content, file.name, ext as string)
+        if (result) {
+          this.extractEntitiesFromAst(file, content, moduleId, ext as string, result)
+          return
+        }
+      } catch {
+        // tree-sitter failed — fall through to regex.
       }
     }
 
@@ -403,24 +425,46 @@ export class OntologyBuilder {
   }
 
   /**
-   * AST-driven entity extraction for TS/JS. Produces the same entity/relation
-   * shape as the regex path (module `contains` entity, methods `contains`-ed by
-   * their class, deferred extends/implements), but with compiler-grade accuracy.
+   * AST-driven entity extraction for TS/JS (or tree-sitter for other langs).
+   * Produces the same entity/relation shape as the regex path (module `contains`
+   * entity, methods `contains`-ed by their class, deferred extends/implements),
+   * but with compiler-grade accuracy.
+   *
+   * When `precomputed` is passed (from tree-sitter), it is used directly instead
+   * of calling the TypeScript compiler AST extractor.
    */
   private extractEntitiesFromAst(
     file: FileNode,
     content: string,
     moduleId: string,
     ext: string,
+    precomputed?: import('./ts-ast-extractor').AstExtractResult,
   ) {
     const filePath = file.path
-    const { entities, imports } = extractTsAst(content, file.name, ext, this.options)
+    const { entities, imports } = precomputed ?? extractTsAst(content, file.name, ext, this.options)
     this.astImports.set(filePath, imports)
 
     // Pass 1: create non-method entities so methods can resolve their parent.
+    // Dedup by name: Rust `impl` blocks may emit a second Class entry just to
+    // carry `implements` info for an already-declared struct.
     const classIdByName = new Map<string, string>()
     for (const e of entities) {
       if (e.type === 'Method') continue
+
+      const existing = (e.type === 'Class' || e.type === 'Interface')
+        ? classIdByName.get(e.name)
+        : undefined
+      if (existing) {
+        // Entity already registered — just add heritage relations.
+        for (const parent of e.extends || []) {
+          this.addDeferredRelation(existing, parent, 'extends')
+        }
+        for (const iface of e.implements || []) {
+          this.addDeferredRelation(existing, iface, 'implements')
+        }
+        continue
+      }
+
       const entityId = uuid()
       this.entities.set(entityId, {
         id: entityId,
