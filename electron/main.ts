@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import { spawn } from 'child_process'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -237,6 +238,40 @@ ipcMain.handle('unwatch-project', async (_event, folderPath: string) => {
   const t = watchDebounce.get(folderPath)
   if (t) { clearTimeout(t); watchDebounce.delete(folderPath) }
   return true
+})
+
+const MAX_CMD_OUTPUT = 200_000 // cap captured output per stream (~200KB)
+
+// Run a project command (tests/build/lint) in a child process with a timeout.
+// Only commands the user configured in Settings are ever passed here.
+ipcMain.handle('run-command', async (_event, cwd: string, command: string, timeoutMs: number) => {
+  return await new Promise<{ exitCode: number | null; stdout: string; stderr: string; timedOut: boolean }>(resolve => {
+    let stdout = ''
+    let stderr = ''
+    let timedOut = false
+    let settled = false
+    const finish = (exitCode: number | null) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve({ exitCode, stdout, stderr, timedOut })
+    }
+    let child: ReturnType<typeof spawn>
+    try {
+      child = spawn(command, { cwd, shell: true, windowsHide: true })
+    } catch (err) {
+      resolve({ exitCode: null, stdout: '', stderr: String(err), timedOut: false })
+      return
+    }
+    const timer = setTimeout(() => {
+      timedOut = true
+      child.kill('SIGKILL')
+    }, Math.max(1000, timeoutMs || 120000))
+    child.stdout?.on('data', d => { if (stdout.length < MAX_CMD_OUTPUT) stdout += d.toString() })
+    child.stderr?.on('data', d => { if (stderr.length < MAX_CMD_OUTPUT) stderr += d.toString() })
+    child.on('error', err => { stderr += String(err); finish(null) })
+    child.on('close', code => finish(code))
+  })
 })
 
 interface FileNode {

@@ -203,6 +203,7 @@ export interface ElectronAPI {
   loadIndexData: (cacheKey: string) => Promise<string | null>
   watchProject: (folderPath: string) => Promise<boolean>
   unwatchProject: (folderPath: string) => Promise<boolean>
+  runCommand: (cwd: string, command: string, timeoutMs: number) => Promise<{ exitCode: number | null; stdout: string; stderr: string; timedOut: boolean }>
   onProjectFilesChanged: (callback: (folderPath: string) => void) => () => void
 }
 

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import {
   Bot, Send, AlertTriangle, FileText, CheckCircle2,
-  Loader2, GitBranch, Code, Shield, Undo2,
+  Loader2, GitBranch, Code, Shield, Undo2, PlayCircle, XCircle,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { services } from '../services/service-registry'
 import { PatchService, type PatchIO, type RollbackToken } from '../services/patch-service'
+import { TestRunner, stepsFromConfig, type CommandExecutor, type VerifyResult } from '../services/test-runner'
 import type { CodeModification } from '../types'
 
 interface AgentResult {
@@ -17,13 +18,40 @@ interface AgentResult {
 
 export function CodeAgentPanel() {
   const { currentProject, settings } = useAppStore()
+  const verifyConfig = useAppStore(s => s.config.verify)
   const [request, setRequest] = useState('')
   const [result, setResult] = useState<AgentResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [applying, setApplying] = useState(false)
   const [appliedMods, setAppliedMods] = useState<Set<number>>(new Set())
   const [rollbackToken, setRollbackToken] = useState<RollbackToken | null>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const verifySteps = stepsFromConfig(verifyConfig)
+  const canVerify = verifyConfig.enabled && verifySteps.length > 0 &&
+    currentProject?.type === 'local' && !!currentProject?.path
+
+  const handleVerify = async () => {
+    const api = window.electronAPI
+    if (!canVerify || !api?.runCommand || !currentProject?.path) return
+    const executor: CommandExecutor = {
+      run: ({ cwd, command, timeoutMs }) => api.runCommand(cwd, command, timeoutMs),
+    }
+    setVerifying(true)
+    setError(null)
+    setVerifyResult(null)
+    try {
+      const runner = new TestRunner(executor)
+      const res = await runner.verify(currentProject.path, verifySteps, verifyConfig.timeoutMs)
+      setVerifyResult(res)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verify failed')
+    } finally {
+      setVerifying(false)
+    }
+  }
 
   const getPatchService = (): PatchService | null => {
     const api = window.electronAPI
@@ -215,6 +243,17 @@ export function CodeAgentPanel() {
                     Proposed Modifications ({result.modifications.length})
                   </h3>
                   <div className="flex items-center gap-2">
+                    {canVerify && (
+                      <button
+                        onClick={handleVerify}
+                        disabled={verifying || applying}
+                        title={`Run: ${verifySteps.map(s => s.command).join(' && ')}`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-wiki-accent/15 text-wiki-accent text-xs font-medium hover:bg-wiki-accent/25 disabled:opacity-50 transition-colors"
+                      >
+                        {verifying ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
+                        Verify
+                      </button>
+                    )}
                     {rollbackToken && Object.keys(rollbackToken).length > 0 && (
                       <button
                         onClick={handleRollback}
@@ -278,6 +317,40 @@ export function CodeAgentPanel() {
                             <code>{mod.newContent}</code>
                           </pre>
                         </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Verification results */}
+            {verifyResult && (
+              <div>
+                <h3 className="text-sm font-semibold text-wiki-text mb-2 flex items-center gap-2">
+                  {verifyResult.ok
+                    ? <CheckCircle2 size={14} className="text-wiki-green" />
+                    : <XCircle size={14} className="text-red-400" />}
+                  Verification {verifyResult.ok ? 'passed' : 'failed'}
+                </h3>
+                <div className="space-y-2">
+                  {verifyResult.steps.map((step, i) => (
+                    <div key={i} className={`rounded-lg border overflow-hidden ${step.ok ? 'border-wiki-green/30' : 'border-red-500/30'}`}>
+                      <div className="px-3 py-2 bg-wiki-card border-b border-wiki-border flex items-center gap-2">
+                        {step.ok
+                          ? <CheckCircle2 size={12} className="text-wiki-green" />
+                          : <XCircle size={12} className="text-red-400" />}
+                        <span className="text-xs font-medium text-wiki-text">{step.name}</span>
+                        <span className="text-[10px] font-mono text-wiki-muted">{step.command}</span>
+                        <span className="flex-1" />
+                        <span className="text-[10px] text-wiki-muted">
+                          {step.timedOut ? 'timed out' : `exit ${step.exitCode}`}
+                        </span>
+                      </div>
+                      {step.output && (
+                        <pre className="px-3 py-2 text-[11px] text-wiki-muted bg-wiki-card/40 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
+                          <code>{step.output}</code>
+                        </pre>
                       )}
                     </div>
                   ))}
