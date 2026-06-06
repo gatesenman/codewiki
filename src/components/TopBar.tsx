@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  BookOpen, GitBranch, Search, MessageSquare, Bot,
+  BookOpen, GitBranch, Search, MessageSquare, Bot, Activity,
   Loader2, Settings, PanelLeftClose, PanelLeftOpen,
   RefreshCw, FolderOpen, Home,
 } from 'lucide-react'
@@ -15,6 +15,7 @@ const VIEW_TABS = [
   { mode: 'search' as const, labelKey: 'navSearch' as const, icon: Search },
   { mode: 'chat' as const, labelKey: 'navChat' as const, icon: MessageSquare },
   { mode: 'agent' as const, labelKey: 'navAgent' as const, icon: Bot },
+  { mode: 'insights' as const, labelKey: 'navInsights' as const, icon: Activity },
 ]
 
 export function TopBar() {

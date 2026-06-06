@@ -5,6 +5,7 @@ import { KnowledgeGraph } from './KnowledgeGraph'
 import { SearchPanel } from './SearchPanel'
 import { ChatPanel } from './ChatPanel'
 import { CodeAgentPanel } from './CodeAgentPanel'
+import { InsightsPanel } from './InsightsPanel'
 import { EntityDetailPanel } from './EntityDetailPanel'
 import { TopBar } from './TopBar'
 
@@ -25,6 +26,7 @@ export function Layout() {
             {viewMode === 'search' && <SearchPanel />}
             {viewMode === 'chat' && <ChatPanel />}
             {viewMode === 'agent' && <CodeAgentPanel />}
+            {viewMode === 'insights' && <InsightsPanel />}
           </div>
         </main>
         {selectedEntityId && <div className="slide-in-right"><EntityDetailPanel /></div>}
