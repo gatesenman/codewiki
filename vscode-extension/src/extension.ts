@@ -156,6 +156,31 @@ export function activate(context: vscode.ExtensionContext) {
     )
   )
 
+  // Definition provider (ontology-based go-to-definition)
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      { scheme: 'file', pattern: '**/*.{ts,tsx,js,jsx,py,java,go,rs,cs,rb,php,kt,swift}' },
+      new CodeWikiDefinitionProvider()
+    )
+  )
+
+  // Reference provider (ontology-based find-references)
+  context.subscriptions.push(
+    vscode.languages.registerReferenceProvider(
+      { scheme: 'file', pattern: '**/*.{ts,tsx,js,jsx,py,java,go,rs,cs,rb,php,kt,swift}' },
+      new CodeWikiReferenceProvider()
+    )
+  )
+
+  // Document symbol provider (ontology-based outline)
+  context.subscriptions.push(
+    vscode.languages.registerDocumentSymbolProvider(
+      { scheme: 'file', pattern: '**/*.{ts,tsx,js,jsx,py,java,go,rs,cs,rb,php,kt,swift}' },
+      new CodeWikiDocumentSymbolProvider(),
+      { label: 'CodeWiki Entities' }
+    )
+  )
+
   // File watcher for auto re-index on save
   setupFileWatcher(context)
 
@@ -166,7 +191,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (folders?.[0]) autoIndex(folders[0].uri.fsPath)
   }
 
-  outputChannel.appendLine('CodeWiki extension activated (v0.5.0)')
+  outputChannel.appendLine('CodeWiki extension activated (v0.5.1)')
 }
 
 export function deactivate() {
@@ -1392,4 +1417,131 @@ function entityTypeLabel(type: string): string {
   }
   const key = keyMap[type]
   return key ? t(key) : type
+}
+
+// ─── Definition Provider ───────────────────────────────────────────────────────
+
+class CodeWikiDefinitionProvider implements vscode.DefinitionProvider {
+  provideDefinition(document: vscode.TextDocument, position: vscode.Position): vscode.Location[] | undefined {
+    if (!indexed || cachedEntities.length === 0) return undefined
+
+    const wordRange = document.getWordRangeAtPosition(position)
+    if (!wordRange) return undefined
+    const word = document.getText(wordRange)
+    if (word.length < 2) return undefined
+
+    const pp = getProjectPath()
+    if (!pp) return undefined
+
+    // Find the entity by name
+    const entity = cachedEntities.find(e => e.name === word && e.type !== 'File')
+    if (!entity) return undefined
+
+    // Don't provide if cursor is already at the definition
+    const relPath = vscode.workspace.asRelativePath(document.uri)
+    if ((entity.filePath === relPath || entity.filePath.endsWith('/' + relPath) || relPath.endsWith(entity.filePath)) && entity.line === position.line + 1) {
+      return undefined
+    }
+
+    const absPath = path.isAbsolute(entity.filePath) ? entity.filePath : path.resolve(pp, entity.filePath)
+    const pos = new vscode.Position(Math.max(0, entity.line - 1), 0)
+    return [new vscode.Location(vscode.Uri.file(absPath), pos)]
+  }
+}
+
+// ─── Reference Provider ────────────────────────────────────────────────────────
+
+class CodeWikiReferenceProvider implements vscode.ReferenceProvider {
+  provideReferences(document: vscode.TextDocument, position: vscode.Position): vscode.Location[] | undefined {
+    if (!indexed || cachedEntities.length === 0) return undefined
+
+    const wordRange = document.getWordRangeAtPosition(position)
+    if (!wordRange) return undefined
+    const word = document.getText(wordRange)
+    if (word.length < 2) return undefined
+
+    const pp = getProjectPath()
+    if (!pp) return undefined
+
+    // Find the entity by name
+    const entity = cachedEntities.find(e => e.name === word)
+    if (!entity) return undefined
+
+    const locations: vscode.Location[] = []
+
+    // Entity definition itself
+    const defPath = path.isAbsolute(entity.filePath) ? entity.filePath : path.resolve(pp, entity.filePath)
+    locations.push(new vscode.Location(vscode.Uri.file(defPath), new vscode.Position(Math.max(0, entity.line - 1), 0)))
+
+    // Incoming relations (entities that reference this entity)
+    const incoming = cachedRelations.filter(r => r.target === entity.id)
+    for (const rel of incoming) {
+      const sourceEntity = cachedEntities.find(e => e.id === rel.source)
+      if (!sourceEntity) continue
+      const srcPath = path.isAbsolute(sourceEntity.filePath) ? sourceEntity.filePath : path.resolve(pp, sourceEntity.filePath)
+      locations.push(new vscode.Location(vscode.Uri.file(srcPath), new vscode.Position(Math.max(0, sourceEntity.line - 1), 0)))
+    }
+
+    // Outgoing relations (entities this entity references)
+    const outgoing = cachedRelations.filter(r => r.source === entity.id)
+    for (const rel of outgoing) {
+      const targetEntity = cachedEntities.find(e => e.id === rel.target)
+      if (!targetEntity) continue
+      const tgtPath = path.isAbsolute(targetEntity.filePath) ? targetEntity.filePath : path.resolve(pp, targetEntity.filePath)
+      locations.push(new vscode.Location(vscode.Uri.file(tgtPath), new vscode.Position(Math.max(0, targetEntity.line - 1), 0)))
+    }
+
+    // Deduplicate by file + line
+    const seen = new Set<string>()
+    return locations.filter(loc => {
+      const key = `${loc.uri.fsPath}:${loc.range.start.line}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }
+}
+
+// ─── Document Symbol Provider ──────────────────────────────────────────────────
+
+function entityTypeToSymbolKind(type: string): vscode.SymbolKind {
+  const map: Record<string, vscode.SymbolKind> = {
+    Class: vscode.SymbolKind.Class,
+    Interface: vscode.SymbolKind.Interface,
+    Function: vscode.SymbolKind.Function,
+    Method: vscode.SymbolKind.Method,
+    Type: vscode.SymbolKind.TypeParameter,
+    Enum: vscode.SymbolKind.Enum,
+    Variable: vscode.SymbolKind.Variable,
+    Module: vscode.SymbolKind.Module,
+    Component: vscode.SymbolKind.Class,
+    Package: vscode.SymbolKind.Package,
+    File: vscode.SymbolKind.File,
+  }
+  return map[type] ?? vscode.SymbolKind.Object
+}
+
+class CodeWikiDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
+  provideDocumentSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[] {
+    if (!indexed || cachedEntities.length === 0) return []
+
+    const relPath = vscode.workspace.asRelativePath(document.uri)
+    const fileEntities = cachedEntities.filter(e =>
+      e.type !== 'File' && (
+        e.filePath === relPath || e.filePath === document.uri.fsPath ||
+        e.filePath.endsWith('/' + relPath) || relPath.endsWith(e.filePath)
+      )
+    )
+
+    if (fileEntities.length === 0) return []
+
+    return fileEntities.map(e => {
+      const line = Math.max(0, e.line - 1)
+      const endLine = e.endLine ? Math.max(line, e.endLine - 1) : line
+      const range = new vscode.Range(line, 0, endLine, 0)
+      const relCount = cachedRelations.filter(r => r.source === e.id || r.target === e.id).length
+      const detail = `${e.type}${relCount > 0 ? ` · ${relCount} relations` : ''}`
+      return new vscode.DocumentSymbol(e.name, detail, entityTypeToSymbolKind(e.type), range, range)
+    })
+  }
 }
