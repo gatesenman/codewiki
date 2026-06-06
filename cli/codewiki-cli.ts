@@ -24,6 +24,8 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import * as readline from 'readline'
+import { spawnSync } from 'child_process'
 
 // ---- Types ----
 
@@ -4084,6 +4086,10 @@ function main() {
     case 'server':
       cmdServe(projectPath, parseInt(positional[0] || '3777', 10))
       break
+    case 'debug':
+    case 'repl':
+      cmdDebug(projectPath, depth)
+      break
     case 'test':
       cmdTest(positional[0] || path.join(__dirname, '..', 'test-fixtures'), projectPath)
       break
@@ -4136,6 +4142,7 @@ Commands:
   wiki-styles [show <id>]             List/show wiki prompt-style templates
   wiki-generate [--style <id>]        Generate a wiki via LLM (needs CODEWIKI_API_KEY/DEEPSEEK_API_KEY)
   serve [port]                        Start CodeWiki server with call logging dashboard (default: 3777)
+  debug | repl                        Start the interactive CLI debugger (REPL) — run any command, keep project loaded
   logs [stats|clear]                  View shared CLI/MCP call trace (--source --command --limit)
   test [suite-path]                   Run accuracy test suite
 
@@ -4221,6 +4228,127 @@ interface TestResult {
   details: string
   expected?: unknown
   actual?: unknown
+}
+
+/**
+ * Split a REPL line into argv tokens, honoring single/double quotes so that
+ * multi-word arguments (e.g. apply "<new content>") survive intact.
+ */
+function tokenizeLine(line: string): string[] {
+  const tokens: string[] = []
+  let cur = ''
+  let quote: '"' | "'" | null = null
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]
+    if (quote) {
+      if (c === quote) quote = null
+      else cur += c
+    } else if (c === '"' || c === "'") {
+      quote = c
+    } else if (c === ' ' || c === '\t') {
+      if (cur) { tokens.push(cur); cur = '' }
+    } else {
+      cur += c
+    }
+  }
+  if (cur) tokens.push(cur)
+  return tokens
+}
+
+const DEBUG_HELP = `
+CodeWiki 交互式调试器 (REPL)
+  在这里可直接运行任意 CodeWiki 命令，无需每次重复 --project。
+  当前项目会作为默认 -p 注入，未指定 -d 时自动带上当前深度。
+
+会话命令:
+  help | ?               显示本帮助
+  project [<path>]       查看 / 设置当前项目路径
+  depth [<n>]            查看 / 设置遍历深度
+  info                   显示当前会话状态
+  clear                  清屏
+  exit | quit            退出调试器
+
+常用调试命令 (示例):
+  search <query>                 语义搜索
+  entity <name>                  查看实体
+  impact <name>                  影响分析 (爆炸半径)
+  callers <name> / callees <name>  调用关系
+  trace <from> <to>              两实体间调用路径
+  context <query> --intent debug 为某问题构建完整上下文
+  pre-check <name> "<desc>"      改动前安全分析
+  status                         索引状态
+`
+
+/**
+ * Interactive CLI debugger / REPL. Keeps a project + depth loaded across
+ * commands and dispatches each entered line to the CLI itself in a child
+ * process, so per-command `process.exit` calls don't tear down the session.
+ */
+function cmdDebug(initialProject: string, initialDepth: number): void {
+  let project = initialProject
+  let depth = initialDepth
+  const cliEntry = process.argv[1]
+
+  console.log(DEBUG_HELP)
+  console.log(`  项目: ${path.resolve(project)}   深度: ${depth}\n`)
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: 'codewiki(debug)> ',
+  })
+  rl.prompt()
+
+  rl.on('line', (raw) => {
+    const line = raw.trim()
+    if (!line) { rl.prompt(); return }
+    const tokens = tokenizeLine(line)
+    const head = tokens[0]
+    const rest = tokens.slice(1)
+
+    switch (head) {
+      case 'exit': case 'quit': case ':q':
+        rl.close(); return
+      case 'help': case '?': case ':h':
+        console.log(DEBUG_HELP); break
+      case 'clear': case ':clear':
+        console.clear(); break
+      case 'info': case ':info':
+        console.log(`  项目: ${path.resolve(project)}   深度: ${depth}`); break
+      case 'project': case ':project': case 'p':
+        if (rest[0]) { project = rest[0]; console.log(`  已切换项目 -> ${path.resolve(project)}`) }
+        else console.log(`  当前项目: ${path.resolve(project)}`)
+        break
+      case 'depth': case ':depth':
+        if (rest[0]) { const d = parseInt(rest[0], 10); if (d > 0) { depth = d; console.log(`  深度 -> ${depth}`) } else console.log('  无效深度') }
+        else console.log(`  当前深度: ${depth}`)
+        break
+      default: {
+        // Inject the session project/depth defaults when the user didn't pass them.
+        const args = [...tokens]
+        const hasProject = args.some(a => a === '-p' || a === '--project' || a.startsWith('--project=') || a.startsWith('-p='))
+        const hasDepth = args.some(a => a === '-d' || a === '--depth' || a.startsWith('--depth=') || a.startsWith('-d='))
+        if (!hasProject) args.push('-p', project)
+        if (!hasDepth) args.push('-d', String(depth))
+        try {
+          // Run the compiled .js directly with node; in dev (.ts entry) go via ts-node.
+          const isTs = cliEntry.endsWith('.ts')
+          const cmd = isTs ? 'npx' : process.execPath
+          const cmdArgs = isTs ? ['ts-node', cliEntry, ...args] : [cliEntry, ...args]
+          const res = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: process.platform === 'win32' })
+          if (res.error) console.error('  执行失败:', res.error.message)
+        } catch (err) {
+          console.error('  执行失败:', (err as Error).message)
+        }
+      }
+    }
+    rl.prompt()
+  })
+
+  rl.on('close', () => {
+    console.log('\n再见 👋')
+    process.exit(0)
+  })
 }
 
 function cmdTest(suitePath: string, projectPath: string): void {
