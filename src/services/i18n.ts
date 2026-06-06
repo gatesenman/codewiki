@@ -128,7 +128,6 @@ export interface I18nStrings {
   agentAutoFixTitlePlain: string
   agentVerify: string
   agentVerifyRun: string
-  agentRollback: string
   agentRollbackTitle: string
   agentAnalysisTitle: string
   agentImpactedFiles: string
@@ -427,7 +426,6 @@ const en: I18nStrings = {
   agentAutoFixTitlePlain: 'Analyze and apply automatically (enable Verification in Settings to add a test/build gate)',
   agentVerify: 'Verify',
   agentVerifyRun: 'Run: ',
-  agentRollback: 'Rollback',
   agentRollbackTitle: 'Restore all modified files to their state before applying',
   agentAnalysisTitle: 'Analysis',
   agentImpactedFiles: 'Impacted Files',
@@ -721,7 +719,6 @@ const zh: I18nStrings = {
   agentAutoFixTitlePlain: '自动分析并应用（在设置中开启验证以添加测试/构建门禁）',
   agentVerify: '验证',
   agentVerifyRun: '运行：',
-  agentRollback: '回滚',
   agentRollbackTitle: '将所有被修改的文件恢复到应用之前的状态',
   agentAnalysisTitle: '分析',
   agentImpactedFiles: '受影响的文件',
