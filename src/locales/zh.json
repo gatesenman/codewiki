@@ -424,5 +424,20 @@
   "edit": "编辑",
   "save": "保存",
   "export": "导出",
-  "import_": "导入"
+  "import_": "导入",
+  "navCodeMap": "代码地图",
+  "codeMapEmpty": "暂无代码地图",
+  "codeMapEmptyHint": "索引项目后将自动生成代码地图。",
+  "codeMapTreemap": "树形图",
+  "codeMapModuleGraph": "模块依赖图",
+  "codeMapExplorer": "文件浏览器",
+  "codeMapFiles": "文件",
+  "codeMapEntities": "实体",
+  "codeMapRelations": "关系",
+  "codeMapFileTree": "文件树",
+  "codeMapSelectFile": "选择文件查看详情",
+  "codeMapInbound": "入向",
+  "codeMapOutbound": "出向",
+  "codeMapLines": "行",
+  "codeMapEntitiesInFile": "实体列表"
 }

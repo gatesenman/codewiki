@@ -6,6 +6,7 @@ import { SearchPanel } from './SearchPanel'
 import { ChatPanel } from './ChatPanel'
 import { CodeAgentPanel } from './CodeAgentPanel'
 import { InsightsPanel } from './InsightsPanel'
+import { CodeMap } from './CodeMap'
 import { EntityDetailPanel } from './EntityDetailPanel'
 import { TopBar } from './TopBar'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -30,6 +31,7 @@ export function Layout() {
               {viewMode === 'chat' && <ChatPanel />}
               {viewMode === 'agent' && <CodeAgentPanel />}
               {viewMode === 'insights' && <InsightsPanel />}
+              {viewMode === 'codemap' && <CodeMap />}
             </div>
           </ErrorBoundary>
         </main>
