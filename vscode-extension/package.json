@@ -1,8 +1,8 @@
 {
   "name": "codewiki-vscode",
   "displayName": "CodeWiki - AI Code Knowledge Base",
-  "description": "VSCode extension for CodeWiki — ontology-based code analysis for precise AI modifications",
-  "version": "0.2.0",
+  "description": "%ext.description%",
+  "version": "0.4.0",
   "publisher": "codewiki",
   "license": "MIT",
   "icon": "resources/icon.png",
@@ -14,57 +14,33 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other", "Programming Languages"],
+  "categories": ["Other", "Programming Languages", "Visualization"],
+  "keywords": ["ai", "code analysis", "ontology", "knowledge graph", "mcp", "code health"],
   "activationEvents": [
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "codewiki.index",
-        "title": "CodeWiki: Index Project"
-      },
-      {
-        "command": "codewiki.openWiki",
-        "title": "CodeWiki: Open Wiki"
-      },
-      {
-        "command": "codewiki.searchCode",
-        "title": "CodeWiki: Semantic Search"
-      },
-      {
-        "command": "codewiki.showGraph",
-        "title": "CodeWiki: Show Knowledge Graph"
-      },
-      {
-        "command": "codewiki.askQuestion",
-        "title": "CodeWiki: Ask about Code"
-      },
-      {
-        "command": "codewiki.analyzeImpact",
-        "title": "CodeWiki: Analyze Impact"
-      },
-      {
-        "command": "codewiki.preCheck",
-        "title": "CodeWiki: Pre-check Modification"
-      },
-      {
-        "command": "codewiki.showRelations",
-        "title": "CodeWiki: Show Relations"
-      },
-      {
-        "command": "codewiki.generateWiki",
-        "title": "CodeWiki: Generate Wiki"
-      },
-      {
-        "command": "codewiki.exportWiki",
-        "title": "CodeWiki: Export Wiki"
-      },
-      {
-        "command": "codewiki.status",
-        "title": "CodeWiki: Show Status"
-      }
+      { "command": "codewiki.init", "title": "%cmd.init%", "category": "CodeWiki" },
+      { "command": "codewiki.healthCheck", "title": "%cmd.healthCheck%", "category": "CodeWiki" },
+      { "command": "codewiki.openUsagePanel", "title": "%cmd.openUsagePanel%", "category": "CodeWiki" },
+      { "command": "codewiki.openSettings", "title": "%cmd.openSettings%", "category": "CodeWiki" },
+      { "command": "codewiki.index", "title": "%cmd.index%", "category": "CodeWiki" },
+      { "command": "codewiki.openWiki", "title": "%cmd.openWiki%", "category": "CodeWiki" },
+      { "command": "codewiki.searchCode", "title": "%cmd.searchCode%", "category": "CodeWiki" },
+      { "command": "codewiki.showGraph", "title": "%cmd.showGraph%", "category": "CodeWiki" },
+      { "command": "codewiki.askQuestion", "title": "%cmd.askQuestion%", "category": "CodeWiki" },
+      { "command": "codewiki.analyzeImpact", "title": "%cmd.analyzeImpact%", "category": "CodeWiki" },
+      { "command": "codewiki.preCheck", "title": "%cmd.preCheck%", "category": "CodeWiki" },
+      { "command": "codewiki.showRelations", "title": "%cmd.showRelations%", "category": "CodeWiki" },
+      { "command": "codewiki.scan", "title": "%cmd.scan%", "category": "CodeWiki" },
+      { "command": "codewiki.patterns", "title": "%cmd.patterns%", "category": "CodeWiki" },
+      { "command": "codewiki.generateWiki", "title": "%cmd.generateWiki%", "category": "CodeWiki" },
+      { "command": "codewiki.exportWiki", "title": "%cmd.exportWiki%", "category": "CodeWiki" },
+      { "command": "codewiki.status", "title": "%cmd.status%", "category": "CodeWiki" },
+      { "command": "codewiki.refresh", "title": "%cmd.refresh%", "category": "CodeWiki", "icon": "$(refresh)" },
+      { "command": "codewiki.clearDiagnostics", "title": "%cmd.clearDiagnostics%", "category": "CodeWiki", "icon": "$(clear-all)" }
     ],
     "viewsContainers": {
       "activitybar": [
@@ -77,49 +53,97 @@
     },
     "views": {
       "codewiki": [
-        {
-          "id": "codewiki.wikiPages",
-          "name": "Wiki Pages"
-        },
-        {
-          "id": "codewiki.entities",
-          "name": "Code Entities"
-        }
+        { "type": "webview", "id": "codewiki.usagePanel", "name": "%view.usagePanel%" },
+        { "id": "codewiki.wikiPages", "name": "%view.wikiPages%" },
+        { "id": "codewiki.entities", "name": "%view.entities%" }
       ]
     },
+    "menus": {
+      "view/title": [
+        { "command": "codewiki.init", "when": "view == codewiki.usagePanel", "group": "navigation@1" },
+        { "command": "codewiki.healthCheck", "when": "view == codewiki.usagePanel", "group": "navigation@2" },
+        { "command": "codewiki.refresh", "when": "view == codewiki.entities", "group": "navigation@1" }
+      ],
+      "commandPalette": [
+        { "command": "codewiki.clearDiagnostics", "when": "true" }
+      ]
+    },
+    "keybindings": [
+      { "command": "codewiki.searchCode", "key": "ctrl+alt+s", "mac": "cmd+alt+s" },
+      { "command": "codewiki.healthCheck", "key": "ctrl+alt+h", "mac": "cmd+alt+h" },
+      { "command": "codewiki.preCheck", "key": "ctrl+alt+p", "mac": "cmd+alt+p", "when": "editorTextFocus" }
+    ],
+    "walkthroughs": [
+      {
+        "id": "codewiki.getStarted",
+        "title": "%walkthrough.title%",
+        "description": "%walkthrough.description%",
+        "steps": [
+          {
+            "id": "codewiki.step.init",
+            "title": "%walkthrough.step.init%",
+            "description": "%walkthrough.step.init.desc%\n[%cmd.init%](command:codewiki.init)",
+            "media": { "markdown": "walkthroughs/init.md" }
+          },
+          {
+            "id": "codewiki.step.health",
+            "title": "%walkthrough.step.health%",
+            "description": "%walkthrough.step.health.desc%\n[%cmd.healthCheck%](command:codewiki.healthCheck)",
+            "media": { "markdown": "walkthroughs/health.md" }
+          },
+          {
+            "id": "codewiki.step.usage",
+            "title": "%walkthrough.step.usage%",
+            "description": "%walkthrough.step.usage.desc%\n[%cmd.openUsagePanel%](command:codewiki.openUsagePanel)",
+            "media": { "markdown": "walkthroughs/usage.md" }
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": "CodeWiki",
       "properties": {
+        "codewiki.language": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "en", "zh"],
+          "enumDescriptions": [
+            "Follow VS Code display language / 跟随 VS Code 界面语言",
+            "English",
+            "中文"
+          ],
+          "description": "%config.language%"
+        },
         "codewiki.llmProvider": {
           "type": "string",
           "default": "openai",
           "enum": ["openai", "anthropic", "deepseek", "ollama"],
-          "description": "LLM provider for wiki generation and code analysis"
+          "description": "%config.llmProvider%"
         },
         "codewiki.apiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for the selected LLM provider"
+          "description": "%config.apiKey%"
         },
         "codewiki.model": {
           "type": "string",
           "default": "gpt-4o",
-          "description": "LLM model to use"
+          "description": "%config.model%"
         },
         "codewiki.cliPath": {
           "type": "string",
           "default": "npx tsx",
-          "description": "Command prefix for running the CodeWiki CLI (e.g., 'npx tsx', 'ts-node')"
+          "description": "%config.cliPath%"
         },
         "codewiki.autoIndex": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically index workspace on extension activation"
+          "description": "%config.autoIndex%"
         },
         "codewiki.codeLens": {
           "type": "boolean",
           "default": true,
-          "description": "Show CodeWiki code lenses above classes/functions"
+          "description": "%config.codeLens%"
         }
       }
     }
@@ -128,7 +152,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies -o codewiki-vscode-0.2.0.vsix"
+    "package": "vsce package --no-dependencies -o codewiki-vscode-0.4.0.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
