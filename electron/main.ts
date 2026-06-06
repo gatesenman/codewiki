@@ -32,6 +32,7 @@ function createWindow() {
   }
 
   mainWindow.on('closed', () => {
+    closeAllWatchers()
     mainWindow = null
   })
 }
@@ -185,6 +186,57 @@ ipcMain.handle('load-index-data', async (_event, cacheKey: string) => {
     return fs.readFileSync(filePath, 'utf-8')
   }
   return null
+})
+
+// ---- File watching (auto incremental reindex) ----
+const projectWatchers = new Map<string, fs.FSWatcher>()
+const watchDebounce = new Map<string, NodeJS.Timeout>()
+
+function isWatchableChange(filename: string | null): boolean {
+  if (!filename) return true // unknown file — be safe and trigger
+  const parts = filename.split(/[/\\]/)
+  if (parts.some(p => IGNORED_DIRS.has(p))) return false
+  const base = parts[parts.length - 1]
+  if (base.endsWith('.codewiki-backup')) return false
+  const ext = path.extname(base).toLowerCase()
+  return CODE_EXTENSIONS.has(ext) || base === 'Makefile' || base === 'Dockerfile'
+}
+
+function closeAllWatchers() {
+  for (const w of projectWatchers.values()) w.close()
+  projectWatchers.clear()
+  for (const t of watchDebounce.values()) clearTimeout(t)
+  watchDebounce.clear()
+}
+
+ipcMain.handle('watch-project', async (_event, folderPath: string) => {
+  if (projectWatchers.has(folderPath)) return true
+  try {
+    const watcher = fs.watch(folderPath, { recursive: true }, (_eventType, filename) => {
+      if (!isWatchableChange(filename as string | null)) return
+      const existing = watchDebounce.get(folderPath)
+      if (existing) clearTimeout(existing)
+      // Debounce bursts of edits into a single change notification.
+      watchDebounce.set(folderPath, setTimeout(() => {
+        watchDebounce.delete(folderPath)
+        mainWindow?.webContents.send('project-files-changed', folderPath)
+      }, 600))
+    })
+    watcher.on('error', err => console.error('Project watcher error:', err))
+    projectWatchers.set(folderPath, watcher)
+    return true
+  } catch (err) {
+    console.error('Failed to watch project:', err)
+    return false
+  }
+})
+
+ipcMain.handle('unwatch-project', async (_event, folderPath: string) => {
+  const w = projectWatchers.get(folderPath)
+  if (w) { w.close(); projectWatchers.delete(folderPath) }
+  const t = watchDebounce.get(folderPath)
+  if (t) { clearTimeout(t); watchDebounce.delete(folderPath) }
+  return true
 })
 
 interface FileNode {

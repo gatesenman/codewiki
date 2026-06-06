@@ -297,7 +297,7 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
       <SettingRow label="Max File Size" description="Skip files larger than this (bytes).">
         <NumberInput value={config.indexing.maxFileSize} onChange={v => updateLocal('indexing', { maxFileSize: v })} min={1000} max={10000000} step={10000} />
       </SettingRow>
-      <SettingRow label="Auto Re-index" description="Automatically rebuild index on file changes.">
+      <SettingRow label="Auto Re-index" description="Watch the project folder and incrementally re-index on file changes (local projects).">
         <Toggle checked={config.indexing.autoReindex} onChange={v => updateLocal('indexing', { autoReindex: v })} />
       </SettingRow>
 

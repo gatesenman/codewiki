@@ -2,12 +2,16 @@ import { useEffect } from 'react'
 import { useAppStore } from './store'
 import { Layout } from './components/Layout'
 import { WelcomeScreen } from './components/WelcomeScreen'
+import { useProjectWatcher } from './hooks/useProjectWatcher'
 
 export default function App() {
   const currentProject = useAppStore(s => s.currentProject)
   const config = useAppStore(s => s.config)
   const loadConfig = useAppStore(s => s.loadConfig)
   const loadRecentProjects = useAppStore(s => s.loadRecentProjects)
+
+  // Auto incremental reindex on file changes (when "Auto Re-index" is enabled)
+  useProjectWatcher()
 
   // Load saved config and recent projects on mount
   useEffect(() => {

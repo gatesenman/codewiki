@@ -201,6 +201,9 @@ export interface ElectronAPI {
   loadWikiData: (projectId: string) => Promise<string | null>
   saveIndexData: (cacheKey: string, data: string) => Promise<boolean>
   loadIndexData: (cacheKey: string) => Promise<string | null>
+  watchProject: (folderPath: string) => Promise<boolean>
+  unwatchProject: (folderPath: string) => Promise<boolean>
+  onProjectFilesChanged: (callback: (folderPath: string) => void) => () => void
 }
 
 declare global {
