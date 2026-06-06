@@ -74,12 +74,13 @@ describe('generateComponentFlowDiagram', () => {
 })
 
 describe('generateAllDiagrams', () => {
-  it('returns 3 diagrams', () => {
+  it('returns 4 diagrams', () => {
     const diagrams = generateAllDiagrams(makeGraph())
-    expect(diagrams).toHaveLength(3)
+    expect(diagrams).toHaveLength(4)
     expect(diagrams[0].type).toBe('module-dependency')
     expect(diagrams[1].type).toBe('class-hierarchy')
     expect(diagrams[2].type).toBe('component-flow')
+    expect(diagrams[3].type).toBe('sequence')
   })
 
   it('each diagram has mermaid content', () => {

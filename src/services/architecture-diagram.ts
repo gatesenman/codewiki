@@ -12,7 +12,7 @@
 
 import type { OntologyGraph, OntologyEntity } from '../types'
 
-export type DiagramType = 'module-dependency' | 'class-hierarchy' | 'component-flow'
+export type DiagramType = 'module-dependency' | 'class-hierarchy' | 'component-flow' | 'sequence'
 
 export interface DiagramOptions {
   /** Max nodes to include (default 30). Largest modules/classes first. */
@@ -256,5 +256,129 @@ export function generateAllDiagrams(
       title: 'Component Interactions',
       mermaid: generateComponentFlowDiagram(graph, options),
     },
+    {
+      type: 'sequence',
+      title: 'Call Sequence',
+      mermaid: generateSequenceDiagram(graph, options),
+    },
   ]
+}
+
+// ── Sequence diagram ──────────────────────────────────────────────────────
+
+/**
+ * Generate a Mermaid sequence diagram showing call chains between
+ * top-level entities (Functions/Methods calling other Functions/Methods).
+ */
+export function generateSequenceDiagram(
+  graph: OntologyGraph,
+  options: DiagramOptions = {},
+): string {
+  const { maxNodes = 20 } = options
+  const lines: string[] = ['sequenceDiagram']
+
+  // Find call-type relations between different entities
+  const callRels = graph.relations.filter(r =>
+    r.type === 'calls' || r.type === 'uses' || r.type === 'dependsOn',
+  )
+
+  const entityById = new Map(graph.entities.map(e => [e.id, e]))
+
+  // Build participant set (order by first appearance)
+  const participants = new Map<string, string>()
+  const interactions: Array<{ from: string; to: string; label: string }> = []
+
+  for (const r of callRels.slice(0, maxNodes * 2)) {
+    const src = entityById.get(r.source)
+    const tgt = entityById.get(r.target)
+    if (!src || !tgt || src.id === tgt.id) continue
+
+    const srcKey = sanitize(src.name)
+    const tgtKey = sanitize(tgt.name)
+    if (!participants.has(srcKey)) participants.set(srcKey, src.name)
+    if (!participants.has(tgtKey)) participants.set(tgtKey, tgt.name)
+
+    interactions.push({ from: srcKey, to: tgtKey, label: r.type })
+
+    if (participants.size >= maxNodes) break
+  }
+
+  if (interactions.length === 0) {
+    return 'sequenceDiagram\n  Note over System: No call sequences found'
+  }
+
+  for (const [key, name] of participants) {
+    lines.push(`  participant ${key} as ${name}`)
+  }
+
+  for (const { from, to, label } of interactions.slice(0, 30)) {
+    lines.push(`  ${from}->>+${to}: ${label}`)
+    lines.push(`  ${to}-->>-${from}: return`)
+  }
+
+  return lines.join('\n')
+}
+
+// ── PlantUML export ───────────────────────────────────────────────────────
+
+/**
+ * Convert a Mermaid module-dependency diagram to PlantUML format.
+ */
+export function toPlantUML(
+  graph: OntologyGraph,
+  options: DiagramOptions = {},
+): string {
+  const { moduleDepth = 2, minEntities = 2 } = options
+  const lines: string[] = ['@startuml', 'skinparam packageStyle rectangle']
+
+  // Build modules
+  const modules = new Map<string, Set<string>>()
+  for (const e of graph.entities) {
+    const parts = e.filePath.split('/')
+    const mod = parts.slice(0, moduleDepth).join('/')
+    if (!modules.has(mod)) modules.set(mod, new Set())
+    modules.get(mod)!.add(e.id)
+  }
+
+  // Filter small modules
+  const filtered = [...modules.entries()].filter(([, ids]) => ids.size >= minEntities)
+
+  for (const [mod, ids] of filtered) {
+    lines.push(`package "${mod}" {`)
+    const entities = graph.entities.filter(e => ids.has(e.id)).slice(0, 5)
+    for (const e of entities) {
+      const stereotype = e.type === 'Class' ? 'class' : e.type === 'Interface' ? 'interface' : 'object'
+      lines.push(`  ${stereotype} ${sanitize(e.name)}`)
+    }
+    lines.push('}')
+  }
+
+  // Add dependencies
+  const entityById = new Map(graph.entities.map(e => [e.id, e]))
+  const entityToModule = new Map<string, string>()
+  for (const e of graph.entities) {
+    const parts = e.filePath.split('/')
+    entityToModule.set(e.id, parts.slice(0, moduleDepth).join('/'))
+  }
+
+  const seenDeps = new Set<string>()
+  for (const r of graph.relations) {
+    const srcMod = entityToModule.get(r.source)
+    const tgtMod = entityToModule.get(r.target)
+    if (!srcMod || !tgtMod || srcMod === tgtMod) continue
+
+    const src = entityById.get(r.source)
+    const tgt = entityById.get(r.target)
+    if (!src || !tgt) continue
+
+    const key = `${sanitize(src.name)}->${sanitize(tgt.name)}`
+    if (seenDeps.has(key)) continue
+    seenDeps.add(key)
+
+    lines.push(`${sanitize(src.name)} --> ${sanitize(tgt.name)} : ${r.type}`)
+    if (seenDeps.size >= 30) break
+  }
+
+  lines.push('@enduml')
+  return lines.join('\n')
 }
