@@ -852,35 +852,37 @@ class UsagePanel {
 function usagePanelHtml(): string {
   const lang = getLang()
   const btns: Array<{ cmd: string; label: string; icon: string }> = [
-    { cmd: 'codewiki.init', label: lang === 'zh' ? '初始化' : 'Initialize', icon: '🚀' },
-    { cmd: 'codewiki.index', label: lang === 'zh' ? '索引项目' : 'Index Project', icon: '📂' },
-    { cmd: 'codewiki.refresh', label: lang === 'zh' ? '刷新' : 'Refresh', icon: '🔄' },
-    { cmd: 'codewiki.healthCheck', label: lang === 'zh' ? '健康检查' : 'Health Check', icon: '🏥' },
-    { cmd: 'codewiki.scan', label: lang === 'zh' ? '安全扫描' : 'Security Scan', icon: '🔒' },
-    { cmd: 'codewiki.patterns', label: lang === 'zh' ? '模式检测' : 'Patterns', icon: '🧩' },
-    { cmd: 'codewiki.searchCode', label: lang === 'zh' ? '语义搜索' : 'Semantic Search', icon: '🔍' },
-    { cmd: 'codewiki.askQuestion', label: lang === 'zh' ? '提问' : 'Ask', icon: '💬' },
-    { cmd: 'codewiki.preCheck', label: lang === 'zh' ? '修改前预检' : 'Pre-check', icon: '🛡️' },
-    { cmd: 'codewiki.analyzeImpact', label: lang === 'zh' ? '影响分析' : 'Impact', icon: '💥' },
-    { cmd: 'codewiki.showRelations', label: lang === 'zh' ? '关系' : 'Relations', icon: '🔗' },
-    { cmd: 'codewiki.showGraph', label: lang === 'zh' ? '知识图谱' : 'Knowledge Graph', icon: '🕸️' },
-    { cmd: 'codewiki.generateWiki', label: lang === 'zh' ? '生成 Wiki' : 'Generate Wiki', icon: '📝' },
-    { cmd: 'codewiki.exportWiki', label: lang === 'zh' ? '导出 Wiki' : 'Export Wiki', icon: '📄' },
-    { cmd: 'codewiki.openSettings', label: lang === 'zh' ? '设置' : 'Settings', icon: '⚙️' },
-    { cmd: 'codewiki.status', label: lang === 'zh' ? '状态' : 'Status', icon: 'ℹ️' },
+    { cmd: 'codewiki.init', label: lang === 'zh' ? '初始化' : 'Initialize', icon: 'codicon-rocket' },
+    { cmd: 'codewiki.index', label: lang === 'zh' ? '索引项目' : 'Index Project', icon: 'codicon-database' },
+    { cmd: 'codewiki.refresh', label: lang === 'zh' ? '刷新' : 'Refresh', icon: 'codicon-refresh' },
+    { cmd: 'codewiki.healthCheck', label: lang === 'zh' ? '健康检查' : 'Health Check', icon: 'codicon-pulse' },
+    { cmd: 'codewiki.scan', label: lang === 'zh' ? '安全扫描' : 'Security Scan', icon: 'codicon-shield' },
+    { cmd: 'codewiki.patterns', label: lang === 'zh' ? '模式检测' : 'Patterns', icon: 'codicon-symbol-structure' },
+    { cmd: 'codewiki.searchCode', label: lang === 'zh' ? '语义搜索' : 'Semantic Search', icon: 'codicon-search' },
+    { cmd: 'codewiki.askQuestion', label: lang === 'zh' ? '提问' : 'Ask', icon: 'codicon-comment-discussion' },
+    { cmd: 'codewiki.preCheck', label: lang === 'zh' ? '修改前预检' : 'Pre-check', icon: 'codicon-checklist' },
+    { cmd: 'codewiki.analyzeImpact', label: lang === 'zh' ? '影响分析' : 'Impact', icon: 'codicon-zap' },
+    { cmd: 'codewiki.showRelations', label: lang === 'zh' ? '关系' : 'Relations', icon: 'codicon-git-merge' },
+    { cmd: 'codewiki.showGraph', label: lang === 'zh' ? '知识图谱' : 'Knowledge Graph', icon: 'codicon-type-hierarchy' },
+    { cmd: 'codewiki.generateWiki', label: lang === 'zh' ? '生成 Wiki' : 'Generate Wiki', icon: 'codicon-notebook' },
+    { cmd: 'codewiki.exportWiki', label: lang === 'zh' ? '导出 Wiki' : 'Export Wiki', icon: 'codicon-export' },
+    { cmd: 'codewiki.openSettings', label: lang === 'zh' ? '设置' : 'Settings', icon: 'codicon-gear' },
+    { cmd: 'codewiki.status', label: lang === 'zh' ? '状态' : 'Status', icon: 'codicon-info' },
   ]
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head>
+    <link rel="stylesheet" href="https://unpkg.com/@vscode/codicons@0.0.36/dist/codicon.css" />
+    <style>
     body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 12px; margin:0; }
     h2 { font-size:13px; margin:0 0 10px; }
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
     .btn { display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:6px; cursor:pointer; border:1px solid var(--vscode-panel-border); background:var(--vscode-editor-background); font-size:12px; transition:background .1s; }
     .btn:hover { background:var(--vscode-list-hoverBackground); }
-    .icon { font-size:16px; }
+    .icon { font-size:16px; display:flex; align-items:center; }
     .footer { margin-top:14px; font-size:11px; opacity:.7; }
   </style></head><body>
     <h2>CodeWiki ${lang === 'zh' ? '使用面板' : 'Usage Panel'}</h2>
     <div class="grid">
-      ${btns.map(b => `<div class="btn" onclick="run('${b.cmd}')"><span class="icon">${b.icon}</span>${b.label}</div>`).join('\n      ')}
+      ${btns.map(b => `<div class="btn" onclick="run('${b.cmd}')"><span class="icon codicon ${b.icon}"></span>${b.label}</div>`).join('\n      ')}
     </div>
     <div class="footer">${lang === 'zh' ? '提示：先运行「初始化」确保 CLI 和 MCP 配置正确。' : 'Tip: Run "Initialize" first to ensure CLI & MCP config are correct.'}</div>
     <script>var vscode=acquireVsCodeApi();function run(c){vscode.postMessage({command:c});}</script>
@@ -1230,9 +1232,9 @@ class CodeWikiHoverProvider implements vscode.HoverProvider {
     const lines: string[] = [
       `**CodeWiki** — \`${entity.type}\` **${entity.name}**`,
       '',
-      `📍 \`${entity.filePath}:${entity.line}\``,
+      `$(file) \`${entity.filePath}:${entity.line}\``,
       '',
-      `🔗 ${relCount} ${lang === 'zh' ? '条关系' : 'relations'} (${outgoing.length} ${lang === 'zh' ? '出' : 'out'} / ${incoming.length} ${lang === 'zh' ? '入' : 'in'})`,
+      `$(link) ${relCount} ${lang === 'zh' ? '条关系' : 'relations'} (${outgoing.length} ${lang === 'zh' ? '出' : 'out'} / ${incoming.length} ${lang === 'zh' ? '入' : 'in'})`,
     ]
 
     if (entity.signature) {

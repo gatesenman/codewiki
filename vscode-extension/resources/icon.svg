@@ -1,40 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a1f36"/>
-      <stop offset="100%" style="stop-color:#0d1117"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#58a6ff"/>
-      <stop offset="100%" style="stop-color:#3b82f6"/>
-    </linearGradient>
-    <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3fb950"/>
-      <stop offset="100%" style="stop-color:#22c55e"/>
-    </linearGradient>
-  </defs>
-  <!-- Background rounded square -->
-  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Book outline -->
+  <path d="M4 4h12c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
   <!-- Book spine -->
-  <path d="M140 96h232c17.7 0 32 14.3 32 32v256c0 17.7-14.3 32-32 32H140c-17.7 0-32-14.3-32-32V128c0-17.7 14.3-32 32-32z" fill="none" stroke="url(#accent)" stroke-width="12"/>
-  <!-- Book center line (spine) -->
-  <line x1="200" y1="96" x2="200" y2="416" stroke="url(#accent)" stroke-width="8" opacity="0.4"/>
-  <!-- Code bracket left < -->
-  <path d="M260 180l-36 44 36 44" stroke="url(#accent)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <!-- Code bracket right > -->
-  <path d="M340 180l36 44-36 44" stroke="url(#accent)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <!-- Slash / in between -->
-  <line x1="316" y1="172" x2="284" y2="276" stroke="url(#green)" stroke-width="12" stroke-linecap="round"/>
+  <line x1="7" y1="4" x2="7" y2="20" opacity="0.4"/>
+  <!-- Code bracket < -->
+  <path d="M11 8.5l-2 3.5 2 3.5" fill="none"/>
+  <!-- Code bracket > -->
+  <path d="M15 8.5l2 3.5-2 3.5" fill="none"/>
   <!-- Knowledge graph nodes -->
-  <circle cx="170" cy="340" r="14" fill="#58a6ff"/>
-  <circle cx="230" cy="360" r="10" fill="#3fb950"/>
-  <circle cx="300" cy="340" r="14" fill="#58a6ff"/>
-  <circle cx="260" cy="310" r="10" fill="#a78bfa"/>
-  <circle cx="350" cy="360" r="10" fill="#3fb950"/>
+  <circle cx="9" cy="18" r="1" fill="currentColor" stroke="none"/>
+  <circle cx="13" cy="17" r="1" fill="currentColor" stroke="none"/>
+  <circle cx="17" cy="18.5" r="1" fill="currentColor" stroke="none"/>
   <!-- Knowledge graph edges -->
-  <line x1="170" y1="340" x2="230" y2="360" stroke="#58a6ff" stroke-width="3" opacity="0.5"/>
-  <line x1="230" y1="360" x2="300" y2="340" stroke="#58a6ff" stroke-width="3" opacity="0.5"/>
-  <line x1="260" y1="310" x2="300" y2="340" stroke="#a78bfa" stroke-width="3" opacity="0.5"/>
-  <line x1="300" y1="340" x2="350" y2="360" stroke="#3fb950" stroke-width="3" opacity="0.5"/>
-  <line x1="170" y1="340" x2="260" y2="310" stroke="#a78bfa" stroke-width="3" opacity="0.5"/>
+  <line x1="9" y1="18" x2="13" y2="17" stroke-width="0.8" opacity="0.5"/>
+  <line x1="13" y1="17" x2="17" y2="18.5" stroke-width="0.8" opacity="0.5"/>
 </svg>
