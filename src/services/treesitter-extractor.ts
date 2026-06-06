@@ -35,7 +35,7 @@ interface TSNode {
   startPosition: { row: number; column: number }
   endPosition: { row: number; column: number }
 }
-interface TSLanguage {}
+type TSLanguage = Record<string, unknown>
 interface TSParserCtor {
   new (): TSParser
   init(opts?: { locateFile?: (name: string) => string }): Promise<void>
