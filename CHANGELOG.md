@@ -3,6 +3,46 @@
 All notable changes to CodeWiki are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.3] — 2026-06-06
+
+CodeFlow-inspired "trust signals" release: turn the read-only ontology into
+risk-aware, explainable insights that help humans and AI agents change code
+safely. Plus a round of settings wiring/UX, an interactive CLI/TUI, IDE config
+export and the 3D-graph crash fix.
+
+### Added
+- **Code health score (A–F)** — circular-dependency detection (Tarjan SCC),
+  dead-code, coupling and god-object metrics combined into a weighted grade.
+  Insights → Health tab and `codewiki health`.
+- **Git churn & ownership** — per-file commit frequency, author distribution and
+  recency from `git log`. `codewiki churn` / `codewiki ownership`.
+- **Security findings scanner** — conservative rule-based scan (hardcoded
+  secrets with masking, `eval`, SQL/shell injection, unsafe HTML, debug, weak
+  random, cleartext HTTP). Insights → Security tab and `codewiki scan`.
+- **Design pattern / anti-pattern detection** — Singleton/Factory/Observer/
+  Builder/Strategy/Repository plus God-Object/High-Coupling anti-patterns, shown
+  as badges in the entity detail panel and via `codewiki patterns`.
+- **Graph color modes** — color the 2D graph by Type, Coupling (degree heatmap)
+  or Risk (anti-pattern/pattern), with a mode-aware legend.
+- **Aggregate analysis report** — `codewiki report [json|md] [-o file]` combining
+  health, security and patterns into one document.
+- **README health card workflow** — `.github/workflows/codewiki-health-card.yml`
+  regenerates a health/security/pattern badge card in the README on every push
+  to `main`.
+- **Interactive CLI/TUI console** (`codewiki tui`), one-click CLI install
+  (`install-cli.sh` / `install-cli.ps1`), and `codewiki init --ide <…>` to export
+  IDE-specific MCP/agent config for code agents; `codewiki mcp-guide`.
+- **Insights panel** wiring the previously unreferenced services (NL graph query,
+  architecture evolution, wiki-incremental, eval harness) into the UI.
+
+### Changed
+- All remaining orphaned settings are now wired to real behavior, with
+  conditional linkages, disabled states and default-filling numeric inputs.
+
+### Fixed
+- 3D knowledge graph now auto-degrades to the 2D graph (with a notice) instead of
+  showing a blank canvas when WebGL/GPU is unavailable or the 3D library crashes.
+
 ## [1.0.2] — 2026-06-04
 
 Phase 5 feature release, integrating the P0–P3 roadmap. Cross-platform
