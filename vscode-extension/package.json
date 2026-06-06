@@ -2,7 +2,7 @@
   "name": "codewiki-vscode",
   "displayName": "CodeWiki - AI Code Knowledge Base",
   "description": "%ext.description%",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "codewiki",
   "license": "MIT",
   "icon": "resources/icon.png",
@@ -65,8 +65,14 @@
         { "command": "codewiki.healthCheck", "when": "view == codewiki.usagePanel", "group": "navigation@2" },
         { "command": "codewiki.refresh", "when": "view == codewiki.entities", "group": "navigation@1" }
       ],
+      "editor/context": [
+        { "command": "codewiki.preCheck", "when": "editorTextFocus", "group": "codewiki@1" },
+        { "command": "codewiki.analyzeImpact", "when": "editorTextFocus", "group": "codewiki@2" },
+        { "command": "codewiki.showRelations", "when": "editorTextFocus", "group": "codewiki@3" }
+      ],
       "commandPalette": [
-        { "command": "codewiki.clearDiagnostics", "when": "true" }
+        { "command": "codewiki.clearDiagnostics", "when": "true" },
+        { "command": "codewiki.goToEntity", "when": "false" }
       ]
     },
     "keybindings": [
@@ -153,7 +159,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies -o codewiki-vscode-0.5.0.vsix"
+    "package": "vsce package --no-dependencies -o codewiki-vscode-0.5.1.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
