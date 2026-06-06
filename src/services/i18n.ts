@@ -106,6 +106,7 @@ export interface I18nStrings {
   insHistRelations: string
   insHistCouplingUp: string
   insHistCouplingStable: string
+  insHistTimeline: string
   insHistDiff: string
   insHistAdded: string
   insHistRemoved: string

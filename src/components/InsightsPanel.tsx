@@ -9,7 +9,7 @@ import { t, tEntityType } from '../services/i18n'
 import { answerQuery, type QueryResult } from '../services/graph-query'
 import {
   buildTimeline,
-  type GraphSnapshot, type EvolutionTimeline,
+  type GraphSnapshot, type EvolutionTimeline, type GraphDiff, type SnapshotMetrics,
 } from '../services/graph-history'
 import {
   computeIncrementalPlan, type IncrementalPlan,
@@ -458,27 +458,132 @@ function HistoryTool({ graph }: { graph: OntologyGraph }) {
             </table>
           </div>
 
+          {/* Timeline chart */}
+          {timeline.metrics.length >= 2 && (
+            <div className="bg-wiki-card border border-wiki-border rounded-md px-4 py-3">
+              <div className="text-xs font-semibold text-wiki-muted mb-2">{t('insHistTimeline')}</div>
+              <TimelineChart metrics={timeline.metrics} />
+            </div>
+          )}
+
           {/* Diffs */}
           {timeline.diffs.length > 0 && (
-            <div>
-              <div className="text-xs font-semibold text-wiki-muted mb-1.5">{t('insHistDiff')}</div>
-              <div className="space-y-1.5">
-                {timeline.diffs.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm bg-wiki-card border border-wiki-border rounded-md px-3 py-2">
-                    <span className="text-wiki-muted">{d.fromRef}</span>
-                    <ArrowRight size={12} className="text-wiki-muted" />
-                    <span className="text-wiki-muted">{d.toRef}</span>
-                    <span className="text-green-500 ml-2">+{d.addedEntities.length} {t('insHistAdded')}</span>
-                    <span className="text-red-500">-{d.removedEntities.length} {t('insHistRemoved')}</span>
-                    <span className="text-amber-500">~{d.movedEntities.length} {t('insHistMoved')}</span>
-                    <span className="text-wiki-muted ml-auto">Δrel {d.relationDelta >= 0 ? '+' : ''}{d.relationDelta}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DiffList diffs={timeline.diffs} />
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ---- Timeline mini chart (entities + relations over snapshots) ---------------
+
+function TimelineChart({ metrics }: { metrics: SnapshotMetrics[] }) {
+  if (metrics.length < 2) return null
+
+  const maxE = Math.max(...metrics.map(m => m.entityCount), 1)
+  const maxR = Math.max(...metrics.map(m => m.relationCount), 1)
+  const h = 80
+  const w = 100
+
+  const eLine = metrics.map((m, i) => {
+    const x = (i / (metrics.length - 1)) * w
+    const y = h - (m.entityCount / maxE) * h
+    return `${x},${y}`
+  }).join(' ')
+
+  const rLine = metrics.map((m, i) => {
+    const x = (i / (metrics.length - 1)) * w
+    const y = h - (m.relationCount / maxR) * h
+    return `${x},${y}`
+  }).join(' ')
+
+  return (
+    <div className="flex items-end gap-4">
+      <svg viewBox={`-2 -2 ${w + 4} ${h + 4}`} className="w-full max-w-xs" style={{ height: h + 8 }}>
+        <polyline fill="none" stroke="rgb(var(--wiki-accent))" strokeWidth="1.5" points={eLine} />
+        <polyline fill="none" stroke="rgb(var(--wiki-green))" strokeWidth="1.5" strokeDasharray="4 2" points={rLine} />
+        {/* dots at each snapshot */}
+        {metrics.map((m, i) => {
+          const x = (i / (metrics.length - 1)) * w
+          const yE = h - (m.entityCount / maxE) * h
+          return <circle key={i} cx={x} cy={yE} r={2} fill="rgb(var(--wiki-accent))" />
+        })}
+      </svg>
+      <div className="text-[10px] text-wiki-muted space-y-1 shrink-0">
+        <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-wiki-accent" /> {t('insHistEntities')}</div>
+        <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-wiki-green" style={{ borderBottom: '1px dashed' }} /> {t('insHistRelations')}</div>
+      </div>
+    </div>
+  )
+}
+
+// ---- Expandable diff list ---------------------------------------------------
+
+function DiffList({ diffs }: { diffs: GraphDiff[] }) {
+  const [expanded, setExpanded] = useState<number | null>(null)
+
+  return (
+    <div>
+      <div className="text-xs font-semibold text-wiki-muted mb-1.5">{t('insHistDiff')}</div>
+      <div className="space-y-1.5">
+        {diffs.map((d, i) => (
+          <div key={i} className="bg-wiki-card border border-wiki-border rounded-md overflow-hidden">
+            <button
+              onClick={() => setExpanded(expanded === i ? null : i)}
+              className="w-full flex items-center gap-2 text-sm px-3 py-2 hover:bg-wiki-card/80 transition-colors"
+            >
+              <span className="text-wiki-muted">{d.fromRef}</span>
+              <ArrowRight size={12} className="text-wiki-muted" />
+              <span className="text-wiki-muted">{d.toRef}</span>
+              <span className="text-green-500 ml-2">+{d.addedEntities.length} {t('insHistAdded')}</span>
+              <span className="text-red-500">-{d.removedEntities.length} {t('insHistRemoved')}</span>
+              <span className="text-amber-500">~{d.movedEntities.length} {t('insHistMoved')}</span>
+              <span className="text-wiki-muted ml-auto">Δrel {d.relationDelta >= 0 ? '+' : ''}{d.relationDelta}</span>
+            </button>
+            {expanded === i && (
+              <div className="border-t border-wiki-border px-3 py-2 space-y-2">
+                {d.addedEntities.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-green-500 mb-1">{t('insHistAdded')}</div>
+                    {d.addedEntities.map((e, j) => (
+                      <div key={j} className="text-xs text-wiki-text flex items-center gap-2 py-0.5">
+                        <span className="text-wiki-muted">{e.type}</span>
+                        <span className="font-mono">{e.name}</span>
+                        {e.toFile && <span className="text-wiki-muted text-[10px]">{e.toFile}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {d.removedEntities.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-red-500 mb-1">{t('insHistRemoved')}</div>
+                    {d.removedEntities.map((e, j) => (
+                      <div key={j} className="text-xs text-wiki-text flex items-center gap-2 py-0.5">
+                        <span className="text-wiki-muted">{e.type}</span>
+                        <span className="font-mono">{e.name}</span>
+                        {e.fromFile && <span className="text-wiki-muted text-[10px]">{e.fromFile}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {d.movedEntities.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-amber-500 mb-1">{t('insHistMoved')}</div>
+                    {d.movedEntities.map((e, j) => (
+                      <div key={j} className="text-xs text-wiki-text flex items-center gap-2 py-0.5">
+                        <span className="text-wiki-muted">{e.type}</span>
+                        <span className="font-mono">{e.name}</span>
+                        <span className="text-wiki-muted text-[10px]">{e.fromFile} → {e.toFile}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

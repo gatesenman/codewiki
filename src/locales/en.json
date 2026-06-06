@@ -443,5 +443,6 @@
   "codeMapArchitecture": "Architecture",
   "codeMapArchDiagrams": "Architecture Diagrams",
   "codeMapArchDesc": "Auto-generated from the ontology graph. Module dependencies, class hierarchy, and component interactions.",
-  "wikiExport": "Export"
+  "wikiExport": "Export",
+  "insHistTimeline": "Timeline"
 }
