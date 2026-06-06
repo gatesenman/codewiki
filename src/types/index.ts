@@ -7,6 +7,7 @@ export interface FileNode {
   children?: FileNode[]
   extension?: string
   size?: number
+  mtimeMs?: number
 }
 
 // Ontology types (RDF-based code knowledge model)
@@ -198,6 +199,8 @@ export interface ElectronAPI {
   getAppDataPath: () => Promise<string>
   saveWikiData: (projectId: string, data: string) => Promise<boolean>
   loadWikiData: (projectId: string) => Promise<string | null>
+  saveIndexData: (cacheKey: string, data: string) => Promise<boolean>
+  loadIndexData: (cacheKey: string) => Promise<string | null>
 }
 
 declare global {

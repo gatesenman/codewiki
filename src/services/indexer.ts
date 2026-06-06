@@ -17,6 +17,11 @@ import {
 } from './vector-store'
 import { services } from './service-registry'
 import { configManager } from './config-manager'
+import {
+  cacheKeyFor, buildManifest, diffManifest, isClean,
+  loadSnapshot, saveSnapshot, INDEX_SNAPSHOT_VERSION,
+  type FileManifest,
+} from './index-cache'
 
 export interface IndexProgress {
   phase: 'scanning' | 'parsing' | 'ontology' | 'embedding' | 'complete'
@@ -40,7 +45,8 @@ export class CodeIndexer {
    */
   async indexLocalProject(
     folderPath: string,
-    onProgress?: (progress: IndexProgress) => void
+    onProgress?: (progress: IndexProgress) => void,
+    options?: { forceFull?: boolean }
   ): Promise<WikiProject> {
     const projectId = uuid()
     const projectName = folderPath.split(/[/\\]/).pop() || 'project'
@@ -57,15 +63,86 @@ export class CodeIndexer {
 
     const flatFiles = this.flattenFiles(files)
     const codeFiles = flatFiles.filter(f => f.type === 'file')
+    const fileByPath = new Map(codeFiles.map(f => [f.path, f]))
 
+    const readFile = async (path: string) => {
+      return await window.electronAPI.readFile(path)
+    }
+    const addDoc = async (file: FileNode) => {
+      const content = await readFile(file.path)
+      if (!content) return
+      await this.vectorStore.addDocument({
+        id: file.path,
+        content: content.substring(0, 8000), // truncate very large files
+        metadata: {
+          filePath: file.relativePath,
+          fileName: file.name,
+          extension: file.extension || '',
+        },
+      })
+    }
+
+    const cacheKey = cacheKeyFor(folderPath)
+    const manifest = buildManifest(files)
+
+    // Attempt to reuse a persisted snapshot to avoid a full re-index.
+    if (!options?.forceFull) {
+      const snapshot = await loadSnapshot(cacheKey)
+      if (snapshot && snapshot.type === 'local') {
+        const diff = diffManifest(snapshot.manifest, manifest)
+        const reused = snapshot.manifest
+          ? Object.keys(snapshot.manifest).length - diff.deleted.length
+          : 0
+
+        if (isClean(diff)) {
+          onProgress?.({
+            phase: 'parsing', current: 0, total: 0,
+            message: 'No changes detected — restoring index from cache...',
+          })
+          await this.vectorStore.import(snapshot.vectors)
+          await this.maybeBuildEmbeddings(onProgress) // no-op if already embedded
+          onProgress?.({
+            phase: 'complete', current: codeFiles.length, total: codeFiles.length,
+            message: `Restored ${codeFiles.length} files from cache.`,
+          })
+          return this.buildProject(projectId, projectName, folderPath, 'local', snapshot.ontologyGraph)
+        }
+
+        // Incremental: reuse unchanged docs/embeddings, refresh the rest.
+        onProgress?.({
+          phase: 'embedding', current: 0, total: 0,
+          message: `Incremental update: ${diff.changed.length} changed, ${diff.added.length} added, ${diff.deleted.length} removed (${reused} reused)...`,
+        })
+        await this.vectorStore.import(snapshot.vectors)
+        for (const p of diff.deleted) this.vectorStore.removeDocument(p)
+        for (const p of [...diff.changed, ...diff.added]) {
+          this.vectorStore.removeDocument(p) // drop stale embedding for changed files
+          const file = fileByPath.get(p)
+          if (file) await addDoc(file)
+        }
+        this.vectorStore.rebuildIndex()
+
+        // Ontology is rebuilt fully (CPU-only) to guarantee graph correctness.
+        const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
+        this.ontologyBuilder.resolveDeferredRelations()
+        await this.maybeBuildEmbeddings(onProgress) // embeds only changed/added docs
+
+        await this.persistSnapshot(cacheKey, projectName, folderPath, 'local', manifest, ontologyGraph)
+        onProgress?.({
+          phase: 'complete', current: codeFiles.length, total: codeFiles.length,
+          message: 'Incremental indexing complete!',
+        })
+        return this.buildProject(projectId, projectName, folderPath, 'local', ontologyGraph)
+      }
+    }
+
+    // Full index (no cache, or forced).
     onProgress?.({
       phase: 'parsing',
       current: 0,
       total: codeFiles.length,
       message: `Found ${codeFiles.length} code files. Parsing...`,
     })
-
-    // Build ontology graph
     onProgress?.({
       phase: 'ontology',
       current: 0,
@@ -73,14 +150,10 @@ export class CodeIndexer {
       message: 'Building code ontology model...',
     })
 
-    const readFile = async (path: string) => {
-      return await window.electronAPI.readFile(path)
-    }
-
+    this.vectorStore.clear()
     const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
     this.ontologyBuilder.resolveDeferredRelations()
 
-    // Build vector embeddings for semantic search
     onProgress?.({
       phase: 'embedding',
       current: 0,
@@ -89,28 +162,17 @@ export class CodeIndexer {
     })
 
     for (let i = 0; i < codeFiles.length; i++) {
-      const file = codeFiles[i]
-      const content = await readFile(file.path)
-      if (content) {
-        await this.vectorStore.addDocument({
-          id: file.path,
-          content: content.substring(0, 8000), // truncate very large files
-          metadata: {
-            filePath: file.relativePath,
-            fileName: file.name,
-            extension: file.extension || '',
-          },
-        })
-      }
+      await addDoc(codeFiles[i])
       onProgress?.({
         phase: 'embedding',
         current: i + 1,
         total: codeFiles.length,
-        message: `Indexing ${file.relativePath}...`,
+        message: `Indexing ${codeFiles[i].relativePath}...`,
       })
     }
 
     await this.maybeBuildEmbeddings(onProgress)
+    await this.persistSnapshot(cacheKey, projectName, folderPath, 'local', manifest, ontologyGraph)
 
     onProgress?.({
       phase: 'complete',
@@ -119,18 +181,35 @@ export class CodeIndexer {
       message: 'Indexing complete!',
     })
 
-    const project: WikiProject = {
-      id: projectId,
-      name: projectName,
-      path: folderPath,
-      type: 'local',
+    return this.buildProject(projectId, projectName, folderPath, 'local', ontologyGraph)
+  }
+
+  private buildProject(
+    id: string, name: string, path: string,
+    type: 'local' | 'github', ontologyGraph: OntologyGraph,
+  ): WikiProject {
+    return {
+      id, name, path, type,
       wikiPages: [],
       ontologyGraph,
       generatedAt: Date.now(),
       status: 'ready',
     }
+  }
 
-    return project
+  /** Save an index snapshot for fast reopen; best-effort (no-op without bridge). */
+  private async persistSnapshot(
+    cacheKey: string, name: string, path: string,
+    type: 'local' | 'github', manifest: FileManifest, ontologyGraph: OntologyGraph,
+  ): Promise<void> {
+    await saveSnapshot({
+      version: INDEX_SNAPSHOT_VERSION,
+      cacheKey, name, path, type,
+      generatedAt: Date.now(),
+      manifest,
+      ontologyGraph,
+      vectors: this.vectorStore.export(),
+    })
   }
 
   /**
