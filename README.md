@@ -47,15 +47,18 @@ Every other feature is grounded in that graph:
 
 - 📖 **Wiki** pages are generated from real structure, not guesses.
 - 🕸️ **Knowledge Graph** lets you *see* how the code fits together.
-- 🔎 **Semantic Search** ranks code, entities, and docs by meaning.
+- 🗺️ **Code Map** gives you a bird's-eye view — treemap, module graph, file explorer, and architecture diagrams.
+- 🔎 **Semantic Search** ranks code, entities, and docs by meaning, with ontology-aware reranking.
 - 💬 **Ask (RAG Chat)** answers with `file:line` citations grounded in the ontology.
 - 🤖 **Code Agent** runs impact analysis on the graph before proposing edits, so changes stay
   precise and aware of cross-file dependencies.
+- 🔬 **PR Review Agent** performs impact-aware code review using the ontology graph.
+- 💡 **Natural Language Graph Query** — ask questions like "what calls UserService?" in English or Chinese and get precise graph answers.
 
 It runs fully on your machine. The local TF‑IDF search needs no external service, and you bring your
 own LLM key (OpenAI / Anthropic / DeepSeek) or run entirely offline with **Ollama**. CodeWiki also
 ships a **Model Context Protocol (MCP) server** so editors like Cursor or Claude can query the same
-knowledge base, plus a companion **VSCode extension**.
+knowledge base, plus a companion **VSCode extension** and a full **CLI**.
 
 ## Screenshots
 
@@ -81,22 +84,33 @@ knowledge base, plus a companion **VSCode extension**.
 - **Instant Wiki Generation**: Select a local folder or GitHub repo URL → AI generates comprehensive wiki documentation
 - **Mermaid Diagrams**: Auto-generated architecture and data-flow diagrams
 - **Wiki Navigation**: Sidebar page tree with inline source references and a per-page quality check
+- **Wiki Export**: Export entire wiki to **Markdown**, **JSON**, or **HTML** with table of contents, metadata, and graph statistics — one click from the WikiViewer toolbar
 
 ### Ontology-Based Semantic Model
 - **Code Ontology**: RDF-like knowledge graph of code entities (classes, functions, interfaces, modules)
 - **Relation Extraction**: Automatically detects imports, extends, implements, calls, and contains relationships
 - **Impact Analysis**: Query the ontology to find every entity affected by a change
 - **Type-Aware Retrieval**: Semantic search enhanced with ontology relationships
+- **Graph Persistence**: JSON-based graph storage (`graph-persistence.ts`) — ontology data persists across sessions independently of Electron cache
+
+### Code Map (DeepWiki-style)
+Interactive code visualization with 4 sub-views:
+- **Treemap**: D3 treemap showing file system hierarchy — rectangle size = entity count, color = coupling level (green → yellow → red)
+- **Module Graph**: Force-directed graph of directory-level module dependencies
+- **Explorer**: Collapsible file tree with entity details (type, line, callers/callees)
+- **Architecture**: Auto-generated Mermaid diagrams — module dependencies, class hierarchy, component flow, and **sequence diagrams**
 
 ### Knowledge Graph Visualization
 - **2D & 3D Modes**: Classic D3 force graph, or a GitNexus-style **3D** force-directed graph (three.js / `3d-force-graph`) — toggle in Settings → Graph
 - **Entity Filtering**: Filter by type (Class, Function, Interface, Component, …)
+- **Search Highlight**: 3D graph highlights matching nodes in orange when searching
 - **Orbit / Drag & Zoom**: Rotate, zoom, and pan to navigate large codebases visually
 - **Color-Coded**: Distinct colors per entity type, with optional labels and auto-rotation
 
 ### Semantic Search
 - **TF-IDF Vector Store**: Local semantic search with no external API
 - **Ontology-Aware**: Results enriched with entity relationships
+- **Ontology Reranker**: Graph-based reranking — boosts entity-name matches, N-hop neighbors, and penalizes high-coupling noise
 - **Multi-Type**: Search across wiki, code, and entities simultaneously
 
 ### RAG-Powered Chat (Ask)
@@ -107,8 +121,35 @@ knowledge base, plus a companion **VSCode extension**.
 ### Code Agent
 - **Ontology-Constrained Modifications**: Uses the knowledge graph for impact analysis before changes
 - **Precise Changes**: Exact file paths, line numbers, and diffs
+- **Unified Diff View**: LCS-based line-level diff with color-coded additions/deletions/context
 - **Anti-Hallucination**: Verifies all changes against the actual code structure
 - **Multi-File Awareness**: Understands cross-file dependencies
+
+### PR Review Agent
+- **Impact-Aware Review**: Parses diffs → finds directly changed entities → traces indirectly impacted callers/dependents via graph traversal (up to N hops)
+- **Risk Scoring**: 0–100 risk score based on entity count, change volume, and impact spread
+- **Findings**: Reports large file changes, high-impact entities, unupdated dependents, and missing test coverage
+- **CLI**: `codewiki review <diff>`
+
+### Natural Language Graph Query
+- **Ask in Plain Language**: "What calls UserService?", "Show all classes", "Isolated entities", "谁调用了 X?"
+- **Bilingual**: Supports English and Chinese queries
+- **Intent Detection**: Regex-based intent parsing (find_callers, find_callees, find_by_type, find_by_file, find_dependents, find_isolated, find_hub, etc.)
+- **Insights UI**: Dedicated "Ask Graph" tab in the Insights panel
+
+### Health Analysis & Trend Tracking
+- **Code Health Scoring**: Circular dependency detection, dead code detection, god object detection, coupling hotspot analysis
+- **Health Trend**: Record snapshots over time → detect score improvements/degradation, grade changes
+- **Security Scan**: Hardcoded credentials, eval usage, prototype pollution, path traversal, SQL injection, XSS detection
+- **Graph History UI**: SVG timeline chart + expandable diff details for each snapshot
+
+### Architecture Diagrams
+Auto-generated from the ontology graph:
+- **Module Dependency Diagram**: Mermaid graph of module-level imports
+- **Class Hierarchy Diagram**: Inheritance and implementation relationships
+- **Component Flow Diagram**: Inter-component interactions
+- **Sequence Diagram**: Call-chain sequence diagrams from entity relationships
+- **PlantUML Export**: Convert any architecture diagram to PlantUML format for external tools
 
 ### MCP (Model Context Protocol) Server
 - **29 MCP Tools**: code search, ontology lookups, call-graph traversal, impact/blast-radius analysis, architecture overview, dead-code detection, reindexing, and more — see [docs/MCP.md](docs/MCP.md) for the full list
@@ -116,21 +157,47 @@ knowledge base, plus a companion **VSCode extension**.
 - **Stdio Protocol**: Standard MCP server over stdio
 - **Setup guide**: [docs/MCP.md](docs/MCP.md) ([中文](docs/MCP.zh-CN.md))
 
-### VSCode Extension
-- **Sidebar Views**: Wiki pages, code entities, chat panel
-- **Commands**: Open Wiki, Semantic Search, Knowledge Graph, Ask, Generate Wiki, Impact Analysis
-- **MCP Client**: Communicates with the CodeWiki desktop app
+### VSCode Extension (v0.5.1)
+- **Knowledge Graph Webview**: Interactive SVG visualization inside VSCode — filter by type, hover for details, click to navigate
+- **Hover Info**: Mouse over any identifier → see entity type, signature, relationships
+- **Definition Provider**: `F12` / `Ctrl+Click` to jump to entity definition via ontology
+- **Reference Provider**: `Shift+F12` to find all references (definition + callers + callees)
+- **Document Symbol Provider**: `Ctrl+Shift+O` for outline of all CodeWiki entities in current file
+- **Editor Context Menu**: Right-click → Pre-check / Impact Analysis / Show Relations
+- **File Watcher**: Auto re-index on file save/create/delete (3s debounce)
+- **Entity Tree View**: Entities grouped by type, click to jump to source
+- **Code Health Diagnostics**: Dead code, god objects, high-coupling entities reported in Problems panel
+- **Codicon Icons**: All icons use VSCode's native codicon font (no emojis)
+
+### CLI
+- **`codewiki index <path>`** — Index a project and build the ontology graph
+- **`codewiki search <query>`** — Semantic search across the indexed project
+- **`codewiki impact <entity>`** — Impact analysis from the ontology graph
+- **`codewiki report`** — Generate a full code health report
+- **`codewiki review <diff>`** — PR review with impact analysis
+
+### Git Integration
+- **Post-Commit Hook**: Automatic incremental re-indexing after each commit
+- **GitHub Actions CI**: Lint → typecheck → test → build (main app + CLI + MCP + VSCode extension)
+
+### Repo Map for LLM
+- **`repo-map.ts`**: Generate a concise code context map for AI coding assistants
+- **Ontology-Based Ranking**: Files ranked by importance (in-degree + out-degree + entity count)
+- **BFS Focus Mode**: Starting from a seed entity, expand by relevance
 
 ## Tech Stack
 
 - **Desktop**: Electron + React 18 + TypeScript + Vite
-- **Styling**: TailwindCSS (dark theme)
+- **Styling**: TailwindCSS (dark theme, responsive)
 - **LLM**: OpenAI / Anthropic / DeepSeek / Ollama (local)
 - **Ontology**: Custom RDF-like entity-relation model
-- **Vector Store**: TF-IDF local vector store
-- **Diagrams**: Mermaid.js
-- **Graph**: D3-force
-- **State**: Zustand
+- **Vector Store**: TF-IDF local vector store with ontology reranker
+- **Diagrams**: Mermaid.js + PlantUML export
+- **Graph**: D3-force (2D) + three.js / 3d-force-graph (3D)
+- **State**: Zustand (6 domain slices)
+- **Testing**: Vitest (126 tests)
+- **CI**: GitHub Actions
+- **Linting**: ESLint 9 (flat config) + Prettier
 - **MCP**: `@modelcontextprotocol/sdk`
 - **VSCode**: VSCode Extension API
 
@@ -148,20 +215,22 @@ curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.
 irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
 ```
 
+Install options: `--no-desktop`, `--no-cli`, `--no-mcp`, `--no-vscode` to skip components.
+
 Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gaosichun888/codewiki/releases).
 
-## Download (latest: v1.0.4)
+## Download (latest: v1.1.0)
 
 Grab a prebuilt installer for your platform from the [latest release](https://github.com/gaosichun888/codewiki/releases/latest):
 
 | Platform | Download |
 |---|---|
-| Windows (installer) | [`CodeWiki.Setup.1.0.4.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows (portable) | [`CodeWiki.1.0.4.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS (Apple Silicon) | [`CodeWiki-1.0.4-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS (Intel) | [`CodeWiki-1.0.4.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux (AppImage) | [`CodeWiki-1.0.4.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux (Debian/Ubuntu) | [`codewiki_1.0.4_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows (installer) | [`CodeWiki.Setup.1.1.0.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows (portable) | [`CodeWiki.1.1.0.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS (Apple Silicon) | [`CodeWiki-1.1.0-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS (Intel) | [`CodeWiki-1.1.0.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux (AppImage) | [`CodeWiki-1.1.0.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux (Debian/Ubuntu) | [`codewiki_1.1.0_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
 | VSCode extension | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
 
 > macOS builds are unsigned: on first launch use right-click → Open, or allow it under System Settings → Privacy & Security.
@@ -176,8 +245,19 @@ npm install
 # Development mode
 npm run electron:dev
 
+# Web-only (no Electron shell)
+npm run dev
+
 # Build for production
 npm run electron:build
+```
+
+## Quality Checks
+
+```bash
+npm run lint          # ESLint 9 (flat config)
+npm run typecheck     # TypeScript strict mode
+npm test              # Vitest — 126 tests
 ```
 
 ## Configuration
@@ -225,16 +305,35 @@ codewiki/
 │   └── preload.ts     # Context bridge API
 ├── src/               # React renderer
 │   ├── components/    # UI components (Welcome, Layout, TopBar, Sidebar,
-│   │                  #   WikiViewer, KnowledgeGraph, SearchPanel, ChatPanel,
-│   │                  #   CodeAgentPanel, SettingsModal, MermaidDiagram)
-│   ├── services/      # ontology, indexer, vector-store, llm,
-│   │                  #   wiki-generator, code-agent, mcp-server
-│   ├── store/         # Zustand state management
+│   │                  #   WikiViewer, KnowledgeGraph, KnowledgeGraph3D,
+│   │                  #   CodeMap, SearchPanel, ChatPanel, CodeAgentPanel,
+│   │                  #   InsightsPanel, SettingsModal, ErrorBoundary)
+│   ├── services/      # Core business logic
+│   │                  #   ontology, indexer, vector-store, llm,
+│   │                  #   wiki-generator, wiki-export, code-agent,
+│   │                  #   graph-query, nl-graph-query, graph-persistence,
+│   │                  #   health-analyzer, health-trend, security-scan,
+│   │                  #   architecture-diagram, codemap-analyzer,
+│   │                  #   ontology-reranker, pr-review, repo-map,
+│   │                  #   diff-utils, git-hooks, eval-harness, i18n
+│   ├── store/         # Zustand state (6 slices: project, ui, chat,
+│   │                  #   search, graph, settings)
+│   ├── locales/       # i18n translations (en.json, zh.json — 450+ keys)
 │   └── types/         # TypeScript type definitions
-├── server/            # Standalone MCP server
-├── vscode-extension/  # VSCode extension
+├── server/            # Standalone MCP server (29 tools)
+├── cli/               # CLI tool (index, search, impact, report, review)
+├── vscode-extension/  # VSCode extension (v0.5.1)
+├── .github/workflows/ # CI (lint → typecheck → test → build)
 └── package.json
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, development workflow, and guidelines.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list of changes in each release.
 
 ## License
 
