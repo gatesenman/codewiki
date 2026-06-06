@@ -76,8 +76,7 @@ export function TopBar() {
     if (autoGenTriggered.current === currentProject.id) return
     autoGenTriggered.current = currentProject.id
     void handleGenerateWiki()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoGenerate, currentProject?.id, currentProject?.wikiPages?.length])
+  }, [autoGenerate, currentProject?.id, currentProject?.wikiPages?.length]) // eslint-disable-line
 
   const handleReindex = async () => {
     if (!currentProject || isReindexing) return

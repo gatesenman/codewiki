@@ -96,8 +96,7 @@ export function WelcomeScreen() {
     autoOpened.current = true
     const last = recentProjects[0]
     void handleOpenRecent(last.path, last.type)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rememberLastProject, recentProjects])
+  }, [rememberLastProject, recentProjects]) // eslint-disable-line
 
   return (
     <div className="h-full w-full flex flex-col items-center justify-center relative overflow-y-auto fade-in">
