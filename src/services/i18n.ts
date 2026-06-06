@@ -278,6 +278,65 @@ export interface I18nStrings {
   settingsShowProgressDesc: string
   settingsImpactWarning: string
   settingsImpactWarningDesc: string
+  // Settings: tabs added in v1.0.2
+  settingsPrivacy: string
+  settingsMcp: string
+  settingsVerify: string
+  // Settings: privacy
+  settingsUseIgnoreFile: string
+  settingsUseIgnoreFileDesc: string
+  settingsExcludeSensitive: string
+  settingsExcludeSensitiveDesc: string
+  settingsRedactSecrets: string
+  settingsRedactSecretsDesc: string
+  settingsExtraPatterns: string
+  settingsExtraPatternsDesc: string
+  settingsExtraPatternsPlaceholder: string
+  // Settings: graph rendering (3D)
+  settingsRender3D: string
+  settingsRender3DDesc: string
+  settingsNodeSize: string
+  settingsNodeSizeDesc: string
+  settingsShowLabels: string
+  settingsShowLabelsDesc: string
+  settingsRotationSpeed: string
+  settingsRotationSpeedDesc: string
+  // Settings: embeddings
+  settingsHybridSearch: string
+  settingsHybridSearchDesc: string
+  settingsEmbedProvider: string
+  settingsEmbedProviderDesc: string
+  settingsEmbedModel: string
+  settingsEmbedModelDesc: string
+  settingsEmbedBaseUrl: string
+  settingsEmbedBaseUrlDesc: string
+  settingsRrfK: string
+  settingsRrfKDesc: string
+  // Settings: verification
+  settingsVerifyEnable: string
+  settingsVerifyEnableDesc: string
+  settingsLintCommand: string
+  settingsBuildCommand: string
+  settingsTestCommand: string
+  settingsTimeout: string
+  settingsTimeoutDesc: string
+  // Settings: MCP server
+  settingsMcpEnable: string
+  settingsMcpEnableDesc: string
+  settingsMcpTransport: string
+  settingsMcpTransportDesc: string
+  settingsMcpPort: string
+  settingsMcpPortDesc: string
+  settingsMcpProjectPath: string
+  settingsMcpProjectPathDesc: string
+  settingsMcpLogDir: string
+  settingsMcpLogDirDesc: string
+  settingsMcpConsumer: string
+  settingsMcpConsumerDesc: string
+  settingsMcpTools: string
+  settingsMcpToolsDesc: string
+  settingsMcpToolsPlaceholder: string
+  settingsMcpDocsHint: string
 
   // Sidebar
   sidebarWikiPages: string
@@ -574,6 +633,59 @@ const en: I18nStrings = {
   settingsShowProgressDesc: 'Display indexing progress notifications.',
   settingsImpactWarning: 'Impact Warnings',
   settingsImpactWarningDesc: 'Show warnings for high-impact changes.',
+  settingsPrivacy: 'Privacy & Security',
+  settingsMcp: 'MCP Server',
+  settingsVerify: 'Verification',
+  settingsUseIgnoreFile: 'Use .codewikiignore',
+  settingsUseIgnoreFileDesc: 'Respect a .codewikiignore file at the project root when indexing.',
+  settingsExcludeSensitive: 'Exclude Sensitive Files',
+  settingsExcludeSensitiveDesc: 'Apply built-in globs to skip .env, secrets, keys, and credential files.',
+  settingsRedactSecrets: 'Redact Secrets',
+  settingsRedactSecretsDesc: 'Mask detected API keys/secrets in indexed content and search snippets.',
+  settingsExtraPatterns: 'Extra Ignore Patterns',
+  settingsExtraPatternsDesc: 'Additional glob patterns to exclude (one per line).',
+  settingsExtraPatternsPlaceholder: 'e.g. **/*.pem\\nsecrets/**',
+  settingsRender3D: '3D Graph',
+  settingsRender3DDesc: 'Render the knowledge graph in 3D (GitNexus-style) instead of 2D.',
+  settingsNodeSize: 'Node Size',
+  settingsNodeSizeDesc: 'Base size multiplier for graph nodes.',
+  settingsShowLabels: 'Show Labels',
+  settingsShowLabelsDesc: 'Display entity name labels on graph nodes.',
+  settingsRotationSpeed: 'Auto-Rotate Speed',
+  settingsRotationSpeedDesc: 'Auto-rotation speed of the 3D scene (0 disables auto-rotate).',
+  settingsHybridSearch: 'Hybrid Search (Embeddings)',
+  settingsHybridSearchDesc: 'Combine TF-IDF with dense embeddings (RRF). Requires an OpenAI key or local Ollama; rebuild index after enabling.',
+  settingsEmbedProvider: 'Embedding Provider',
+  settingsEmbedProviderDesc: 'Provider used to compute dense embeddings.',
+  settingsEmbedModel: 'Embedding Model',
+  settingsEmbedModelDesc: 'Model name, e.g. text-embedding-3-small or nomic-embed-text.',
+  settingsEmbedBaseUrl: 'Embedding Base URL',
+  settingsEmbedBaseUrlDesc: 'Override base URL for Ollama or an OpenAI-compatible gateway.',
+  settingsRrfK: 'RRF Constant (k)',
+  settingsRrfKDesc: 'Reciprocal-rank-fusion constant; higher flattens rank weighting.',
+  settingsVerifyEnable: 'Enable Verify',
+  settingsVerifyEnableDesc: 'Let the Code Agent run project commands (lint/build/test) to verify edits.',
+  settingsLintCommand: 'Lint Command',
+  settingsBuildCommand: 'Build Command',
+  settingsTestCommand: 'Test Command',
+  settingsTimeout: 'Timeout',
+  settingsTimeoutDesc: 'Max seconds per command before it is killed.',
+  settingsMcpEnable: 'Enable MCP Server',
+  settingsMcpEnableDesc: 'Expose CodeWiki tools to external clients (Claude, Cursor, VS Code) via MCP.',
+  settingsMcpTransport: 'Transport',
+  settingsMcpTransportDesc: 'stdio for editor integrations, http for networked clients.',
+  settingsMcpPort: 'Port',
+  settingsMcpPortDesc: 'Port used by the http transport.',
+  settingsMcpProjectPath: 'Project Path',
+  settingsMcpProjectPathDesc: 'PROJECT_PATH passed to the server (defaults to the open project).',
+  settingsMcpLogDir: 'Log Directory',
+  settingsMcpLogDirDesc: 'CODEWIKI_LOG_DIR where the MCP call log is written.',
+  settingsMcpConsumer: 'Consumer Label',
+  settingsMcpConsumerDesc: 'CODEWIKI_CONSUMER label reported in the call log.',
+  settingsMcpTools: 'Enabled Tools',
+  settingsMcpToolsDesc: 'Tool names to expose, one per line. Leave empty to expose all tools.',
+  settingsMcpToolsPlaceholder: 'leave empty for all tools',
+  settingsMcpDocsHint: 'See docs/MCP.md for full client configuration examples.',
 
   sidebarWikiPages: 'Wiki Pages',
   sidebarNoWikiPages: 'No wiki pages yet.',
@@ -867,6 +979,59 @@ const zh: I18nStrings = {
   settingsShowProgressDesc: '显示索引进度通知。',
   settingsImpactWarning: '影响警告',
   settingsImpactWarningDesc: '对高影响的改动显示警告。',
+  settingsPrivacy: '隐私与安全',
+  settingsMcp: 'MCP 服务器',
+  settingsVerify: '验证',
+  settingsUseIgnoreFile: '使用 .codewikiignore',
+  settingsUseIgnoreFileDesc: '索引时遵循项目根目录下的 .codewikiignore 文件。',
+  settingsExcludeSensitive: '排除敏感文件',
+  settingsExcludeSensitiveDesc: '应用内置规则，跳过 .env、密钥、凭据等敏感文件。',
+  settingsRedactSecrets: '脱敏密钥',
+  settingsRedactSecretsDesc: '在索引内容与搜索片段中遮蔽检测到的 API 密钥/机密。',
+  settingsExtraPatterns: '额外忽略规则',
+  settingsExtraPatternsDesc: '需要额外排除的 glob 规则（每行一个）。',
+  settingsExtraPatternsPlaceholder: '例如 **/*.pem\\nsecrets/**',
+  settingsRender3D: '3D 图谱',
+  settingsRender3DDesc: '以 3D 方式（GitNexus 风格）渲染知识图谱，而非 2D。',
+  settingsNodeSize: '节点大小',
+  settingsNodeSizeDesc: '图谱节点的基础大小倍数。',
+  settingsShowLabels: '显示标签',
+  settingsShowLabelsDesc: '在图谱节点上显示实体名称标签。',
+  settingsRotationSpeed: '自动旋转速度',
+  settingsRotationSpeedDesc: '3D 场景的自动旋转速度（0 表示关闭自动旋转）。',
+  settingsHybridSearch: '混合检索（向量）',
+  settingsHybridSearchDesc: '将 TF-IDF 与稠密向量融合（RRF）。需要 OpenAI Key 或本地 Ollama；启用后请重建索引。',
+  settingsEmbedProvider: '向量提供方',
+  settingsEmbedProviderDesc: '用于计算稠密向量的提供方。',
+  settingsEmbedModel: '向量模型',
+  settingsEmbedModelDesc: '模型名称，例如 text-embedding-3-small 或 nomic-embed-text。',
+  settingsEmbedBaseUrl: '向量 Base URL',
+  settingsEmbedBaseUrlDesc: '为 Ollama 或兼容 OpenAI 的网关覆盖 Base URL。',
+  settingsRrfK: 'RRF 常数 (k)',
+  settingsRrfKDesc: 'RRF 融合常数；越大排名权重越平缓。',
+  settingsVerifyEnable: '启用验证',
+  settingsVerifyEnableDesc: '允许代码代理运行项目命令（lint/build/test）来验证改动。',
+  settingsLintCommand: 'Lint 命令',
+  settingsBuildCommand: 'Build 命令',
+  settingsTestCommand: 'Test 命令',
+  settingsTimeout: '超时',
+  settingsTimeoutDesc: '单条命令被终止前的最大秒数。',
+  settingsMcpEnable: '启用 MCP 服务器',
+  settingsMcpEnableDesc: '通过 MCP 将 CodeWiki 工具暴露给外部客户端（Claude、Cursor、VS Code）。',
+  settingsMcpTransport: '传输方式',
+  settingsMcpTransportDesc: 'stdio 用于编辑器集成，http 用于网络客户端。',
+  settingsMcpPort: '端口',
+  settingsMcpPortDesc: 'http 传输使用的端口。',
+  settingsMcpProjectPath: '项目路径',
+  settingsMcpProjectPathDesc: '传给服务器的 PROJECT_PATH（默认为当前打开的项目）。',
+  settingsMcpLogDir: '日志目录',
+  settingsMcpLogDirDesc: '写入 MCP 调用日志的 CODEWIKI_LOG_DIR。',
+  settingsMcpConsumer: '消费方标识',
+  settingsMcpConsumerDesc: '在调用日志中报告的 CODEWIKI_CONSUMER 标识。',
+  settingsMcpTools: '启用的工具',
+  settingsMcpToolsDesc: '要暴露的工具名称，每行一个。留空表示暴露全部工具。',
+  settingsMcpToolsPlaceholder: '留空表示全部工具',
+  settingsMcpDocsHint: '完整的客户端配置示例见 docs/MCP.md。',
 
   sidebarWikiPages: 'Wiki 页面',
   sidebarNoWikiPages: '暂无 Wiki 页面。',

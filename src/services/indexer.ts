@@ -71,7 +71,13 @@ export class CodeIndexer {
     const ignoreText = await window.electronAPI
       .readFile(folderPath + (folderPath.includes('\\') ? '\\' : '/') + CODEWIKIIGNORE_FILE)
       .catch(() => null)
-    const privacy = createPrivacyFilter(ignoreText)
+    const privacyCfg = configManager.getConfig().privacy
+    const privacy = createPrivacyFilter(ignoreText, {
+      useIgnoreFile: privacyCfg.useIgnoreFile,
+      excludeSensitiveDefaults: privacyCfg.excludeSensitiveDefaults,
+      redactSecrets: privacyCfg.redactSecrets,
+      extraPatterns: privacyCfg.extraPatterns,
+    })
     const files = this.filterTree(rawFiles, folderPath, privacy)
 
     const flatFiles = this.flattenFiles(files)
@@ -493,19 +499,17 @@ export class CodeIndexer {
   private buildEmbeddingProvider(): EmbeddingProvider | undefined {
     const config = configManager.getConfig()
     if (!config.search.useEmbeddings) return undefined
+    const emb = config.embeddings
     const llm = config.llm
-    if (llm.provider === 'ollama') {
-      return new OllamaEmbeddingProvider({
-        model: llm.embeddingModel,
-        baseURL: llm.apiBaseUrl || undefined,
-      })
+    // Prefer the dedicated embeddings config; fall back to the LLM settings.
+    const provider = emb.provider || (llm.provider === 'ollama' ? 'ollama' : 'openai')
+    const model = emb.model || llm.embeddingModel
+    const baseURL = emb.baseUrl || llm.apiBaseUrl || undefined
+    if (provider === 'ollama') {
+      return new OllamaEmbeddingProvider({ model, baseURL })
     }
     if (llm.apiKey) {
-      return new OpenAIEmbeddingProvider({
-        apiKey: llm.apiKey,
-        model: llm.embeddingModel,
-        baseURL: llm.apiBaseUrl || undefined,
-      })
+      return new OpenAIEmbeddingProvider({ apiKey: llm.apiKey, model, baseURL })
     }
     return undefined
   }
@@ -518,6 +522,7 @@ export class CodeIndexer {
   private async maybeBuildEmbeddings(
     onProgress?: (progress: IndexProgress) => void,
   ): Promise<void> {
+    this.vectorStore.setRrfK(configManager.getConfig().embeddings.rrfK)
     const provider = this.buildEmbeddingProvider()
     if (!provider) {
       this.vectorStore.setEmbeddingProvider(undefined)

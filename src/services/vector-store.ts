@@ -69,6 +69,7 @@ export class VectorStore {
   private idf: Map<string, number> = new Map()
   private totalDocs = 0
   private embeddingProvider?: EmbeddingProvider
+  private defaultRrfK = 60
 
   /**
    * Configure (or clear) the optional embedding provider used by
@@ -77,6 +78,11 @@ export class VectorStore {
    */
   setEmbeddingProvider(provider?: EmbeddingProvider): void {
     this.embeddingProvider = provider
+  }
+
+  /** Set the default RRF constant used by `searchHybrid` (config-driven). */
+  setRrfK(k: number): void {
+    if (Number.isFinite(k) && k > 0) this.defaultRrfK = k
   }
 
   hasEmbeddings(): boolean {
@@ -284,7 +290,7 @@ export class VectorStore {
     topK: number = 10,
     options: HybridSearchOptions = {},
   ): Promise<SearchResult[]> {
-    const rrfK = options.rrfK ?? 60
+    const rrfK = options.rrfK ?? this.defaultRrfK
     const pool = options.candidatePool ?? Math.max(topK * 4, 20)
 
     const keyword = this.search(query, pool)
