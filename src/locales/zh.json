@@ -439,5 +439,8 @@
   "codeMapInbound": "入向",
   "codeMapOutbound": "出向",
   "codeMapLines": "行",
-  "codeMapEntitiesInFile": "实体列表"
+  "codeMapEntitiesInFile": "实体列表",
+  "codeMapArchitecture": "架构图",
+  "codeMapArchDiagrams": "架构图表",
+  "codeMapArchDesc": "从本体图谱自动生成。包含模块依赖、类层级和组件交互关系。"
 }

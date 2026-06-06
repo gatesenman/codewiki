@@ -46,6 +46,9 @@ export interface I18nStrings {
   codeMapOutbound: string
   codeMapLines: string
   codeMapEntitiesInFile: string
+  codeMapArchitecture: string
+  codeMapArchDiagrams: string
+  codeMapArchDesc: string
 
   // Insights panel
   insTitle: string
