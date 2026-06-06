@@ -297,6 +297,7 @@ function AISettings({ config, updateLocal }: TabProps) {
 function IndexingSettings({ config, updateLocal }: TabProps) {
   const [newExt, setNewExt] = useState('')
   const [newDir, setNewDir] = useState('')
+  const [newPattern, setNewPattern] = useState('')
 
   return (
     <>
@@ -308,6 +309,9 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
       </SettingRow>
       <SettingRow label={t('settingsAutoReindex')} description={t('settingsAutoReindexDesc')}>
         <Toggle checked={config.indexing.autoReindex} onChange={v => updateLocal('indexing', { autoReindex: v })} />
+      </SettingRow>
+      <SettingRow label={t('settingsWatchMode')} description={t('settingsWatchModeDesc')}>
+        <Toggle checked={config.indexing.watchMode} onChange={v => updateLocal('indexing', { watchMode: v })} />
       </SettingRow>
 
       {/* File Extensions */}
@@ -378,6 +382,43 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
                   updateLocal('indexing', { ignoreDirs: [...config.indexing.ignoreDirs, newDir.trim()] })
                 }
                 setNewDir('')
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Ignore Patterns (glob, applied like .codewikiignore) */}
+      <div className="border-t border-wiki-border pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-medium text-wiki-text">
+            {t('settingsIgnorePatterns')} ({config.indexing.ignorePatterns.length})
+          </label>
+        </div>
+        <p className="text-xs text-wiki-muted/70 mb-2">{t('settingsIgnorePatternsDesc')}</p>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {config.indexing.ignorePatterns.map(pat => (
+            <span key={pat} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-wiki-card border border-wiki-border text-xs text-wiki-muted">
+              {pat}
+              <button onClick={() => updateLocal('indexing', { ignorePatterns: config.indexing.ignorePatterns.filter(p => p !== pat) })} className="text-wiki-muted/50 hover:text-red-400">
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newPattern}
+            onChange={e => setNewPattern(e.target.value)}
+            placeholder="*.test.ts"
+            className="flex-1 px-2 py-1 rounded bg-wiki-bg border border-wiki-border text-xs text-wiki-text focus:outline-none focus:border-wiki-accent"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && newPattern.trim()) {
+                if (!config.indexing.ignorePatterns.includes(newPattern.trim())) {
+                  updateLocal('indexing', { ignorePatterns: [...config.indexing.ignorePatterns, newPattern.trim()] })
+                }
+                setNewPattern('')
               }
             }}
           />
@@ -681,7 +722,28 @@ function PrivacySettings({ config, updateLocal }: TabProps) {
   )
 }
 
+function buildMcpClientConfig(mcp: CodeWikiConfig['mcp']): string {
+  const env: Record<string, string> = {}
+  if (mcp.projectPath) env.PROJECT_PATH = mcp.projectPath
+  if (mcp.logDir) env.CODEWIKI_LOG_DIR = mcp.logDir
+  if (mcp.consumer) env.CODEWIKI_CONSUMER = mcp.consumer
+  if (mcp.enabledTools.length > 0) env.CODEWIKI_ENABLED_TOOLS = mcp.enabledTools.join(',')
+  const snippet = {
+    mcpServers: {
+      codewiki: {
+        command: 'node',
+        args: ['/absolute/path/to/codewiki/dist/server/mcp-server.js'],
+        ...(mcp.transport === 'http' ? { transport: 'http', port: mcp.port } : {}),
+        env,
+      },
+    },
+  }
+  return JSON.stringify(snippet, null, 2)
+}
+
 function McpSettings({ config, updateLocal }: TabProps) {
+  const [copied, setCopied] = useState(false)
+  const generated = buildMcpClientConfig(config.mcp)
   return (
     <>
       <SettingRow label={t('settingsMcpEnable')} description={t('settingsMcpEnableDesc')}>
@@ -743,6 +805,19 @@ function McpSettings({ config, updateLocal }: TabProps) {
       <div className="rounded-lg border border-wiki-border bg-wiki-bg p-3 text-xs text-wiki-muted leading-relaxed flex items-start gap-2">
         <Server size={14} className="mt-0.5 shrink-0" />
         <span>{t('settingsMcpDocsHint')}</span>
+      </div>
+      {/* Generated client config built from the settings above. */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-sm text-wiki-text">{t('settingsMcpGenerated')}</label>
+          <button
+            onClick={() => { void navigator.clipboard?.writeText(generated); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+            className="text-xs px-2 py-0.5 rounded bg-wiki-card border border-wiki-border text-wiki-muted hover:text-wiki-accent hover:border-wiki-accent"
+          >
+            {copied ? t('copied') : t('copy')}
+          </button>
+        </div>
+        <pre className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-xs font-mono text-wiki-text overflow-x-auto whitespace-pre">{generated}</pre>
       </div>
     </>
   )

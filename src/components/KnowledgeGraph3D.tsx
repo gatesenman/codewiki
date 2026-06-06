@@ -13,6 +13,8 @@ interface Graph3DProps {
   nodeSize: number
   showLabels: boolean
   rotationSpeed: number
+  forceStrength: number
+  linkDistance: number
   onSelect: (id: string) => void
 }
 
@@ -27,7 +29,7 @@ type N = NodeObject & GraphNode
  */
 export function KnowledgeGraph3D({
   nodes, links, colors, sizes, selectedId,
-  nodeSize, showLabels, rotationSpeed, onSelect,
+  nodeSize, showLabels, rotationSpeed, forceStrength, linkDistance, onSelect,
 }: Graph3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const rotateRef = useRef(rotationSpeed)
@@ -71,6 +73,13 @@ export function KnowledgeGraph3D({
       .width(el.clientWidth)
       .height(el.clientHeight)
 
+    // Apply configurable force physics.
+    const chargeForce = graph.d3Force('charge')
+    if (chargeForce) chargeForce.strength(forceStrength)
+    const linkForce = graph.d3Force('link')
+    if (linkForce) linkForce.distance(linkDistance)
+    graph.d3ReheatSimulation()
+
     if (showLabels) {
       graph.nodeThreeObjectExtend(true).nodeThreeObject((n: NodeObject) => {
         const node = n as N
@@ -106,7 +115,7 @@ export function KnowledgeGraph3D({
       graph._destructor()
       el.innerHTML = ''
     }
-  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels])
+  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels, forceStrength, linkDistance])
 
   return <div ref={containerRef} className="flex-1 w-full bg-wiki-bg" />
 }

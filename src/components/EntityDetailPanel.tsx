@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { t, tEntityType } from '../services/i18n'
+import { getCodeTheme, wrapClass } from '../services/code-style'
 import type { OntologyEntity, OntologyRelation, OntologyEntityType } from '../types'
 
 const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
@@ -196,6 +197,8 @@ function InfoTab({ entity, outgoing, incoming }: {
 // --- Source Tab ---
 function SourceTab({ code, loading, entity }: { code: string | null; loading: boolean; entity: OntologyEntity }) {
   const [copied, setCopied] = useState(false)
+  const ui = useAppStore(s => s.config.ui)
+  const theme = getCodeTheme(ui.codeTheme)
 
   const handleCopy = () => {
     if (code) {
@@ -222,12 +225,17 @@ function SourceTab({ code, loading, entity }: { code: string | null; loading: bo
       {loading ? (
         <div className="text-center py-8 text-wiki-muted text-sm">{t('entityLoadingSource')}</div>
       ) : code ? (
-        <pre className="p-3 rounded-lg bg-wiki-card border border-wiki-border text-xs font-mono text-wiki-text overflow-x-auto whitespace-pre leading-5">
+        <pre
+          className={`p-3 rounded-lg border text-xs font-mono overflow-x-auto leading-5 ${wrapClass(ui.wordWrap)}`}
+          style={{ background: theme.background, color: theme.color, borderColor: theme.border }}
+        >
           {code.split('\n').map((line, i) => (
             <div key={i} className="flex">
-              <span className="text-wiki-muted/40 select-none w-8 text-right mr-3 shrink-0">
-                {entity.line + i}
-              </span>
+              {ui.showLineNumbers && (
+                <span className="select-none w-8 text-right mr-3 shrink-0" style={{ color: theme.gutter }}>
+                  {entity.line + i}
+                </span>
+              )}
               <span>{line}</span>
             </div>
           ))}

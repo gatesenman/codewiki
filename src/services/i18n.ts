@@ -148,6 +148,7 @@ export interface I18nStrings {
   agentApplyFailed: string
   agentAnalysisFailed: string
   agentFailedToApply: string
+  agentConfirmApply: string
 
   // Entity Detail Panel
   entityInfo: string
@@ -221,8 +222,12 @@ export interface I18nStrings {
   settingsMaxFileSizeDesc: string
   settingsAutoReindex: string
   settingsAutoReindexDesc: string
+  settingsWatchMode: string
+  settingsWatchModeDesc: string
   settingsFileExtensions: string
   settingsIgnoredDirs: string
+  settingsIgnorePatterns: string
+  settingsIgnorePatternsDesc: string
   settingsImpactDepth: string
   settingsImpactDepthDesc: string
   settingsWarnEntities: string
@@ -337,6 +342,7 @@ export interface I18nStrings {
   settingsMcpToolsDesc: string
   settingsMcpToolsPlaceholder: string
   settingsMcpDocsHint: string
+  settingsMcpGenerated: string
 
   // Sidebar
   sidebarWikiPages: string
@@ -505,6 +511,7 @@ const en: I18nStrings = {
   agentApplyFailed: 'Apply failed',
   agentAnalysisFailed: 'Analysis failed',
   agentFailedToApply: 'Failed to apply: ',
+  agentConfirmApply: 'Apply changes to the following files?',
 
   entityInfo: 'Info',
   entitySource: 'Source',
@@ -576,8 +583,12 @@ const en: I18nStrings = {
   settingsMaxFileSizeDesc: 'Skip files larger than this (bytes).',
   settingsAutoReindex: 'Auto Re-index',
   settingsAutoReindexDesc: 'Automatically rebuild index on file changes.',
+  settingsWatchMode: 'Watch Mode',
+  settingsWatchModeDesc: 'Watch the project folder for changes (enables the file watcher).',
   settingsFileExtensions: 'File Extensions',
   settingsIgnoredDirs: 'Ignored Directories',
+  settingsIgnorePatterns: 'Ignore Patterns',
+  settingsIgnorePatternsDesc: 'Glob patterns excluded from indexing (like .codewikiignore entries).',
   settingsImpactDepth: 'Impact Analysis Depth',
   settingsImpactDepthDesc: 'BFS traversal depth for impact analysis.',
   settingsWarnEntities: 'Warning: Entity Count',
@@ -686,6 +697,7 @@ const en: I18nStrings = {
   settingsMcpToolsDesc: 'Tool names to expose, one per line. Leave empty to expose all tools.',
   settingsMcpToolsPlaceholder: 'leave empty for all tools',
   settingsMcpDocsHint: 'See docs/MCP.md for full client configuration examples.',
+  settingsMcpGenerated: 'Generated client config',
 
   sidebarWikiPages: 'Wiki Pages',
   sidebarNoWikiPages: 'No wiki pages yet.',
@@ -851,6 +863,7 @@ const zh: I18nStrings = {
   agentApplyFailed: '应用失败',
   agentAnalysisFailed: '分析失败',
   agentFailedToApply: '应用失败：',
+  agentConfirmApply: '是否将更改应用到以下文件？',
 
   entityInfo: '信息',
   entitySource: '源码',
@@ -922,8 +935,12 @@ const zh: I18nStrings = {
   settingsMaxFileSizeDesc: '跳过大于此值的文件（字节）。',
   settingsAutoReindex: '自动重新索引',
   settingsAutoReindexDesc: '文件变更时自动重建索引。',
+  settingsWatchMode: '监听模式',
+  settingsWatchModeDesc: '监听项目文件夹的变化（启用文件监听器）。',
   settingsFileExtensions: '文件扩展名',
   settingsIgnoredDirs: '忽略的目录',
+  settingsIgnorePatterns: '忽略模式',
+  settingsIgnorePatternsDesc: '从索引中排除的 glob 模式（类似 .codewikiignore 条目）。',
   settingsImpactDepth: '影响分析深度',
   settingsImpactDepthDesc: '影响分析的 BFS 遍历深度。',
   settingsWarnEntities: '警告：实体数量',
@@ -1032,6 +1049,7 @@ const zh: I18nStrings = {
   settingsMcpToolsDesc: '要暴露的工具名称，每行一个。留空表示暴露全部工具。',
   settingsMcpToolsPlaceholder: '留空表示全部工具',
   settingsMcpDocsHint: '完整的客户端配置示例见 docs/MCP.md。',
+  settingsMcpGenerated: '生成的客户端配置',
 
   sidebarWikiPages: 'Wiki 页面',
   sidebarNoWikiPages: '暂无 Wiki 页面。',
