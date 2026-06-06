@@ -42,11 +42,12 @@ export default function App() {
     document.documentElement.style.fontSize = `${config.ui.fontSize}px`
   }, [config.ui.fontSize])
 
-  // Update title
+  // Update title and document language
   useEffect(() => {
     document.title = currentProject
       ? `${currentProject.name} - CodeWiki`
       : t('appWindowTitle')
+    document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
   }, [currentProject, locale])
 
   return (
