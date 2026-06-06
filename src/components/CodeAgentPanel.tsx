@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import {
   Bot, Send, AlertTriangle, FileText, CheckCircle2,
-  Loader2, GitBranch, Code, Shield,
+  Loader2, GitBranch, Code, Shield, Undo2,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { services } from '../services/service-registry'
+import { PatchService, type PatchIO, type RollbackToken } from '../services/patch-service'
 import type { CodeModification } from '../types'
 
 interface AgentResult {
@@ -21,20 +22,42 @@ export function CodeAgentPanel() {
   const [loading, setLoading] = useState(false)
   const [applying, setApplying] = useState(false)
   const [appliedMods, setAppliedMods] = useState<Set<number>>(new Set())
+  const [rollbackToken, setRollbackToken] = useState<RollbackToken | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const handleApplyModification = async (mod: CodeModification, index: number) => {
-    if (!window.electronAPI?.applyModification) return
+  const getPatchService = (): PatchService | null => {
+    const api = window.electronAPI
+    if (!api?.readFile || !api?.writeFile) return null
+    const io: PatchIO = {
+      readFile: api.readFile,
+      writeFile: api.writeFile,
+    }
+    return new PatchService(io)
+  }
+
+  // Apply a subset of modifications atomically (all-or-nothing).
+  const applyMods = async (indices: number[]) => {
+    if (!result || indices.length === 0) return
+    const patch = getPatchService()
+    if (!patch) { setError('File system bridge unavailable.'); return }
     setApplying(true)
+    setError(null)
     try {
-      const result = await window.electronAPI.applyModification(
-        mod.filePath, mod.startLine, mod.endLine,
-        mod.newContent, mod.originalContent,
-      )
-      if (result.success) {
-        setAppliedMods(prev => new Set(prev).add(index))
+      const mods = indices.map(i => result.modifications[i])
+      const res = await patch.apply(mods)
+      if (res.ok) {
+        setAppliedMods(prev => {
+          const next = new Set(prev)
+          for (const i of indices) next.add(i)
+          return next
+        })
+        // Accumulate rollback info, preserving the earliest captured original.
+        setRollbackToken(prev => {
+          const merged: RollbackToken = { ...res.rollback, ...(prev || {}) }
+          return merged
+        })
       } else {
-        setError(`Failed to apply: ${result.error}`)
+        setError(`Apply failed (no changes written): ${res.errors.join('; ')}`)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Apply failed')
@@ -43,12 +66,32 @@ export function CodeAgentPanel() {
     }
   }
 
-  const handleApplyAll = async () => {
+  const handleApplyModification = (_mod: CodeModification, index: number) => applyMods([index])
+
+  const handleApplyAll = () => {
     if (!result) return
-    for (let i = 0; i < result.modifications.length; i++) {
-      if (!appliedMods.has(i)) {
-        await handleApplyModification(result.modifications[i], i)
+    const remaining = result.modifications.map((_, i) => i).filter(i => !appliedMods.has(i))
+    void applyMods(remaining)
+  }
+
+  const handleRollback = async () => {
+    if (!rollbackToken) return
+    const patch = getPatchService()
+    if (!patch) { setError('File system bridge unavailable.'); return }
+    setApplying(true)
+    setError(null)
+    try {
+      const res = await patch.rollback(rollbackToken)
+      if (res.ok) {
+        setAppliedMods(new Set())
+        setRollbackToken(null)
+      } else {
+        setError(`Rollback failed: ${res.errors.join('; ')}`)
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Rollback failed')
+    } finally {
+      setApplying(false)
     }
   }
 
@@ -171,14 +214,27 @@ export function CodeAgentPanel() {
                     <CheckCircle2 size={14} className="text-wiki-green" />
                     Proposed Modifications ({result.modifications.length})
                   </h3>
-                  <button
-                    onClick={handleApplyAll}
-                    disabled={applying || appliedMods.size === result.modifications.length}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-wiki-green/15 text-wiki-green text-xs font-medium hover:bg-wiki-green/25 disabled:opacity-50 transition-colors"
-                  >
-                    {applying ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                    Apply All ({result.modifications.length - appliedMods.size} remaining)
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {rollbackToken && Object.keys(rollbackToken).length > 0 && (
+                      <button
+                        onClick={handleRollback}
+                        disabled={applying}
+                        title="Restore all modified files to their state before applying"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-wiki-orange/15 text-wiki-orange text-xs font-medium hover:bg-wiki-orange/25 disabled:opacity-50 transition-colors"
+                      >
+                        {applying ? <Loader2 size={12} className="animate-spin" /> : <Undo2 size={12} />}
+                        Rollback ({Object.keys(rollbackToken).length})
+                      </button>
+                    )}
+                    <button
+                      onClick={handleApplyAll}
+                      disabled={applying || appliedMods.size === result.modifications.length}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-wiki-green/15 text-wiki-green text-xs font-medium hover:bg-wiki-green/25 disabled:opacity-50 transition-colors"
+                    >
+                      {applying ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                      Apply All ({result.modifications.length - appliedMods.size} remaining)
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   {result.modifications.map((mod, i) => (
