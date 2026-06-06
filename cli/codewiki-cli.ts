@@ -3770,7 +3770,7 @@ function parseArgs(raw: string[]): { command: string; positional: string[]; proj
   let entities: string[] = []
   let outputFile = ''
   const positional: string[] = []
-  const flagsWithValues = new Set(['--project', '-p', '--depth', '-d', '--entities', '--output', '-o'])
+  const flagsWithValues = new Set(['--project', '-p', '--depth', '-d', '--entities', '--output', '-o', '--ide', '--transport', '--port', '--server', '--log-dir'])
 
   let i = 0
   while (i < raw.length) {
@@ -3892,8 +3892,374 @@ function cmdLogs(positional: string[]): void {
   console.log(`\n  日志文件: ${callLogFile()}  (codewiki logs stats | codewiki logs clear)\n`)
 }
 
+// ===================================================================
+// init --ide / mcp-guide / query (NL→graph) / tui  (added in CLI overhaul)
+// ===================================================================
+
+function getCliFlag(name: string): string | undefined {
+  const argv = process.argv.slice(2)
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === name && i + 1 < argv.length) return argv[i + 1]
+    if (argv[i].startsWith(name + '=')) return argv[i].split('=').slice(1).join('=')
+  }
+  return undefined
+}
+
+function hasCliFlag(name: string): boolean {
+  return process.argv.slice(2).includes(name)
+}
+
+// Resolve how to launch the bundled MCP server (prefer compiled, fall back to ts-node on source).
+function resolveMcpServer(): { command: string; args: string[]; mode: string } {
+  const root = path.resolve(__dirname, '..')
+  const built = path.join(root, 'dist', 'server', 'mcp-server.js')
+  if (fs.existsSync(built)) return { command: 'node', args: [built], mode: 'compiled' }
+  const src = path.join(root, 'server', 'mcp-server.ts')
+  if (fs.existsSync(src)) return { command: 'npx', args: ['-y', 'ts-node', src], mode: 'ts-node (source — run `npm run build:mcp` for faster startup)' }
+  return { command: 'node', args: [built], mode: 'compiled (run `npm run build:mcp` first — file not found yet)' }
+}
+
+type IdeId = 'cursor' | 'vscode' | 'claude' | 'claude-code' | 'windsurf' | 'cline' | 'codex'
+
+const IDE_ALIASES: Record<string, IdeId> = {
+  cursor: 'cursor',
+  vscode: 'vscode', 'vs-code': 'vscode', code: 'vscode', copilot: 'vscode',
+  claude: 'claude', 'claude-desktop': 'claude', claudedesktop: 'claude',
+  'claude-code': 'claude-code', claudecode: 'claude-code',
+  windsurf: 'windsurf', codeium: 'windsurf',
+  cline: 'cline', roo: 'cline', 'roo-code': 'cline',
+  codex: 'codex',
+}
+
+const ALL_IDES: IdeId[] = ['cursor', 'vscode', 'claude', 'claude-code', 'windsurf', 'cline', 'codex']
+
+// Build the standard MCP server entry ({command,args,env}). VS Code adds type:'stdio'.
+function mcpEntry(projectAbs: string, opts: { workspaceVar?: boolean; vscode?: boolean }): Record<string, unknown> {
+  const srv = resolveMcpServer()
+  const env: Record<string, string> = {
+    PROJECT_PATH: opts.workspaceVar ? '${workspaceFolder}' : projectAbs,
+  }
+  const logDir = getCliFlag('--log-dir')
+  if (logDir) env.CODEWIKI_LOG_DIR = logDir
+  const entry: Record<string, unknown> = { command: srv.command, args: srv.args, env }
+  if (opts.vscode) return { type: 'stdio', ...entry }
+  return entry
+}
+
+// Merge a codewiki server into an existing JSON config under the given container key.
+function writeMergedMcpJson(filePath: string, containerKey: 'mcpServers' | 'servers', entry: Record<string, unknown>, written: string[]): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  let root: Record<string, unknown> = {}
+  if (fs.existsSync(filePath)) {
+    try { root = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Record<string, unknown> } catch { root = {} }
+  }
+  const container = (root[containerKey] && typeof root[containerKey] === 'object')
+    ? root[containerKey] as Record<string, unknown>
+    : {}
+  container.codewiki = entry
+  root[containerKey] = container
+  fs.writeFileSync(filePath, JSON.stringify(root, null, 2) + '\n', 'utf-8')
+  written.push(filePath)
+}
+
+function ideConfigTarget(ide: IdeId, projectAbs: string): { file: string; container: 'mcpServers' | 'servers'; entry: Record<string, unknown>; note: string } {
+  switch (ide) {
+    case 'cursor':
+      return { file: path.join(projectAbs, '.cursor', 'mcp.json'), container: 'mcpServers', entry: mcpEntry(projectAbs, {}), note: '在 Cursor → Settings → MCP 启用 codewiki' }
+    case 'vscode':
+      return { file: path.join(projectAbs, '.vscode', 'mcp.json'), container: 'servers', entry: mcpEntry(projectAbs, { workspaceVar: true, vscode: true }), note: 'VS Code (Copilot agent 模式) 自动读取 .vscode/mcp.json' }
+    case 'claude-code':
+      return { file: path.join(projectAbs, '.mcp.json'), container: 'mcpServers', entry: mcpEntry(projectAbs, {}), note: 'Claude Code 自动读取项目根的 .mcp.json' }
+    case 'windsurf':
+      return { file: path.join(projectAbs, '.windsurf', 'mcp.json'), container: 'mcpServers', entry: mcpEntry(projectAbs, {}), note: 'Windsurf 全局配置在 ~/.codeium/windsurf/mcp_config.json — 可把本文件内容并入其中' }
+    case 'cline':
+      return { file: path.join(projectAbs, '.cline', 'mcp.json'), container: 'mcpServers', entry: mcpEntry(projectAbs, {}), note: 'Cline 设置里指向本文件，或把内容并入 Cline 的 MCP 设置' }
+    case 'codex':
+      return { file: path.join(projectAbs, '.codewiki', 'codex-mcp.json'), container: 'mcpServers', entry: mcpEntry(projectAbs, {}), note: 'Codex/通用 MCP 客户端可复用此 mcpServers 片段' }
+    case 'claude':
+    default:
+      // Real path is OS app dir; write a project-local snippet + instructions.
+      return { file: path.join(projectAbs, '.codewiki', 'claude_desktop_config.json'), container: 'mcpServers', entry: mcpEntry(projectAbs, {}), note: '把本文件内容合并到 Claude Desktop 配置：macOS ~/Library/Application Support/Claude/claude_desktop_config.json · Windows %APPDATA%\\Claude\\claude_desktop_config.json · Linux ~/.config/Claude/claude_desktop_config.json' }
+  }
+}
+
+const AGENT_USAGE_MD = `# CodeWiki — agent 使用约定
+
+本项目已接入 **CodeWiki MCP** 代码本体（ontology）服务。改动代码前，code agent 应优先用 CodeWiki 工具理解结构，避免把代码当纯文本猜测。
+
+## 推荐工作流
+1. **改动前先查影响**：用 \`analyze_impact\` / \`get_callers\` 评估"爆炸半径"，确认会被波及的实体与文件。
+2. **定位实体**：用 \`search_code\` / \`get_entity\` / \`find_references\` 精确定位定义与引用，而非全文搜索。
+3. **理解依赖**：用 \`get_dependencies\` / \`trace_path\` 看调用链与依赖路径。
+4. **改完验证**：如启用，运行项目自带的 lint/build/test 验证。
+
+## 也可用 CLI（无需 IDE）
+- \`codewiki query "谁调用了 functionName"\` — 自然语言图查询
+- \`codewiki impact <Entity>\` / \`codewiki callers <Entity>\` / \`codewiki deps <Entity>\`
+- \`codewiki tui\` — 交互式控制台
+
+> 此文件由 \`codewiki init\` 生成，供 code agent 消费。可按需修改。
+`
+
+function cmdInit(projectPath: string): void {
+  const projectAbs = path.resolve(projectPath)
+  if (!fs.existsSync(projectAbs)) { console.error(`错误: 项目路径不存在: ${projectAbs}`); process.exit(1) }
+
+  const printOnly = hasCliFlag('--print')
+  const ideRaw = (getCliFlag('--ide') || '').toLowerCase().trim()
+  const written: string[] = []
+
+  // 1) .codewikirc (existing default config) — create if missing
+  const rcPath = path.join(projectAbs, '.codewikirc')
+  if (!printOnly && !fs.existsSync(rcPath)) {
+    const defaultConfig: CLIConfig = {
+      indexing: { maxDepth: 8, maxFileSize: 500000, extensions: ['.ts', '.tsx', '.js', '.jsx', '.py'], ignoreDirs: ['node_modules', '.git', 'dist', 'build'] },
+      llm: { provider: 'openai', model: 'gpt-4o' },
+      ontology: { impactDepth: 3 },
+      search: { maxResults: 10, minScore: 0.01 },
+    }
+    fs.writeFileSync(rcPath, JSON.stringify(defaultConfig, null, 2) + '\n', 'utf-8')
+    written.push(rcPath)
+  }
+
+  // 2) Resolve which IDE(s)
+  let ides: IdeId[]
+  if (!ideRaw || ideRaw === 'all') {
+    ides = ALL_IDES
+  } else {
+    ides = ideRaw.split(',').map(s => s.trim()).filter(Boolean).map(s => {
+      const id = IDE_ALIASES[s]
+      if (!id) { console.error(`错误: 不支持的 IDE "${s}"。可选: ${Object.keys(IDE_ALIASES).join(', ')}, all`); process.exit(1) }
+      return id
+    })
+  }
+
+  const srv = resolveMcpServer()
+
+  if (printOnly) {
+    for (const ide of ides) {
+      const t = ideConfigTarget(ide, projectAbs)
+      const root: Record<string, unknown> = { [t.container]: { codewiki: t.entry } }
+      console.log(`\n  # ${ide}  →  ${path.relative(projectAbs, t.file) || t.file}`)
+      console.log(`  # ${t.note}`)
+      console.log(JSON.stringify(root, null, 2))
+    }
+    console.log(`\n  MCP server: ${srv.command} ${srv.args.join(' ')}  [${srv.mode}]\n`)
+    return
+  }
+
+  for (const ide of ides) {
+    const t = ideConfigTarget(ide, projectAbs)
+    writeMergedMcpJson(t.file, t.container, t.entry, written)
+  }
+
+  // 3) agent usage rules
+  const usagePath = path.join(projectAbs, '.codewiki', 'agent-usage.md')
+  fs.mkdirSync(path.dirname(usagePath), { recursive: true })
+  fs.writeFileSync(usagePath, AGENT_USAGE_MD, 'utf-8')
+  written.push(usagePath)
+
+  console.log(`\n  CodeWiki 初始化完成`)
+  console.log(`  ─────────────────────`)
+  console.log(`  项目:       ${projectAbs}`)
+  console.log(`  MCP server: ${srv.command} ${srv.args.join(' ')}  [${srv.mode}]`)
+  console.log(`  IDE:        ${ides.join(', ')}`)
+  console.log(`\n  已写入 ${written.length} 个文件:`)
+  for (const f of written) console.log(`    + ${path.relative(projectAbs, f) || f}`)
+  console.log(`\n  下一步:`)
+  if (srv.mode.startsWith('compiled (run')) console.log(`    1. 先构建 MCP server: npm run build:mcp`)
+  console.log(`    • 在对应 IDE 中启用 codewiki MCP（见 codewiki mcp-guide <ide>）`)
+  console.log(`    • 校验: codewiki mcp-guide --verify\n`)
+}
+
+function cmdMcpGuide(ideArg: string | undefined): void {
+  if (hasCliFlag('--verify')) {
+    const srv = resolveMcpServer()
+    console.log(`\n  MCP server 启动命令: ${srv.command} ${srv.args.join(' ')}  [${srv.mode}]`)
+    console.log(`  手动验证 (列出工具):`)
+    console.log(`    PROJECT_PATH="$(pwd)" ${srv.command} ${srv.args.join(' ')}`)
+    console.log(`  正常输出 (stderr): "CodeWiki MCP Server running on stdio." + 工具数量\n`)
+    return
+  }
+
+  const ide = ideArg ? IDE_ALIASES[ideArg.toLowerCase()] : undefined
+  const srv = resolveMcpServer()
+  const cmdLine = `"command": ${JSON.stringify(srv.command)}, "args": ${JSON.stringify(srv.args)}`
+
+  console.log(`\n  CodeWiki MCP 配置指导`)
+  console.log(`  ─────────────────────`)
+  console.log(`  MCP server: ${srv.command} ${srv.args.join(' ')}  [${srv.mode}]`)
+  console.log(`  最快方式: 在项目目录运行  codewiki init --ide <${ALL_IDES.join('|')}|all>`)
+  console.log(`  完整文档: docs/MCP.md (中文 docs/MCP.zh-CN.md)\n`)
+
+  const blocks: Record<IdeId, string> = {
+    cursor: `Cursor → 写入 .cursor/mcp.json，键 mcpServers，然后 Settings → MCP 启用 codewiki。`,
+    vscode: `VS Code (Copilot agent) → 写入 .vscode/mcp.json，顶层键是 servers，需 "type":"stdio"，env.PROJECT_PATH 用 \${workspaceFolder}。`,
+    claude: `Claude Desktop → 编辑 claude_desktop_config.json (macOS: ~/Library/Application Support/Claude/ · Windows: %APPDATA%\\Claude\\ · Linux: ~/.config/Claude/)，键 mcpServers，重启 Claude。`,
+    'claude-code': `Claude Code → 项目根 .mcp.json，键 mcpServers。`,
+    windsurf: `Windsurf → ~/.codeium/windsurf/mcp_config.json，键 mcpServers。`,
+    cline: `Cline → 在扩展的 MCP 设置中添加同样的 command/args/env。`,
+    codex: `Codex / 通用客户端 → 复用 mcpServers 片段 (command/args/env)。`,
+  }
+
+  const toShow: IdeId[] = ide ? [ide] : ALL_IDES
+  for (const k of toShow) {
+    console.log(`  • ${k}: ${blocks[k]}`)
+  }
+  console.log(`\n  通用片段:`)
+  console.log(`    { "mcpServers": { "codewiki": { ${cmdLine}, "env": { "PROJECT_PATH": "/abs/项目路径" } } } }\n`)
+}
+
+// ---- Natural-language → graph query (surfaces graph-query capability in the CLI) ----
+
+interface NlIntent { op: string; a?: string; b?: string }
+
+function parseNlQuery(text: string): NlIntent | null {
+  const t = text.trim()
+  const low = t.toLowerCase()
+  const stop = /\b(of|the|to|for|on|in|a|an|是|的|了|吗|呢|请|帮我|一下)\b/gi
+
+  // path: X to Y / X 到 Y / from X to Y
+  let m = low.match(/(?:path|trace|route|链路|路径)\D*?([\w$.]+)\s*(?:to|->|→|到|至)\s*([\w$.]+)/i)
+    || t.match(/([\w$.]+)\s*(?:到|至|->|→)\s*([\w$.]+)\s*(?:的)?(?:路径|链路)/)
+  if (m) return { op: 'path', a: m[1], b: m[2] }
+
+  const grab = (re: RegExp): string | undefined => { const r = t.match(re); return r ? r[1] : undefined }
+
+  // callers: who calls X / callers of X / 谁调用 X / X 的调用者
+  if (/who\s+calls|callers?\s+of|caller|谁(调用|引用|用了)|调用者|被谁/i.test(low)) {
+    const a = grab(/(?:who\s+calls|callers?\s+of|谁(?:调用|引用|用了)|调用者[是为]?)\s*([\w$.]+)/i)
+      || grab(/([\w$.]+)\s*(?:的)?(?:调用者|被谁调用)/)
+    if (a) return { op: 'callers', a }
+  }
+  // callees: what does X call / callees of X / X 调用了什么 / X 调用谁
+  if (/what\s+does\s+\S+\s+call|callees?\s+of|callee|调用了(什么|谁)|调用哪些/i.test(low)) {
+    const a = grab(/what\s+does\s+([\w$.]+)\s+call/i)
+      || grab(/callees?\s+of\s+([\w$.]+)/i)
+      || grab(/([\w$.]+)\s*(?:调用了什么|调用哪些|调用谁)/)
+    if (a) return { op: 'callees', a }
+  }
+  // impact: impact of X / what breaks if I change X / X 的影响 / 改 X
+  if (/impact|affect|blast|break|改了|修改|变更|影响|波及/i.test(low)) {
+    const a = grab(/(?:impact\s+of|affect(?:ed|s)?\s+by|changing|change|modif\w*)\s+([\w$.]+)/i)
+      || grab(/(?:改了?|修改|变更)\s*([\w$.]+)/)
+      || grab(/([\w$.]+)\s*(?:的)?(?:影响|波及)/)
+    if (a) return { op: 'impact', a }
+  }
+  // references: references to X / X 的引用
+  if (/references?\s+to|refs?\s+of|引用|用到/i.test(low)) {
+    const a = grab(/references?\s+to\s+([\w$.]+)/i) || grab(/refs?\s+of\s+([\w$.]+)/i)
+      || grab(/([\w$.]+)\s*(?:的)?(?:引用)/)
+    if (a) return { op: 'refs', a }
+  }
+  // dependencies: dependencies of X / X 依赖什么
+  if (/depend|dependenc|依赖/i.test(low)) {
+    const a = grab(/dependenc\w*\s+of\s+([\w$.]+)/i) || grab(/([\w$.]+)\s*(?:的)?(?:依赖)/)
+    if (a) return { op: 'deps', a }
+  }
+
+  // fallback to search
+  const cleaned = t.replace(stop, ' ').trim()
+  return cleaned ? { op: 'search', a: cleaned } : null
+}
+
+function cmdQuery(text: string, projectPath: string, depth: number): void {
+  if (!text || !text.trim()) { console.error('用法: codewiki query "<自然语言问题>"'); process.exit(1) }
+  const intent = parseNlQuery(text)
+  if (!intent) { console.error('无法解析该问题'); process.exit(1) }
+  if (!isJson) {
+    const label: Record<string, string> = { callers: '调用者', callees: '被调用', impact: '影响分析', refs: '引用', deps: '依赖', path: '路径', search: '搜索' }
+    console.log(`\n  解析: ${label[intent.op] || intent.op}${intent.a ? '  →  ' + intent.a : ''}${intent.b ? '  →  ' + intent.b : ''}`)
+  }
+  switch (intent.op) {
+    case 'callers': cmdCallers(intent.a as string, projectPath, depth); break
+    case 'callees': cmdCallees(intent.a as string, projectPath, depth); break
+    case 'impact': cmdImpact(intent.a as string, projectPath, depth); break
+    case 'refs': cmdFindReferences(intent.a as string, projectPath); break
+    case 'deps': cmdDeps(intent.a as string, projectPath, depth); break
+    case 'path': cmdDependencyPath(intent.a as string, intent.b as string, projectPath, depth); break
+    default: cmdSearch(intent.a as string, projectPath)
+  }
+}
+
+// ---- Interactive TUI console ----
+
+function cmdTui(projectPath: string, depth: number): void {
+  const projectAbs = path.resolve(projectPath)
+  if (!fs.existsSync(projectAbs)) { console.error(`错误: 项目路径不存在: ${projectAbs}`); process.exit(1) }
+
+  const CLR = '\x1b[2J\x1b[3J\x1b[H'
+  const C = { dim: '\x1b[2m', b: '\x1b[1m', cy: '\x1b[36m', gr: '\x1b[32m', yl: '\x1b[33m', rs: '\x1b[0m' }
+  let stats = { entities: 0, relations: 0 }
+  try { const { graph } = getGraph(projectAbs); stats = { entities: graph.entities.length, relations: graph.relations.length } } catch { /* index lazily */ }
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+  const ask = (q: string): Promise<string> => new Promise(res => rl.question(q, res))
+
+  const menu: Array<{ k: string; label: string; run: (arg: string) => void | Promise<void>; arg?: string }> = [
+    { k: '1', label: '搜索 (TF-IDF)', arg: '关键词', run: (a) => cmdSearch(a, projectAbs) },
+    { k: '2', label: '自然语言查询 (NL→图)', arg: '问题，如"谁调用 fooBar"', run: (a) => cmdQuery(a, projectAbs, depth) },
+    { k: '3', label: '影响分析 (impact)', arg: '实体名', run: (a) => cmdImpact(a, projectAbs, depth) },
+    { k: '4', label: '调用者 (callers)', arg: '实体名', run: (a) => cmdCallers(a, projectAbs, depth) },
+    { k: '5', label: '依赖 (deps)', arg: '实体名', run: (a) => cmdDeps(a, projectAbs, depth) },
+    { k: '6', label: '实体详情 (entity)', arg: '实体名', run: (a) => cmdEntity(a, projectAbs) },
+    { k: '7', label: '架构概览 (architecture)', run: () => cmdArchitecture(projectAbs) },
+    { k: '8', label: '关键符号 (PageRank)', run: () => cmdPageRank(projectAbs, 15) },
+    { k: '9', label: '死代码 (dead-code)', run: () => cmdDeadCode(projectAbs) },
+    { k: '0', label: '重新索引 (index)', run: () => { cmdIndex(projectAbs); const { graph } = getGraph(projectAbs); stats = { entities: graph.entities.length, relations: graph.relations.length } } },
+  ]
+
+  function draw(): void {
+    process.stdout.write(CLR)
+    console.log(`${C.cy}${C.b}  ╔══════════════════════════════════════════════════════╗${C.rs}`)
+    console.log(`${C.cy}${C.b}  ║   CodeWiki TUI 控制台                                 ║${C.rs}`)
+    console.log(`${C.cy}${C.b}  ╚══════════════════════════════════════════════════════╝${C.rs}`)
+    console.log(`  ${C.dim}项目:${C.rs} ${projectAbs}`)
+    console.log(`  ${C.dim}本体:${C.rs} ${C.gr}${stats.entities}${C.rs} 实体 · ${C.gr}${stats.relations}${C.rs} 关系   ${C.dim}depth=${depth}${C.rs}`)
+    console.log(`  ${'─'.repeat(56)}`)
+    for (const m of menu) console.log(`   ${C.yl}${m.k}${C.rs}  ${m.label}`)
+    console.log(`   ${C.yl}q${C.rs}  退出`)
+    console.log(`  ${'─'.repeat(56)}`)
+  }
+
+  async function loop(): Promise<void> {
+    for (;;) {
+      draw()
+      const choice = (await ask(`\n  选择> `)).trim().toLowerCase()
+      if (choice === 'q' || choice === 'quit' || choice === 'exit') break
+      const item = menu.find(m => m.k === choice)
+      if (!item) continue
+      let arg = ''
+      if (item.arg) {
+        arg = (await ask(`  ${item.arg}: `)).trim()
+        if (!arg) continue
+      }
+      process.stdout.write(CLR)
+      console.log(`${C.cy}${C.b}  ▶ ${item.label}${arg ? ': ' + arg : ''}${C.rs}\n`)
+      try { await item.run(arg) } catch (e) { console.error(`  ${C.yl}错误:${C.rs} ${(e as Error).message}`) }
+      await ask(`\n  ${C.dim}按 Enter 返回菜单…${C.rs}`)
+    }
+    rl.close()
+    console.log(`\n  ${C.gr}再见 👋${C.rs}\n`)
+  }
+
+  void loop()
+}
+
+function readPkgVersion(): string {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8')) as { version?: string }
+    return pkg.version || 'unknown'
+  } catch { return 'unknown' }
+}
+
 function main() {
   const { command, positional, projectPath, depth, entities, outputFile } = parseArgs(process.argv.slice(2))
+
+  if (command === 'version' || process.argv.includes('--version') || process.argv.includes('-v')) {
+    console.log(`codewiki ${readPkgVersion()}`)
+    return
+  }
 
   registerCliCallLogging(command, positional, projectPath)
 
@@ -4090,6 +4456,22 @@ function main() {
     case 'repl':
       cmdDebug(projectPath, depth)
       break
+    case 'tui':
+    case 'console':
+      cmdTui(projectPath, depth)
+      break
+    case 'init':
+      cmdInit(positional[0] || projectPath)
+      break
+    case 'mcp-guide':
+    case 'mcp':
+      cmdMcpGuide(positional[0])
+      break
+    case 'query':
+    case 'ask':
+      if (positional.length === 0) { console.error('Usage: codewiki query "<natural language question>" [--project <path>]'); process.exit(1) }
+      cmdQuery(positional.join(' '), projectPath, depth)
+      break
     case 'test':
       cmdTest(positional[0] || path.join(__dirname, '..', 'test-fixtures'), projectPath)
       break
@@ -4142,6 +4524,10 @@ Commands:
   wiki-styles [show <id>]             List/show wiki prompt-style templates
   wiki-generate [--style <id>]        Generate a wiki via LLM (needs CODEWIKI_API_KEY/DEEPSEEK_API_KEY)
   serve [port]                        Start CodeWiki server with call logging dashboard (default: 3777)
+  tui | console                       Interactive full-screen TUI console (menu-driven)
+  query | ask "<question>"             Natural-language → graph query (callers/impact/deps/path/search; 中英双语)
+  init [--ide <name>]                 Export IDE MCP config into the project (cursor|vscode|claude|claude-code|windsurf|cline|codex|all)
+  mcp-guide [<ide>] [--verify]        Print MCP setup guidance per IDE
   debug | repl                        Start the interactive CLI debugger (REPL) — run any command, keep project loaded
   logs [stats|clear]                  View shared CLI/MCP call trace (--source --command --limit)
   test [suite-path]                   Run accuracy test suite
@@ -4170,6 +4556,13 @@ Advanced Workflow:
   codewiki pagerank --json -p ./project                     # Key symbols by PageRank
   codewiki trace-route /api/users --json -p ./project       # HTTP request chain
   codewiki lsif -p ./project                                # LSIF/SCIP status
+
+IDE / MCP Setup (for code agents):
+  codewiki init --ide cursor -p ./project      # write .cursor/mcp.json
+  codewiki init --ide vscode -p ./project      # write .vscode/mcp.json (servers/type:stdio)
+  codewiki init --ide all --print              # preview all IDE configs without writing
+  codewiki mcp-guide cursor                    # per-IDE setup instructions
+  codewiki query "who calls indexProject" -p ./project
 
 LSIF/SCIP Setup (compiler-accurate indexing):
   TypeScript:  npm i -g @sourcegraph/scip-typescript && scip-typescript index
