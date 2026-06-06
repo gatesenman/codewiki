@@ -244,6 +244,7 @@ export interface I18nStrings {
   entitySignature: string
   entityDescription: string
   entityProperties: string
+  entityPatterns: string
   entityDetails: string
   entityConnections: string
   entityIncoming: string
@@ -679,6 +680,7 @@ const en: I18nStrings = {
   entitySignature: 'Signature',
   entityDescription: 'Description',
   entityProperties: 'Properties',
+  entityPatterns: 'Patterns',
   entityDetails: 'Details',
   entityConnections: 'Connections',
   entityIncoming: 'Incoming',
@@ -1104,6 +1106,7 @@ const zh: I18nStrings = {
   entitySignature: '签名',
   entityDescription: '描述',
   entityProperties: '属性',
+  entityPatterns: '设计模式',
   entityDetails: '详情',
   entityConnections: '连接',
   entityIncoming: '传入',
