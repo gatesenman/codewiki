@@ -15,6 +15,8 @@ precise, impact-aware code agent — all powered by an **ontology model** of you
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-2b3137)
 ![Electron](https://img.shields.io/badge/Electron-React%2018%20%2B%20TypeScript-47848F?logo=electron&logoColor=white)
 ![Vite](https://img.shields.io/badge/built%20with-Vite-646CFF?logo=vite&logoColor=white)
+![Release](https://img.shields.io/github/v/release/gaosichun888/codewiki?label=release&color=blueviolet)
+![Downloads](https://img.shields.io/github/downloads/gaosichun888/codewiki/total?label=downloads&color=2b3137)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 
 </div>
@@ -81,10 +83,10 @@ knowledge base, plus a companion **VSCode extension**.
 - **Type-Aware Retrieval**: Semantic search enhanced with ontology relationships
 
 ### Knowledge Graph Visualization
-- **D3 Force Graph**: Interactive visualization of code entity relationships
+- **2D & 3D Modes**: Classic D3 force graph, or a GitNexus-style **3D** force-directed graph (three.js / `3d-force-graph`) — toggle in Settings → Graph
 - **Entity Filtering**: Filter by type (Class, Function, Interface, Component, …)
-- **Drag & Zoom**: Navigate large codebases visually
-- **Color-Coded**: Distinct colors per entity type
+- **Orbit / Drag & Zoom**: Rotate, zoom, and pan to navigate large codebases visually
+- **Color-Coded**: Distinct colors per entity type, with optional labels and auto-rotation
 
 ### Semantic Search
 - **TF-IDF Vector Store**: Local semantic search with no external API
@@ -141,6 +143,23 @@ irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | i
 ```
 
 Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gaosichun888/codewiki/releases).
+
+## Download (latest: v1.0.2)
+
+Grab a prebuilt installer for your platform from the [v1.0.2 release](https://github.com/gaosichun888/codewiki/releases/tag/v1.0.2):
+
+| Platform | Download |
+|---|---|
+| Windows (installer) | [`CodeWiki.Setup.1.0.2.exe`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki.Setup.1.0.2.exe) |
+| Windows (portable) | [`CodeWiki.1.0.2.exe`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki.1.0.2.exe) |
+| macOS (Apple Silicon) | [`CodeWiki-1.0.2-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2-arm64.dmg) |
+| macOS (Intel) | [`CodeWiki-1.0.2.dmg`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2.dmg) |
+| Linux (AppImage) | [`CodeWiki-1.0.2.AppImage`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2.AppImage) |
+| Linux (Debian/Ubuntu) | [`codewiki_1.0.2_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/codewiki_1.0.2_amd64.deb) |
+| VSCode extension | [`codewiki-vscode-0.2.0.vsix`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/codewiki-vscode-0.2.0.vsix) |
+
+> macOS builds are unsigned: on first launch use right-click → Open, or allow it under System Settings → Privacy & Security.
+> Install the VSCode extension with `code --install-extension codewiki-vscode-0.2.0.vsix`.
 
 ## Getting Started (from source)
 
