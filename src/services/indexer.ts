@@ -19,6 +19,9 @@ import { services } from './service-registry'
 import { configManager } from './config-manager'
 import { parseLsif, mergeLsifIntoGraph, LSIF_CANDIDATES } from './lsif-consumer'
 import {
+  isMonorepo, resolvePackages, integrateWorkspaces, isPackageJson, WORKSPACE_FILES,
+} from './workspace-resolver'
+import {
   cacheKeyFor, buildManifest, diffManifest, isClean,
   loadSnapshot, saveSnapshot, INDEX_SNAPSHOT_VERSION,
   type FileManifest,
@@ -127,6 +130,7 @@ export class CodeIndexer {
         const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
         this.ontologyBuilder.resolveDeferredRelations()
         await this.enrichWithLsif(folderPath, ontologyGraph, readFile)
+        await this.enrichWithWorkspaces(folderPath, files, ontologyGraph, readFile)
         await this.maybeBuildEmbeddings(onProgress) // embeds only changed/added docs
 
         await this.persistSnapshot(cacheKey, projectName, folderPath, 'local', manifest, ontologyGraph)
@@ -156,6 +160,7 @@ export class CodeIndexer {
     const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
     this.ontologyBuilder.resolveDeferredRelations()
     await this.enrichWithLsif(folderPath, ontologyGraph, readFile, onProgress)
+    await this.enrichWithWorkspaces(folderPath, files, ontologyGraph, readFile, onProgress)
 
     onProgress?.({
       phase: 'embedding',
@@ -220,6 +225,51 @@ export class CodeIndexer {
       }
       return // first existing candidate wins
     }
+  }
+
+  /**
+   * Detect monorepo workspaces and lift the ontology to the package level
+   * (Package nodes, contains edges, cross-package dependsOn). No-op for a
+   * single-package repo, so non-monorepo projects are unaffected.
+   */
+  private async enrichWithWorkspaces(
+    folderPath: string,
+    files: FileNode[],
+    graph: OntologyGraph,
+    readFile: (path: string) => Promise<string | null>,
+    onProgress?: (progress: IndexProgress) => void,
+  ): Promise<void> {
+    const sep = folderPath.includes('\\') ? '\\' : '/'
+    const rootNorm = folderPath.replace(/\\/g, '/').replace(/\/+$/, '')
+
+    const pkgPaths = this.flattenFiles(files)
+      .filter(f => f.type === 'file' && isPackageJson(f.path))
+      .map(f => f.path)
+    if (!pkgPaths.length) return
+
+    const pkgJsonByPath = new Map<string, string>()
+    let rootPkg: string | null = null
+    for (const p of pkgPaths) {
+      const content = await readFile(p).catch(() => null)
+      if (!content) continue
+      pkgJsonByPath.set(p, content)
+      if (p.replace(/\\/g, '/').replace(/\/+$/, '') === rootNorm + '/package.json') rootPkg = content
+    }
+
+    let hasWorkspaceFile = false
+    for (const wf of WORKSPACE_FILES) {
+      const probe = await readFile(folderPath + sep + wf).catch(() => null)
+      if (probe) { hasWorkspaceFile = true; break }
+    }
+
+    if (!isMonorepo({ rootPackageJson: rootPkg, hasWorkspaceFile, packageJsonCount: pkgJsonByPath.size })) return
+
+    const packages = resolvePackages(pkgJsonByPath, folderPath)
+    const stats = integrateWorkspaces(graph, packages)
+    onProgress?.({
+      phase: 'ontology', current: 0, total: 0,
+      message: `Monorepo detected: ${stats.packages} packages, ${stats.dependsOn} cross-package dependencies.`,
+    })
   }
 
   private buildProject(
