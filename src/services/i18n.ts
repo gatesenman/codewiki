@@ -234,6 +234,7 @@ export interface I18nStrings {
   settingsWarnEntitiesDesc: string
   settingsWarnFiles: string
   settingsWarnFilesDesc: string
+  settingsWarnThresholdHint: string
   settingsExtractDecorators: string
   settingsExtractDecoratorsDesc: string
   settingsExtractArrow: string
@@ -595,6 +596,7 @@ const en: I18nStrings = {
   settingsWarnEntitiesDesc: 'Warn when impact exceeds this many entities.',
   settingsWarnFiles: 'Warning: File Count',
   settingsWarnFilesDesc: 'Warn when impact spans more than this many files.',
+  settingsWarnThresholdHint: 'Enable "Impact Warnings" in the Behavior tab to apply these thresholds.',
   settingsExtractDecorators: 'Extract Decorators',
   settingsExtractDecoratorsDesc: 'Include decorators in ontology extraction.',
   settingsExtractArrow: 'Extract Arrow Functions',
@@ -947,6 +949,7 @@ const zh: I18nStrings = {
   settingsWarnEntitiesDesc: '当影响超过此实体数量时发出警告。',
   settingsWarnFiles: '警告：文件数量',
   settingsWarnFilesDesc: '当影响超过此文件数量时发出警告。',
+  settingsWarnThresholdHint: '在「行为」标签开启「影响警告」后，这些阈值才会生效。',
   settingsExtractDecorators: '提取装饰器',
   settingsExtractDecoratorsDesc: '在本体提取中包含装饰器。',
   settingsExtractArrow: '提取箭头函数',
