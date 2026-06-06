@@ -310,9 +310,9 @@ export async function extractTreeSitter(
           if (c.type === 'struct_type') isStruct = true
           if (c.type === 'interface_type') isIface = true
         }
-        if (isStruct) addEntity(n, 'Class', node)
+        if (isStruct) addEntity(n, 'Struct', node)
         else if (isIface) addEntity(n, 'Interface', node)
-        else addEntity(n, 'Type', node)
+        else addEntity(n, 'TypeAlias', node)
         return
       }
       case 'function_declaration': {
@@ -430,13 +430,13 @@ export async function extractTreeSitter(
     switch (node.type) {
       case 'struct_item': {
         const n = nameOf(node)
-        if (n) addEntity(n, 'Class', node)
+        if (n) addEntity(n, 'Struct', node)
         return
       }
       case 'trait_item': {
         const n = nameOf(node)
         if (!n) break
-        addEntity(n, 'Interface', node)
+        addEntity(n, 'Trait', node)
         const body = node.childForFieldName('body')
         if (body) visitChildren(body, n)
         return
@@ -519,7 +519,8 @@ export async function extractTreeSitter(
             ext.push(baseList.namedChild(i).text.replace(/<[^>]+>/g, ''))
           }
         }
-        addEntity(n, 'Class', node, { extends: ext.length ? ext : undefined })
+        const csType = node.type === 'struct_declaration' ? 'Struct' : 'Class'
+        addEntity(n, csType, node, { extends: ext.length ? ext : undefined })
         const body = node.childForFieldName('body')
         if (body) visitChildren(body, n)
         return
@@ -537,10 +538,14 @@ export async function extractTreeSitter(
         if (n) addEntity(n, 'Enum', node)
         return
       }
-      case 'method_declaration':
-      case 'constructor_declaration': {
+      case 'method_declaration': {
         const n = nameOf(node)
         if (n) addEntity(n, 'Method', node, { parentName: parent })
+        return
+      }
+      case 'constructor_declaration': {
+        const n = nameOf(node)
+        if (n) addEntity(n, 'Constructor', node, { parentName: parent })
         return
       }
       case 'using_directive': {

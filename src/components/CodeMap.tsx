@@ -43,6 +43,16 @@ const ENTITY_COLORS: Record<OntologyEntityType, string> = {
   Type: '#f778ba',
   Enum: '#f778ba',
   Component: '#58a6ff',
+  Namespace: '#d29922',
+  Struct: '#58a6ff',
+  Trait: '#bc8cff',
+  Property: '#79c0ff',
+  Constant: '#ffa657',
+  Constructor: '#d2a8ff',
+  Decorator: '#ffa657',
+  Hook: '#3fb950',
+  Event: '#f0883e',
+  TypeAlias: '#f778ba',
 }
 
 const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
@@ -57,6 +67,16 @@ const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
   Enum: Database,
   Package: FolderOpen,
   Component: Box,
+  Namespace: FolderOpen,
+  Struct: Box,
+  Trait: Braces,
+  Property: Hash,
+  Constant: Hash,
+  Constructor: Code,
+  Decorator: Code,
+  Hook: Code,
+  Event: Code,
+  TypeAlias: Database,
 }
 
 function couplingColor(t01: number): string {

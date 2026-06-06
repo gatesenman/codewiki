@@ -7,13 +7,15 @@ import { ChatPanel } from './ChatPanel'
 import { CodeAgentPanel } from './CodeAgentPanel'
 import { InsightsPanel } from './InsightsPanel'
 import { CodeMap } from './CodeMap'
+import { SymbolWikiView } from './SymbolWikiView'
+import { CodeFlowMapView } from './CodeFlowMap'
 import { EntityDetailPanel } from './EntityDetailPanel'
 import { TopBar } from './TopBar'
 import { ErrorBoundary } from './ErrorBoundary'
 
 export function Layout() {
   const viewMode = useAppStore(s => s.viewMode)
-  const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed)
+  const _sidebarCollapsed = useAppStore(s => s.sidebarCollapsed)
   const selectedEntityId = useAppStore(s => s.selectedEntityId)
   const sidebarPosition = useAppStore(s => s.config.ui.sidebarPosition)
 
@@ -32,6 +34,8 @@ export function Layout() {
               {viewMode === 'agent' && <CodeAgentPanel />}
               {viewMode === 'insights' && <InsightsPanel />}
               {viewMode === 'codemap' && <CodeMap />}
+              {viewMode === 'symbolwiki' && <SymbolWikiView />}
+              {viewMode === 'codeflow' && <CodeFlowMapView />}
             </div>
           </ErrorBoundary>
         </main>

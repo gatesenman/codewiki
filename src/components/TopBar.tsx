@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   BookOpen, GitBranch, Search, MessageSquare, Bot, Activity,
   Loader2, Settings, PanelLeftClose, PanelLeftOpen,
-  RefreshCw, FolderOpen, Home, LayoutGrid,
+  RefreshCw, FolderOpen, Home, LayoutGrid, FileCode, Map,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { SettingsModal } from './SettingsModal'
@@ -18,6 +18,8 @@ const VIEW_TABS = [
   { mode: 'agent' as const, labelKey: 'navAgent' as const, icon: Bot },
   { mode: 'insights' as const, labelKey: 'navInsights' as const, icon: Activity },
   { mode: 'codemap' as const, labelKey: 'navCodeMap' as const, icon: LayoutGrid },
+  { mode: 'symbolwiki' as const, labelKey: 'navSymbolWiki' as const, icon: FileCode },
+  { mode: 'codeflow' as const, labelKey: 'navCodeFlow' as const, icon: Map },
 ]
 
 export function TopBar() {

@@ -37,6 +37,16 @@ const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
   Enum: Database,
   Package: FolderOpen,
   Component: Box,
+  Namespace: FolderOpen,
+  Struct: Box,
+  Trait: Braces,
+  Property: Hash,
+  Constant: Hash,
+  Constructor: Code,
+  Decorator: Code,
+  Hook: Code,
+  Event: Code,
+  TypeAlias: Database,
 }
 
 const TYPE_COLORS: Record<OntologyEntityType, string> = {
@@ -51,6 +61,16 @@ const TYPE_COLORS: Record<OntologyEntityType, string> = {
   Enum: 'text-wiki-orange',
   Package: 'text-wiki-muted',
   Component: 'text-wiki-accent',
+  Namespace: 'text-wiki-orange',
+  Struct: 'text-wiki-accent',
+  Trait: 'text-wiki-purple',
+  Property: 'text-wiki-accent',
+  Constant: 'text-wiki-orange',
+  Constructor: 'text-wiki-purple',
+  Decorator: 'text-wiki-orange',
+  Hook: 'text-wiki-green',
+  Event: 'text-wiki-orange',
+  TypeAlias: 'text-wiki-purple',
 }
 
 export function EntityDetailPanel() {
