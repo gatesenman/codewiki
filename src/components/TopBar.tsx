@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   BookOpen, GitBranch, Search, MessageSquare, Bot, Activity,
   Loader2, Settings, PanelLeftClose, PanelLeftOpen,
@@ -7,6 +7,7 @@ import {
 import { useAppStore } from '../store'
 import { SettingsModal } from './SettingsModal'
 import { services } from '../services/service-registry'
+import { playCompletionSound } from '../services/notify'
 import { t } from '../services/i18n'
 
 const VIEW_TABS = [
@@ -29,6 +30,9 @@ export function TopBar() {
   useAppStore(s => s.locale)
   const [showSettings, setShowSettings] = useState(false)
   const [isReindexing, setIsReindexing] = useState(false)
+
+  const autoGenerate = useAppStore(s => s.config.wiki.autoGenerate)
+  const autoGenTriggered = useRef<string | null>(null)
 
   const handleGenerateWiki = async () => {
     if (!currentProject) return
@@ -57,11 +61,23 @@ export function TopBar() {
         generatedAt: Date.now(),
       })
       setLoading(false)
+      playCompletionSound()
     } catch (err) {
       updateProject({ ...currentProject, status: 'error', error: String(err) })
       setLoading(false)
     }
   }
+
+  // Auto-generate the wiki right after indexing when enabled in settings.
+  useEffect(() => {
+    if (!autoGenerate || !currentProject) return
+    if (currentProject.wikiPages && currentProject.wikiPages.length > 0) return
+    if (currentProject.status === 'generating') return
+    if (autoGenTriggered.current === currentProject.id) return
+    autoGenTriggered.current = currentProject.id
+    void handleGenerateWiki()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGenerate, currentProject?.id, currentProject?.wikiPages?.length])
 
   const handleReindex = async () => {
     if (!currentProject || isReindexing) return
@@ -74,6 +90,7 @@ export function TopBar() {
       updateProject({ ...project, id: currentProject.id, wikiPages: currentProject.wikiPages })
       setLoading(false)
       setIsReindexing(false)
+      playCompletionSound()
     } catch (err) {
       console.error('Re-index failed:', err)
       setLoading(false)

@@ -13,6 +13,7 @@ import type { OntologyGraph, CodeModification, CodeSource } from '../types'
 import { OntologyBuilder } from './ontology'
 import { LLMService } from './llm'
 import { VectorStore } from './vector-store'
+import { configManager } from './config-manager'
 
 const CODE_AGENT_SYSTEM = `You are a precise code modification agent. Your key advantage is that you have access to a code ontology graph that shows exact relationships between code entities.
 
@@ -68,10 +69,12 @@ export class CodeAgent {
     // Step 2: Identify relevant entities from ontology
     const relevantEntities = this.findRelevantEntities(request, graph)
 
-    // Step 3: Get impact analysis for each relevant entity
+    // Step 3: Get impact analysis for each relevant entity. Traversal depth
+    // and warning thresholds come from the user's ontology settings.
+    const ontologyCfg = configManager.getConfig().ontology
     const allImpacted = new Set<string>()
     for (const entity of relevantEntities) {
-      const impacted = OntologyBuilder.getImpactedEntities(entity.id, graph, 2)
+      const impacted = OntologyBuilder.getImpactedEntities(entity.id, graph, ontologyCfg.impactDepth)
       for (const id of impacted) allImpacted.add(id)
     }
 
@@ -124,7 +127,7 @@ Provide precise modifications in the specified JSON format.`,
               .map(e => e.id),
           })),
           impactedFiles: parsed.impactedFiles || impactedFiles,
-          warnings: parsed.warnings || [],
+          warnings: this.withImpactWarnings(parsed.warnings || [], impactedEntities.length, impactedFiles.length, ontologyCfg.warningThreshold),
         }
       }
     } catch {
@@ -137,6 +140,26 @@ Provide precise modifications in the specified JSON format.`,
       impactedFiles,
       warnings: ['Could not parse structured modifications. Review the analysis above.'],
     }
+  }
+
+  /**
+   * Prepend a high-impact warning when the change touches more entities/files
+   * than the user's configured `warningThreshold`.
+   */
+  private withImpactWarnings(
+    warnings: string[],
+    entityCount: number,
+    fileCount: number,
+    threshold: { entities: number; files: number },
+  ): string[] {
+    const extra: string[] = []
+    if (entityCount >= threshold.entities) {
+      extra.push(`High impact: ${entityCount} entities affected (threshold ${threshold.entities}).`)
+    }
+    if (fileCount >= threshold.files) {
+      extra.push(`High impact: ${fileCount} files affected (threshold ${threshold.files}).`)
+    }
+    return [...extra, ...warnings]
   }
 
   /**

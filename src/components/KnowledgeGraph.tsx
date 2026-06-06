@@ -3,7 +3,6 @@ import * as d3 from 'd3'
 import { ZoomIn, ZoomOut, Maximize2, Filter, Palette } from 'lucide-react'
 import { useAppStore } from '../store'
 import { OntologyBuilder } from '../services/ontology'
-import { configManager } from '../services/config-manager'
 import { detectPatterns } from '../services/pattern-detector'
 import { t, tEntityType, tEntityTypePlural } from '../services/i18n'
 import { KnowledgeGraph3D } from './KnowledgeGraph3D'
@@ -58,7 +57,7 @@ export function KnowledgeGraph() {
   const [force2D, setForce2D] = useState(false)
 
   const ontology = currentProject?.ontologyGraph
-  const graphCfg = configManager.getConfig().graph
+  const graphCfg = useAppStore(s => s.config.graph)
   const render3D = graphCfg.render3D
   const use3D = render3D && !force2D
 
@@ -102,7 +101,22 @@ export function KnowledgeGraph() {
     const { nodes, links } = OntologyBuilder.toGraphVisualization(ontology)
 
     // Apply filter
-    const filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+    let filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+
+    // Cap to the configured maximum, keeping the most-connected nodes.
+    if (graphCfg.maxNodes > 0 && filteredNodes.length > graphCfg.maxNodes) {
+      const degree = new Map<string, number>()
+      for (const l of links) {
+        const s = typeof l.source === 'string' ? l.source : l.source.id
+        const tg = typeof l.target === 'string' ? l.target : l.target.id
+        degree.set(s, (degree.get(s) || 0) + 1)
+        degree.set(tg, (degree.get(tg) || 0) + 1)
+      }
+      filteredNodes = [...filteredNodes]
+        .sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0))
+        .slice(0, graphCfg.maxNodes)
+    }
+
     const filteredNodeIds = new Set(filteredNodes.map(n => n.id))
     const filteredLinks = links.filter(
       l => filteredNodeIds.has(typeof l.source === 'string' ? l.source : l.source.id) &&
@@ -129,11 +143,11 @@ export function KnowledgeGraph() {
     const simulation = d3.forceSimulation(filteredNodes as d3.SimulationNodeDatum[])
       .force('link', d3.forceLink(filteredLinks)
         .id((d: unknown) => (d as GraphNode).id)
-        .distance(80)
+        .distance(graphCfg.linkDistance)
         .strength(0.5))
-      .force('charge', d3.forceManyBody().strength(-200))
+      .force('charge', d3.forceManyBody().strength(graphCfg.forceStrength))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(20))
+      .force('collision', d3.forceCollide().radius(graphCfg.collisionRadius))
 
     // Links
     const link = g.append('g')
@@ -149,7 +163,7 @@ export function KnowledgeGraph() {
       .selectAll('circle')
       .data(filteredNodes)
       .join('circle')
-      .attr('r', (d: GraphNode) => ENTITY_SIZES[d.type] || 6)
+      .attr('r', (d: GraphNode) => (ENTITY_SIZES[d.type] || 6) * graphCfg.nodeSize)
       .attr('fill', (d: GraphNode) => nodeColor(d))
       .attr('stroke', '#0d1117')
       .attr('stroke-width', 1.5)
@@ -184,7 +198,7 @@ export function KnowledgeGraph() {
     // (2D) Labels
     const labels = g.append('g')
       .selectAll('text')
-      .data(filteredNodes)
+      .data(graphCfg.showLabels ? filteredNodes : [])
       .join('text')
       .text((d: GraphNode) => d.name)
       .attr('font-size', 9)
@@ -210,7 +224,9 @@ export function KnowledgeGraph() {
     })
 
     return () => simulation.stop()
-  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, use3D, nodeColor])
+  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, use3D, nodeColor,
+      graphCfg.forceStrength, graphCfg.linkDistance, graphCfg.collisionRadius,
+      graphCfg.maxNodes, graphCfg.nodeSize, graphCfg.showLabels])
 
   useEffect(() => {
     const cleanup = buildGraph()
@@ -328,11 +344,26 @@ export function KnowledgeGraph() {
 function Graph3DCanvas({ filter, onError }: { filter: OntologyEntityType | 'all'; onError: () => void }) {
   const { currentProject, selectedGraphNode, setSelectedGraphNode } = useAppStore()
   const ontology = currentProject?.ontologyGraph
-  const cfg = configManager.getConfig().graph
+  const cfg = useAppStore(s => s.config.graph)
   if (!ontology) return null
 
   const { nodes, links } = OntologyBuilder.toGraphVisualization(ontology)
-  const filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+  let filteredNodes = filter === 'all' ? nodes : nodes.filter(n => n.type === filter)
+
+  // Cap to the configured maximum, keeping the most-connected nodes.
+  if (cfg.maxNodes > 0 && filteredNodes.length > cfg.maxNodes) {
+    const degree = new Map<string, number>()
+    for (const l of links) {
+      const s = typeof l.source === 'string' ? l.source : l.source.id
+      const tg = typeof l.target === 'string' ? l.target : l.target.id
+      degree.set(s, (degree.get(s) || 0) + 1)
+      degree.set(tg, (degree.get(tg) || 0) + 1)
+    }
+    filteredNodes = [...filteredNodes]
+      .sort((a, b) => (degree.get(b.id) || 0) - (degree.get(a.id) || 0))
+      .slice(0, cfg.maxNodes)
+  }
+
   const ids = new Set(filteredNodes.map(n => n.id))
   const filteredLinks = links.filter(
     l => ids.has(typeof l.source === 'string' ? l.source : l.source.id) &&
@@ -349,6 +380,8 @@ function Graph3DCanvas({ filter, onError }: { filter: OntologyEntityType | 'all'
       nodeSize={cfg.nodeSize}
       showLabels={cfg.showLabels}
       rotationSpeed={cfg.rotationSpeed}
+      forceStrength={cfg.forceStrength}
+      linkDistance={cfg.linkDistance}
       onSelect={(id) => setSelectedGraphNode(id === selectedGraphNode ? null : id)}
       onError={onError}
     />

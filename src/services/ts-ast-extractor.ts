@@ -93,6 +93,26 @@ function isLikelyComponent(name: string, ext: string): boolean {
   return /^[A-Z]/.test(name) && (ext === 'tsx' || ext === 'jsx')
 }
 
+export interface AstExtractOptions {
+  /** Include arrow functions / React components declared as variables. */
+  extractArrowFunctions?: boolean
+  /** Keep leading decorator(s) in entity signatures. */
+  extractDecorators?: boolean
+}
+
+/** Strip leading `@Decorator(...)` prefixes from a one-line signature. */
+function stripDecorators(signature: string): string {
+  let s = signature
+  // Remove repeated leading decorators (with or without call args).
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const next = s.replace(/^@\w+(?:\([^)]*\))?\s+/, '')
+    if (next === s) break
+    s = next
+  }
+  return s
+}
+
 /**
  * Extract entities + import specifiers from a TS/JS source string.
  * `extension` selects the parser dialect (tsx/jsx enable JSX parsing).
@@ -101,7 +121,10 @@ export function extractTsAst(
   content: string,
   fileName: string,
   extension: string,
+  options: AstExtractOptions = {},
 ): AstExtractResult {
+  const extractArrowFunctions = options.extractArrowFunctions !== false
+  const extractDecorators = options.extractDecorators !== false
   const ext = (extension || 'ts').toLowerCase().replace(/^\./, '')
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -119,7 +142,10 @@ export function extractTsAst(
     line: lineOf(node.getStart(sourceFile)),
     endLine: lineOf(node.getEnd()),
   })
-  const sig = (node: ts.Node): string => firstLineOf(node.getText(sourceFile))
+  const sig = (node: ts.Node): string => {
+    const s = firstLineOf(node.getText(sourceFile))
+    return extractDecorators ? s : stripDecorators(s)
+  }
 
   const addModuleSpecifier = (spec: ts.Expression | undefined) => {
     if (spec && ts.isStringLiteralLike(spec)) imports.push(spec.text)
@@ -206,7 +232,7 @@ export function extractTsAst(
     }
 
     // ---- const/let arrow functions, function expressions, React.memo/forwardRef ----
-    if (ts.isVariableStatement(node)) {
+    if (extractArrowFunctions && ts.isVariableStatement(node)) {
       for (const decl of node.declarationList.declarations) {
         const varName = nameText(decl.name)
         if (!varName || !decl.initializer) continue
@@ -222,7 +248,7 @@ export function extractTsAst(
           type: isLikelyComponent(varName, ext) ? 'Component' : 'Function',
           line: r.line,
           endLine: r.endLine,
-          signature: firstLineOf(node.getText(sourceFile)),
+          signature: sig(node),
         })
       }
     }

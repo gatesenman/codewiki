@@ -8,6 +8,7 @@ import type { SearchResult, OntologyEntityType } from '../types'
 export function SearchPanel() {
   const { currentProject, searchQuery, setSearchQuery, searchResults, setSearchResults } = useAppStore()
   useAppStore(s => s.locale)
+  const searchCfg = useAppStore(s => s.config.search)
   const [searching, setSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [searchType, setSearchType] = useState<'all' | 'code' | 'entity' | 'wiki'>('all')
@@ -58,24 +59,28 @@ export function SearchPanel() {
 
     // Vector search in code (hybrid when embeddings are available)
     if (searchType === 'all' || searchType === 'code') {
-      const vectorResults = await services.vectorStore.searchHybrid(searchQuery, 10)
+      const vectorResults = await services.vectorStore.searchHybrid(searchQuery, searchCfg.maxResults)
       for (const r of vectorResults) {
         results.push({
           id: r.id,
           type: 'code',
           title: r.metadata.filePath || r.id,
-          content: r.content,
+          content: r.content.substring(0, searchCfg.snippetLength),
           score: r.score,
           filePath: r.metadata.filePath,
         })
       }
     }
 
-    // Sort by score
-    results.sort((a, b) => b.score - a.score)
-    setSearchResults(results)
+    // Drop low-confidence matches, sort by score, cap to the configured maximum.
+    const filtered = results
+      .filter(r => r.score >= searchCfg.minScore)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, searchCfg.maxResults)
+    setSearchResults(filtered)
     setSearching(false)
-  }, [searchQuery, currentProject, searchType, setSearchResults])
+  }, [searchQuery, currentProject, searchType, setSearchResults,
+      searchCfg.maxResults, searchCfg.minScore, searchCfg.snippetLength])
 
   return (
     <div className="h-full flex flex-col">

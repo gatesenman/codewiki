@@ -21,6 +21,8 @@ interface AgentResult {
 export function CodeAgentPanel() {
   const { currentProject, settings } = useAppStore()
   const verifyConfig = useAppStore(s => s.config.verify)
+  const confirmBeforeApply = useAppStore(s => s.config.behavior.confirmBeforeApply)
+  const showImpactWarning = useAppStore(s => s.config.notifications.showImpactWarning)
   useAppStore(s => s.locale)
   const [request, setRequest] = useState('')
   const [result, setResult] = useState<AgentResult | null>(null)
@@ -71,6 +73,14 @@ export function CodeAgentPanel() {
   // Apply a subset of modifications atomically (all-or-nothing).
   const applyMods = async (indices: number[]) => {
     if (!result || indices.length === 0) return
+    // Optional confirmation gate before mutating files on disk.
+    if (confirmBeforeApply) {
+      const files = [...new Set(indices.map(i => result.modifications[i]?.filePath).filter(Boolean))]
+      const ok = window.confirm(
+        `${t('agentConfirmApply')}\n\n${files.join('\n')}`
+      )
+      if (!ok) return
+    }
     const patch = getPatchService()
     if (!patch) { setError('File system bridge unavailable.'); return }
     setApplying(true)
@@ -453,7 +463,7 @@ export function CodeAgentPanel() {
             )}
 
             {/* Warnings */}
-            {result.warnings.length > 0 && (
+            {showImpactWarning && result.warnings.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-wiki-orange mb-2 flex items-center gap-2">
                   <AlertTriangle size={14} />
