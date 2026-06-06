@@ -4,7 +4,7 @@
 
 <img src="docs/images/welcome-zh.png" alt="CodeWiki" width="720" />
 
-### AI 代码知识库 —— 基于本体（Ontology）语义模型，真正“读懂”你的代码库
+### AI 代码知识库 —— 基于本体（Ontology）语义模型，真正"读懂"你的代码库
 
 一款跨平台桌面应用（Windows / macOS / Linux），把任意本地文件夹或 GitHub 仓库
 转化为：可阅读的 Wiki、可交互的知识图谱、语义搜索、RAG 智能问答，以及一个
@@ -37,7 +37,7 @@
 
 ## 关于（About）
 
-大型代码库本就难以理解，安全地修改它更难。大多数“AI 写代码”工具把源码当成纯文本，
+大型代码库本就难以理解，安全地修改它更难。大多数"AI 写代码"工具把源码当成纯文本，
 于是经常出现答非所问、甚至改坏依赖的情况。
 
 **CodeWiki 不一样。** 它先把项目解析成一张带类型的**本体图谱（Ontology）**——
@@ -46,15 +46,18 @@
 之后的每一个功能都建立在这张图谱之上：
 
 - 📖 **Wiki**：基于真实结构生成文档，而非凭空臆测。
-- 🕸️ **知识图谱**：让你“看见”代码是如何组织在一起的。
-- 🔎 **语义搜索**：按语义对代码、实体与文档排序检索。
+- 🕸️ **知识图谱**：让你"看见"代码是如何组织在一起的。
+- 🗺️ **代码地图（Code Map）**：鸟瞰全局 —— 树形图、模块依赖图、文件浏览器、架构图表。
+- 🔎 **语义搜索**：按语义对代码、实体与文档排序检索，并通过本体感知重排序优化结果。
 - 💬 **智能问答（RAG）**：回答附带 `文件:行号` 引用，全部基于本体。
 - 🤖 **代码 Agent**：在提出修改前先在图谱上做影响分析，让改动精准、且感知跨文件依赖。
+- 🔬 **PR 审查 Agent**：基于本体图谱的影响分析式代码审查。
+- 💡 **自然语言图谱查询**：用中文或英文提问，如"谁调用了 UserService？"，获得精确的图谱查询结果。
 
 它**完全在本地运行**：内置 TF‑IDF 语义搜索无需任何外部服务；LLM 可自带 Key
 （OpenAI / Anthropic / DeepSeek），也可用 **Ollama** 完全离线运行。CodeWiki 还自带
 **MCP（Model Context Protocol）服务器**，让 Cursor、Claude 等编辑器查询同一份知识库，
-并提供配套的 **VSCode 扩展**。
+并提供配套的 **VSCode 扩展**和完整的 **CLI 工具**。
 
 ## 界面截图
 
@@ -79,22 +82,33 @@
 - **一键生成 Wiki**：选择本地文件夹或填入 GitHub 仓库地址 → AI 生成完整 Wiki 文档
 - **Mermaid 图表**：自动生成架构图与数据流图
 - **Wiki 导航**：侧边栏页面树、行内源码引用、每页文档质量校验
+- **Wiki 导出**：一键导出整个 Wiki 到 **Markdown**、**JSON** 或 **HTML** 格式，含目录、元数据和图谱统计
 
 ### 基于本体的语义模型
 - **代码本体**：类 RDF 的代码实体知识图谱（类、函数、接口、模块等）
 - **关系抽取**：自动识别 imports / extends / implements / calls / contains 等关系
 - **影响分析**：查询本体，找出某处改动会影响到的所有实体
 - **类型感知检索**：用本体关系增强语义搜索
+- **图谱持久化**：JSON 格式存储（`graph-persistence.ts`），独立于 Electron 缓存，跨会话保持
+
+### 代码地图（Code Map，DeepWiki 风格）
+交互式代码可视化，4 个子视图：
+- **树形图（Treemap）**：D3 树形图展示文件系统层级 —— 矩形大小 = 实体数量，颜色 = 耦合度（绿 → 黄 → 红）
+- **模块依赖图（Module Graph）**：目录级模块依赖的力导向图
+- **文件浏览器（Explorer）**：可折叠的文件目录树，含实体详情（类型、行号、调用者/被调用者）
+- **架构图（Architecture）**：自动生成的 Mermaid 图表 —— 模块依赖、类继承、组件交互和**序列图**
 
 ### 知识图谱可视化
 - **2D & 3D 双模式**：经典 D3 力导向图，或 GitNexus 风格的 **3D** 力导向图（three.js / `3d-force-graph`）——在「设置 → 图谱」中切换
 - **按类型筛选**：Class、Function、Interface、Component 等
+- **搜索高亮**：3D 图谱中搜索匹配的节点以橙色高亮显示
 - **轨道旋转 / 拖拽 & 缩放**：旋转、缩放、平移，以可视化方式浏览大型代码库
 - **颜色编码**：不同实体类型采用不同颜色，可选标签与自动旋转
 
 ### 语义搜索
 - **TF‑IDF 向量库**：本地语义搜索，无需外部 API
 - **本体感知**：检索结果带实体关系信息
+- **本体重排序器**：基于图谱的重排序 —— 提升实体名匹配权重、N-hop 邻近加权、抑制高耦合噪声
 - **多类型检索**：同时搜索 Wiki、代码与实体
 
 ### RAG 智能问答（Ask）
@@ -105,8 +119,35 @@
 ### 代码 Agent
 - **受本体约束的修改**：改动前用知识图谱做影响分析
 - **精准修改**：明确的文件路径、行号与 diff
+- **统一 Diff 视图**：基于 LCS 的行级差分，增删上下文颜色标注
 - **抗幻觉**：所有改动都对照真实代码结构校验
 - **跨文件感知**：理解跨文件依赖
+
+### PR 审查 Agent
+- **影响分析式审查**：解析 diff → 定位直接变更的实体 → 通过图谱遍历追踪间接受影响的调用者/依赖者（支持 N 跳）
+- **风险评分**：0–100 的风险分数，基于实体数量、变更量和影响范围
+- **审查发现**：报告大文件变更、高影响实体、未更新的依赖者和缺失的测试覆盖
+- **CLI 命令**：`codewiki review <diff>`
+
+### 自然语言图谱查询
+- **自然语言提问**："谁调用了 UserService？"、"所有的类"、"孤立的实体"、"What calls X?"
+- **中英双语**：支持中文和英文查询
+- **意图检测**：基于正则的意图解析（查找调用者、被调用者、按类型查找、按文件查找、查找依赖者、孤立实体、枢纽实体等）
+- **Insights 界面**：Insights 面板新增"自然语言查询"标签页
+
+### 代码健康分析 & 趋势追踪
+- **代码健康评分**：循环依赖检测、死代码检测、上帝对象检测、耦合热点分析
+- **健康趋势**：记录快照 → 检测分数改善/退化、等级变化
+- **安全扫描**：硬编码凭证、eval 使用、原型污染、路径穿越、SQL 注入、XSS 检测
+- **图谱历史 UI**：SVG 时间线图表 + 可展开的每次快照 diff 详情
+
+### 架构图表
+从本体图谱自动生成：
+- **模块依赖图**：Mermaid 格式的模块级 import 关系
+- **类继承图**：继承和实现关系
+- **组件交互图**：组件间的交互关系
+- **序列图**：从实体调用链生成的序列图
+- **PlantUML 导出**：将架构图导出为 PlantUML 格式，支持外部工具
 
 ### MCP（Model Context Protocol）服务器
 - **29 个 MCP 工具**：代码搜索、本体查询、调用图遍历、影响/爆炸半径分析、架构概览、死代码检测、重建索引等 —— 完整列表见 [docs/MCP.zh-CN.md](docs/MCP.zh-CN.md)
@@ -114,21 +155,47 @@
 - **Stdio 协议**：标准 MCP 服务器，通过 stdio 通信
 - **配置指南**：[docs/MCP.zh-CN.md](docs/MCP.zh-CN.md)（[English](docs/MCP.md)）
 
-### VSCode 扩展
-- **侧边栏视图**：Wiki 页面、代码实体、聊天面板
-- **命令**：打开 Wiki、语义搜索、知识图谱、提问、生成 Wiki、影响分析
-- **MCP 客户端**：与 CodeWiki 桌面应用通信
+### VSCode 扩展（v0.5.1）
+- **知识图谱 Webview**：VSCode 内的交互式 SVG 图谱可视化 —— 按类型筛选、悬停查看详情、点击跳转
+- **Hover 信息**：鼠标悬停在标识符上 → 显示实体类型、签名、关系
+- **跳转到定义**：`F12` / `Ctrl+Click` 通过本体图谱跳转
+- **查找引用**：`Shift+F12` 查找所有引用（定义 + 调用者 + 被调用者）
+- **文档大纲**：`Ctrl+Shift+O` 列出当前文件所有 CodeWiki 实体
+- **编辑器右键菜单**：右键 → Pre-check / 影响分析 / 查看关系
+- **文件监听器**：文件保存/创建/删除后自动重索引（3 秒防抖）
+- **实体树视图**：按类型分组，点击跳转源码
+- **代码健康诊断**：死代码、上帝对象、高耦合实体报告到 Problems 面板
+- **Codicon 图标**：所有图标使用 VSCode 原生 codicon 字体图标（无表情符号）
+
+### CLI 工具
+- **`codewiki index <path>`** —— 索引项目并构建本体图谱
+- **`codewiki search <query>`** —— 语义搜索索引后的项目
+- **`codewiki impact <entity>`** —— 基于本体图谱的影响分析
+- **`codewiki report`** —— 生成完整的代码健康报告
+- **`codewiki review <diff>`** —— 影响分析式 PR 审查
+
+### Git 集成
+- **Post-Commit Hook**：每次 commit 后自动增量重索引
+- **GitHub Actions CI**：Lint → 类型检查 → 测试 → 构建（主应用 + CLI + MCP + VSCode 扩展）
+
+### Repo Map（LLM 代码地图）
+- **`repo-map.ts`**：为 AI 编码助手生成精简的代码上下文地图
+- **基于本体排序**：按重要性排列文件（入度 + 出度 + 实体数量）
+- **BFS 聚焦模式**：从种子实体出发，按相关性展开
 
 ## 技术栈
 
 - **桌面端**：Electron + React 18 + TypeScript + Vite
-- **样式**：TailwindCSS（深色主题）
+- **样式**：TailwindCSS（深色主题，响应式）
 - **LLM**：OpenAI / Anthropic / DeepSeek / Ollama（本地）
 - **本体**：自研类 RDF 的实体-关系模型
-- **向量库**：本地 TF‑IDF 向量库
-- **图表**：Mermaid.js
-- **图谱**：D3-force
-- **状态管理**：Zustand
+- **向量库**：本地 TF‑IDF 向量库 + 本体重排序器
+- **图表**：Mermaid.js + PlantUML 导出
+- **图谱**：D3-force（2D）+ three.js / 3d-force-graph（3D）
+- **状态管理**：Zustand（6 个领域 slice）
+- **测试**：Vitest（126 个测试）
+- **CI**：GitHub Actions
+- **代码规范**：ESLint 9（flat config）+ Prettier
 - **MCP**：`@modelcontextprotocol/sdk`
 - **VSCode**：VSCode Extension API
 
@@ -147,21 +214,23 @@ curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.
 irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
 ```
 
+安装选项：`--no-desktop`、`--no-cli`、`--no-mcp`、`--no-vscode` 可跳过对应组件。
+
 预编译安装包（`.AppImage`、`.deb`、Windows `.exe`、macOS `.dmg`）发布在
 [GitHub Releases](https://github.com/gaosichun888/codewiki/releases)。
 
-## 下载（最新：v1.0.4）
+## 下载（最新：v1.1.0）
 
 从 [最新发布页](https://github.com/gaosichun888/codewiki/releases/latest) 选择你平台的预编译安装包：
 
 | 平台 | 下载 |
 |---|---|
-| Windows（安装版） | [`CodeWiki.Setup.1.0.4.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows（便携版） | [`CodeWiki.1.0.4.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Apple Silicon） | [`CodeWiki-1.0.4-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Intel） | [`CodeWiki-1.0.4.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（AppImage） | [`CodeWiki-1.0.4.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（Debian/Ubuntu） | [`codewiki_1.0.4_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows（安装版） | [`CodeWiki.Setup.1.1.0.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows（便携版） | [`CodeWiki.1.1.0.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS（Apple Silicon） | [`CodeWiki-1.1.0-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS（Intel） | [`CodeWiki-1.1.0.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux（AppImage） | [`CodeWiki-1.1.0.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux（Debian/Ubuntu） | [`codewiki_1.1.0_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
 | VSCode 扩展 | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
 
 > macOS 为未签名构建：首次打开请右键 → 打开，或在「系统设置 → 隐私与安全性」中放行。
@@ -176,8 +245,19 @@ npm install
 # 开发模式
 npm run electron:dev
 
+# Web 模式（无 Electron 外壳）
+npm run dev
+
 # 生产构建
 npm run electron:build
+```
+
+## 质量检查
+
+```bash
+npm run lint          # ESLint 9（flat config）
+npm run typecheck     # TypeScript strict mode
+npm test              # Vitest —— 126 个测试
 ```
 
 ## 配置
@@ -223,16 +303,35 @@ codewiki/
 │   └── preload.ts     # Context bridge API
 ├── src/               # React 渲染层
 │   ├── components/    # UI 组件（Welcome、Layout、TopBar、Sidebar、
-│   │                  #   WikiViewer、KnowledgeGraph、SearchPanel、ChatPanel、
-│   │                  #   CodeAgentPanel、SettingsModal、MermaidDiagram）
-│   ├── services/      # ontology、indexer、vector-store、llm、
-│   │                  #   wiki-generator、code-agent、mcp-server
-│   ├── store/         # Zustand 状态管理
+│   │                  #   WikiViewer、KnowledgeGraph、KnowledgeGraph3D、
+│   │                  #   CodeMap、SearchPanel、ChatPanel、CodeAgentPanel、
+│   │                  #   InsightsPanel、SettingsModal、ErrorBoundary）
+│   ├── services/      # 核心业务逻辑
+│   │                  #   ontology、indexer、vector-store、llm、
+│   │                  #   wiki-generator、wiki-export、code-agent、
+│   │                  #   graph-query、nl-graph-query、graph-persistence、
+│   │                  #   health-analyzer、health-trend、security-scan、
+│   │                  #   architecture-diagram、codemap-analyzer、
+│   │                  #   ontology-reranker、pr-review、repo-map、
+│   │                  #   diff-utils、git-hooks、eval-harness、i18n
+│   ├── store/         # Zustand 状态管理（6 个 slice：project、ui、chat、
+│   │                  #   search、graph、settings）
+│   ├── locales/       # i18n 翻译（en.json、zh.json —— 450+ 键）
 │   └── types/         # TypeScript 类型定义
-├── server/            # 独立 MCP 服务器
-├── vscode-extension/  # VSCode 扩展
+├── server/            # 独立 MCP 服务器（29 个工具）
+├── cli/               # CLI 工具（index、search、impact、report、review）
+├── vscode-extension/  # VSCode 扩展（v0.5.1）
+├── .github/workflows/ # CI（lint → typecheck → test → build）
 └── package.json
 ```
+
+## 参与贡献
+
+详见 [CONTRIBUTING.md](CONTRIBUTING.md)，包含环境搭建、开发流程和提交规范。
+
+## 更新日志
+
+详见 [CHANGELOG.md](CHANGELOG.md)，记录每个版本的所有变更。
 
 ## 许可证
 
