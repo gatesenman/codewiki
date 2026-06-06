@@ -15,4 +15,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadWikiData: (projectId: string) => ipcRenderer.invoke('load-wiki-data', projectId),
   saveIndexData: (cacheKey: string, data: string) => ipcRenderer.invoke('save-index-data', cacheKey, data),
   loadIndexData: (cacheKey: string) => ipcRenderer.invoke('load-index-data', cacheKey),
+  watchProject: (folderPath: string) => ipcRenderer.invoke('watch-project', folderPath),
+  unwatchProject: (folderPath: string) => ipcRenderer.invoke('unwatch-project', folderPath),
+  onProjectFilesChanged: (callback: (folderPath: string) => void) => {
+    const listener = (_e: unknown, folderPath: string) => callback(folderPath)
+    ipcRenderer.on('project-files-changed', listener)
+    return () => ipcRenderer.removeListener('project-files-changed', listener)
+  },
 })
