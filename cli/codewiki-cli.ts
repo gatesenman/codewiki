@@ -2181,6 +2181,106 @@ function cmdHealth(projectPath: string): void {
   })
 }
 
+// ---- Git churn / ownership (CodeFlow-inspired) ----
+
+interface CliFileChurn {
+  path: string
+  commits: number
+  linesChanged: number
+  lastCommit: number
+  authors: Array<{ name: string; commits: number }>
+}
+
+function normalizeRenameCli(raw: string): string {
+  let p = raw.trim()
+  if (!p) return ''
+  const brace = p.match(/\{(.*?) => (.*?)\}/)
+  if (brace) p = p.replace(/\{(.*?) => (.*?)\}/, brace[2])
+  else if (p.includes(' => ')) p = p.split(' => ').pop() || p
+  return p.replace(/\/\//g, '/').trim()
+}
+
+function runGitChurn(absPath: string): { files: CliFileChurn[]; maxCommits: number; totalCommits: number } | null {
+  const res = spawnSync('git', ['-C', absPath, 'log', '--no-merges', '--pretty=format:C|%H|%an|%at', '--numstat'], {
+    encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024,
+  })
+  if (res.status !== 0 || !res.stdout) return null
+  const lines = res.stdout.split('\n')
+  let cur: { hash: string; author: string; ts: number } | null = null
+  const commitsByFile = new Map<string, Set<string>>()
+  const linesByFile = new Map<string, number>()
+  const lastByFile = new Map<string, number>()
+  const authorsByFile = new Map<string, Map<string, Set<string>>>()
+  const allCommits = new Set<string>()
+  for (const line of lines) {
+    if (!line.trim()) continue
+    if (line.startsWith('C|')) {
+      const [, hash, author, at] = line.split('|')
+      cur = { hash: hash || '', author: author || 'unknown', ts: parseInt(at || '0', 10) || 0 }
+      if (cur.hash) allCommits.add(cur.hash)
+      continue
+    }
+    const parts = line.split('\t')
+    if (parts.length < 3 || !cur) continue
+    const added = parts[0] === '-' ? 0 : parseInt(parts[0], 10) || 0
+    const deleted = parts[1] === '-' ? 0 : parseInt(parts[1], 10) || 0
+    const fp = normalizeRenameCli(parts.slice(2).join('\t'))
+    if (!fp) continue
+    if (!commitsByFile.has(fp)) commitsByFile.set(fp, new Set())
+    commitsByFile.get(fp)!.add(cur.hash)
+    linesByFile.set(fp, (linesByFile.get(fp) || 0) + added + deleted)
+    lastByFile.set(fp, Math.max(lastByFile.get(fp) || 0, cur.ts))
+    if (!authorsByFile.has(fp)) authorsByFile.set(fp, new Map())
+    const am = authorsByFile.get(fp)!
+    if (!am.has(cur.author)) am.set(cur.author, new Set())
+    am.get(cur.author)!.add(cur.hash)
+  }
+  const files: CliFileChurn[] = []
+  for (const [p, set] of commitsByFile) {
+    const am = authorsByFile.get(p) || new Map<string, Set<string>>()
+    const authors = Array.from(am.entries()).map(([name, s]) => ({ name, commits: s.size })).sort((a, b) => b.commits - a.commits)
+    files.push({ path: p, commits: set.size, linesChanged: linesByFile.get(p) || 0, lastCommit: lastByFile.get(p) || 0, authors })
+  }
+  files.sort((a, b) => b.commits - a.commits)
+  return { files, maxCommits: files.reduce((m, f) => Math.max(m, f.commits), 0), totalCommits: allCommits.size }
+}
+
+function cmdChurn(projectPath: string, topN: number): void {
+  const absPath = path.resolve(projectPath)
+  const report = runGitChurn(absPath)
+  if (!report) { output({ command: 'churn', error: 'Not a git repository or git unavailable' }); return }
+  output({
+    command: 'churn',
+    totalCommits: report.totalCommits,
+    maxCommits: report.maxCommits,
+    hotFiles: report.files.slice(0, topN || 20).map(f => ({
+      path: f.path,
+      commits: f.commits,
+      linesChanged: f.linesChanged,
+      lastCommit: new Date(f.lastCommit * 1000).toISOString(),
+      topAuthor: f.authors[0]?.name,
+      authorCount: f.authors.length,
+    })),
+  })
+}
+
+function cmdOwnership(filePath: string, projectPath: string): void {
+  const absPath = path.resolve(projectPath)
+  const report = runGitChurn(absPath)
+  if (!report) { output({ command: 'ownership', error: 'Not a git repository or git unavailable' }); return }
+  const needle = filePath.replace(/\\/g, '/')
+  const match = report.files.find(f => f.path === needle || f.path.endsWith('/' + needle) || f.path.endsWith(needle))
+  if (!match) { output({ command: 'ownership', file: filePath, error: 'No history found for file' }); return }
+  output({
+    command: 'ownership',
+    file: match.path,
+    commits: match.commits,
+    linesChanged: match.linesChanged,
+    lastCommit: new Date(match.lastCommit * 1000).toISOString(),
+    owners: match.authors.map(a => ({ name: a.name, commits: a.commits, share: Math.round((a.commits / match.commits) * 100) })),
+  })
+}
+
 // ---- Find References ----
 
 function cmdFindReferences(entityName: string, projectPath: string): void {
@@ -4516,6 +4616,15 @@ function main() {
     case 'health':
     case 'health-score':
       cmdHealth(projectPath)
+      break
+    case 'churn':
+    case 'hotspots':
+      cmdChurn(projectPath, depth * 5 || 20)
+      break
+    case 'ownership':
+    case 'owners':
+      if (!positional[0]) { console.error('Usage: codewiki ownership <file> [--project <path>]'); process.exit(1) }
+      cmdOwnership(positional[0], projectPath)
       break
     case 'find-references':
     case 'references':
