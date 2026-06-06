@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react'
 import {
   Activity, Search, History, FileText, FlaskConical,
   Camera, Trash2, ArrowRight, AlertTriangle, CheckCircle2,
-  HeartPulse, RefreshCw, ShieldAlert, Loader2,
+  HeartPulse, RefreshCw, ShieldAlert, Loader2, MessageSquare,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { t, tEntityType } from '../services/i18n'
@@ -20,9 +20,10 @@ import {
 } from '../services/eval-harness'
 import { analyzeHealth, type HealthReport } from '../services/health-analyzer'
 import { scanSecurity, type SecurityReport, type Severity } from '../services/security-scan'
+import { executeNLQuery, type NLQueryResult } from '../services/nl-graph-query'
 import type { OntologyEntityType, OntologyGraph, WikiPage } from '../types'
 
-type InsightTab = 'health' | 'security' | 'query' | 'history' | 'wiki' | 'eval'
+type InsightTab = 'health' | 'security' | 'query' | 'nlquery' | 'history' | 'wiki' | 'eval'
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
@@ -47,6 +48,7 @@ export function InsightsPanel() {
     { id: 'health', label: t('insTabHealth'), icon: HeartPulse },
     { id: 'security', label: t('insTabSecurity'), icon: ShieldAlert },
     { id: 'query', label: t('insTabQuery'), icon: Search },
+    { id: 'nlquery', label: t('insTabNLQuery'), icon: MessageSquare },
     { id: 'history', label: t('insTabHistory'), icon: History },
     { id: 'wiki', label: t('insTabWiki'), icon: FileText },
     { id: 'eval', label: t('insTabEval'), icon: FlaskConical },
@@ -85,6 +87,7 @@ export function InsightsPanel() {
         {tab === 'health' && <HealthTool graph={graph} />}
         {tab === 'security' && <SecurityTool graph={graph} />}
         {tab === 'query' && <QueryTool graph={graph} />}
+        {tab === 'nlquery' && <NLQueryTool graph={graph} />}
         {tab === 'history' && <HistoryTool graph={graph} />}
         {tab === 'wiki' && <WikiTool graph={graph} wikiPages={wikiPages} />}
         {tab === 'eval' && <EvalTool graph={graph} />}
@@ -584,6 +587,77 @@ function DiffList({ diffs }: { diffs: GraphDiff[] }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// ---- Natural language graph query -----------------------------------------
+
+function NLQueryTool({ graph }: { graph: OntologyGraph }) {
+  const [input, setInput] = useState('')
+  const [result, setResult] = useState<NLQueryResult | null>(null)
+
+  const handleQuery = useCallback(() => {
+    if (!input.trim()) return
+    setResult(executeNLQuery(input, graph))
+  }, [input, graph])
+
+  return (
+    <div className="max-w-4xl space-y-4">
+      <div className="flex items-center gap-2">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleQuery()}
+          placeholder={t('insNLQueryPlaceholder')}
+          className="flex-1 px-3 py-2 rounded-md bg-wiki-card border border-wiki-border text-sm text-wiki-text placeholder:text-wiki-muted focus:outline-none focus:border-wiki-accent"
+        />
+        <button
+          onClick={handleQuery}
+          className="px-4 py-2 rounded-md bg-wiki-accent/10 text-wiki-accent hover:bg-wiki-accent/20 text-sm font-medium transition-colors"
+        >
+          {t('insNLQueryRun')}
+        </button>
+      </div>
+      <p className="text-xs text-wiki-muted">{t('insNLQueryHint')}</p>
+
+      {result && (
+        <div className="space-y-3">
+          <div className="bg-wiki-card border border-wiki-border rounded-md px-4 py-3 text-sm">
+            <span className="font-semibold text-wiki-text">{result.explanation}</span>
+            <span className="text-wiki-muted ml-2">({result.intent})</span>
+          </div>
+
+          {result.entities.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-wiki-muted border-b border-wiki-border">
+                    <th className="py-1.5 pr-4">Name</th>
+                    <th className="py-1.5 pr-4">Type</th>
+                    <th className="py-1.5 pr-4">File</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.entities.slice(0, 50).map(e => (
+                    <tr key={e.id} className="border-b border-wiki-border/50">
+                      <td className="py-1.5 pr-4 text-wiki-text font-mono">{e.name}</td>
+                      <td className="py-1.5 pr-4 text-wiki-muted">{e.type}</td>
+                      <td className="py-1.5 pr-4 text-wiki-muted text-xs">{e.filePath}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {result.relations.length > 0 && (
+            <div className="text-xs text-wiki-muted">
+              {result.relations.length} relation(s) found
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

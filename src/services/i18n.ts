@@ -60,6 +60,10 @@ export interface I18nStrings {
   insTabQuery: string
   insTabHistory: string
   insTabWiki: string
+  insTabNLQuery: string
+  insNLQueryPlaceholder: string
+  insNLQueryRun: string
+  insNLQueryHint: string
   insTabEval: string
   // Health tool
   insHealthHint: string
