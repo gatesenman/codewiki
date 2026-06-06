@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   X, Key, Server, Cpu, Palette, Monitor, FolderCog,
   Eye, Bell, RotateCcw, Search, GitBranch, FileCode, BookOpen, TerminalSquare,
@@ -151,9 +151,9 @@ interface TabProps {
   updateLocal: <K extends keyof CodeWikiConfig>(section: K, value: Partial<CodeWikiConfig[K]>) => void
 }
 
-function SettingRow({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
+function SettingRow({ label, description, children, disabled }: { label: string; description?: string; children: React.ReactNode; disabled?: boolean }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className={`flex items-start justify-between gap-4 ${disabled ? 'opacity-50' : ''}`}>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-wiki-text">{label}</div>
         {description && <div className="text-xs text-wiki-muted mt-0.5">{description}</div>}
@@ -163,11 +163,12 @@ function SettingRow({ label, description, children }: { label: string; descripti
   )
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
-      onClick={() => onChange(!checked)}
-      className={`relative w-10 h-5 rounded-full transition-colors ${
+      onClick={() => { if (!disabled) onChange(!checked) }}
+      disabled={disabled}
+      className={`relative w-10 h-5 rounded-full transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${
         checked ? 'bg-wiki-accent' : 'bg-wiki-card border border-wiki-border'
       }`}
     >
@@ -178,26 +179,47 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   )
 }
 
-function NumberInput({ value, onChange, min, max, step }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number }) {
+function NumberInput({ value, onChange, min, max, step, disabled }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; disabled?: boolean }) {
+  // Keep a local text buffer so the field can be cleared while typing; commit a
+  // clamped, default-filled value on blur (empty / out-of-range -> sane default).
+  const [text, setText] = useState(String(value))
+  useEffect(() => { setText(String(value)) }, [value])
+
+  const commit = (raw: string) => {
+    let n = Number(raw)
+    if (raw.trim() === '' || Number.isNaN(n)) n = min ?? 0
+    if (min !== undefined && n < min) n = min
+    if (max !== undefined && n > max) n = max
+    setText(String(n))
+    if (n !== value) onChange(n)
+  }
+
   return (
     <input
       type="number"
-      value={value}
-      onChange={e => onChange(Number(e.target.value))}
+      value={text}
+      onChange={e => {
+        setText(e.target.value)
+        const n = Number(e.target.value)
+        if (e.target.value.trim() !== '' && !Number.isNaN(n)) onChange(n)
+      }}
+      onBlur={e => commit(e.target.value)}
+      disabled={disabled}
       min={min}
       max={max}
       step={step}
-      className="w-24 px-2 py-1 rounded bg-wiki-bg border border-wiki-border text-sm text-wiki-text text-right focus:outline-none focus:border-wiki-accent"
+      className={`w-24 px-2 py-1 rounded bg-wiki-bg border border-wiki-border text-sm text-wiki-text text-right focus:outline-none focus:border-wiki-accent ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     />
   )
 }
 
-function SelectInput<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+function SelectInput<T extends string>({ value, options, onChange, disabled }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; disabled?: boolean }) {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value as T)}
-      className="px-2 py-1 rounded bg-wiki-bg border border-wiki-border text-sm text-wiki-text focus:outline-none focus:border-wiki-accent"
+      disabled={disabled}
+      className={`px-2 py-1 rounded bg-wiki-bg border border-wiki-border text-sm text-wiki-text focus:outline-none focus:border-wiki-accent ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {options.map(opt => (
         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -297,6 +319,7 @@ function AISettings({ config, updateLocal }: TabProps) {
 function IndexingSettings({ config, updateLocal }: TabProps) {
   const [newExt, setNewExt] = useState('')
   const [newDir, setNewDir] = useState('')
+  const [newPattern, setNewPattern] = useState('')
 
   return (
     <>
@@ -308,6 +331,9 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
       </SettingRow>
       <SettingRow label={t('settingsAutoReindex')} description={t('settingsAutoReindexDesc')}>
         <Toggle checked={config.indexing.autoReindex} onChange={v => updateLocal('indexing', { autoReindex: v })} />
+      </SettingRow>
+      <SettingRow label={t('settingsWatchMode')} description={t('settingsWatchModeDesc')}>
+        <Toggle checked={config.indexing.watchMode} onChange={v => updateLocal('indexing', { watchMode: v })} />
       </SettingRow>
 
       {/* File Extensions */}
@@ -383,6 +409,43 @@ function IndexingSettings({ config, updateLocal }: TabProps) {
           />
         </div>
       </div>
+
+      {/* Ignore Patterns (glob, applied like .codewikiignore) */}
+      <div className="border-t border-wiki-border pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-medium text-wiki-text">
+            {t('settingsIgnorePatterns')} ({config.indexing.ignorePatterns.length})
+          </label>
+        </div>
+        <p className="text-xs text-wiki-muted/70 mb-2">{t('settingsIgnorePatternsDesc')}</p>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {config.indexing.ignorePatterns.map(pat => (
+            <span key={pat} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-wiki-card border border-wiki-border text-xs text-wiki-muted">
+              {pat}
+              <button onClick={() => updateLocal('indexing', { ignorePatterns: config.indexing.ignorePatterns.filter(p => p !== pat) })} className="text-wiki-muted/50 hover:text-red-400">
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newPattern}
+            onChange={e => setNewPattern(e.target.value)}
+            placeholder="*.test.ts"
+            className="flex-1 px-2 py-1 rounded bg-wiki-bg border border-wiki-border text-xs text-wiki-text focus:outline-none focus:border-wiki-accent"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && newPattern.trim()) {
+                if (!config.indexing.ignorePatterns.includes(newPattern.trim())) {
+                  updateLocal('indexing', { ignorePatterns: [...config.indexing.ignorePatterns, newPattern.trim()] })
+                }
+                setNewPattern('')
+              }
+            }}
+          />
+        </div>
+      </div>
     </>
   )
 }
@@ -393,12 +456,15 @@ function OntologySettings({ config, updateLocal }: TabProps) {
       <SettingRow label={t('settingsImpactDepth')} description={t('settingsImpactDepthDesc')}>
         <NumberInput value={config.ontology.impactDepth} onChange={v => updateLocal('ontology', { impactDepth: v })} min={1} max={10} />
       </SettingRow>
-      <SettingRow label={t('settingsWarnEntities')} description={t('settingsWarnEntitiesDesc')}>
-        <NumberInput value={config.ontology.warningThreshold.entities} onChange={v => updateLocal('ontology', { warningThreshold: { ...config.ontology.warningThreshold, entities: v } })} min={1} max={100} />
+      <SettingRow label={t('settingsWarnEntities')} description={t('settingsWarnEntitiesDesc')} disabled={!config.notifications.showImpactWarning}>
+        <NumberInput value={config.ontology.warningThreshold.entities} onChange={v => updateLocal('ontology', { warningThreshold: { ...config.ontology.warningThreshold, entities: v } })} min={1} max={100} disabled={!config.notifications.showImpactWarning} />
       </SettingRow>
-      <SettingRow label={t('settingsWarnFiles')} description={t('settingsWarnFilesDesc')}>
-        <NumberInput value={config.ontology.warningThreshold.files} onChange={v => updateLocal('ontology', { warningThreshold: { ...config.ontology.warningThreshold, files: v } })} min={1} max={50} />
+      <SettingRow label={t('settingsWarnFiles')} description={t('settingsWarnFilesDesc')} disabled={!config.notifications.showImpactWarning}>
+        <NumberInput value={config.ontology.warningThreshold.files} onChange={v => updateLocal('ontology', { warningThreshold: { ...config.ontology.warningThreshold, files: v } })} min={1} max={50} disabled={!config.notifications.showImpactWarning} />
       </SettingRow>
+      {!config.notifications.showImpactWarning && (
+        <p className="text-xs text-wiki-muted -mt-2">{t('settingsWarnThresholdHint')}</p>
+      )}
       <SettingRow label={t('settingsExtractDecorators')} description={t('settingsExtractDecoratorsDesc')}>
         <Toggle checked={config.ontology.extractDecorators} onChange={v => updateLocal('ontology', { extractDecorators: v })} />
       </SettingRow>
@@ -462,7 +528,12 @@ function SearchSettings({ config, updateLocal }: TabProps) {
                   { value: 'openai', label: 'OpenAI' },
                   { value: 'ollama', label: 'Ollama (Local)' },
                 ]}
-                onChange={v => updateLocal('embeddings', { provider: v as typeof config.embeddings.provider })}
+                onChange={v => {
+                  const provider = v as typeof config.embeddings.provider
+                  // Linkage: switch to a sensible default model for the chosen provider.
+                  const model = provider === 'ollama' ? 'nomic-embed-text' : 'text-embedding-3-small'
+                  updateLocal('embeddings', { provider, model })
+                }}
               />
             </SettingRow>
             <div>
@@ -581,8 +652,8 @@ function BehaviorSettings({ config, updateLocal }: TabProps) {
       <SettingRow label={t('settingsAutoSave')} description={t('settingsAutoSaveDesc')}>
         <Toggle checked={config.behavior.autoSave} onChange={v => updateLocal('behavior', { autoSave: v })} />
       </SettingRow>
-      <SettingRow label={t('settingsAutoSaveInterval')} description={t('settingsAutoSaveIntervalDesc')}>
-        <NumberInput value={config.behavior.autoSaveInterval / 1000} onChange={v => updateLocal('behavior', { autoSaveInterval: v * 1000 })} min={5} max={300} />
+      <SettingRow label={t('settingsAutoSaveInterval')} description={t('settingsAutoSaveIntervalDesc')} disabled={!config.behavior.autoSave}>
+        <NumberInput value={config.behavior.autoSaveInterval / 1000} onChange={v => updateLocal('behavior', { autoSaveInterval: v * 1000 })} min={5} max={300} disabled={!config.behavior.autoSave} />
       </SettingRow>
       <SettingRow label={t('settingsConfirmApply')} description={t('settingsConfirmApplyDesc')}>
         <Toggle checked={config.behavior.confirmBeforeApply} onChange={v => updateLocal('behavior', { confirmBeforeApply: v })} />
@@ -681,12 +752,35 @@ function PrivacySettings({ config, updateLocal }: TabProps) {
   )
 }
 
+function buildMcpClientConfig(mcp: CodeWikiConfig['mcp']): string {
+  const env: Record<string, string> = {}
+  if (mcp.projectPath) env.PROJECT_PATH = mcp.projectPath
+  if (mcp.logDir) env.CODEWIKI_LOG_DIR = mcp.logDir
+  if (mcp.consumer) env.CODEWIKI_CONSUMER = mcp.consumer
+  if (mcp.enabledTools.length > 0) env.CODEWIKI_ENABLED_TOOLS = mcp.enabledTools.join(',')
+  const snippet = {
+    mcpServers: {
+      codewiki: {
+        command: 'node',
+        args: ['/absolute/path/to/codewiki/dist/server/mcp-server.js'],
+        ...(mcp.transport === 'http' ? { transport: 'http', port: mcp.port } : {}),
+        env,
+      },
+    },
+  }
+  return JSON.stringify(snippet, null, 2)
+}
+
 function McpSettings({ config, updateLocal }: TabProps) {
+  const [copied, setCopied] = useState(false)
+  const generated = buildMcpClientConfig(config.mcp)
   return (
     <>
       <SettingRow label={t('settingsMcpEnable')} description={t('settingsMcpEnableDesc')}>
         <Toggle checked={config.mcp.enabled} onChange={v => updateLocal('mcp', { enabled: v })} />
       </SettingRow>
+      {config.mcp.enabled && (
+      <>
       <SettingRow label={t('settingsMcpTransport')} description={t('settingsMcpTransportDesc')}>
         <SelectInput
           value={config.mcp.transport}
@@ -744,6 +838,21 @@ function McpSettings({ config, updateLocal }: TabProps) {
         <Server size={14} className="mt-0.5 shrink-0" />
         <span>{t('settingsMcpDocsHint')}</span>
       </div>
+      {/* Generated client config built from the settings above. */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-sm text-wiki-text">{t('settingsMcpGenerated')}</label>
+          <button
+            onClick={() => { void navigator.clipboard?.writeText(generated); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+            className="text-xs px-2 py-0.5 rounded bg-wiki-card border border-wiki-border text-wiki-muted hover:text-wiki-accent hover:border-wiki-accent"
+          >
+            {copied ? t('copied') : t('copy')}
+          </button>
+        </div>
+        <pre className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-xs font-mono text-wiki-text overflow-x-auto whitespace-pre">{generated}</pre>
+      </div>
+      </>
+      )}
     </>
   )
 }

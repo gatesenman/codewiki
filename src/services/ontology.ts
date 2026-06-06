@@ -21,6 +21,18 @@ import type {
 } from '../types'
 import { extractTsAst, isAstSupported } from './ts-ast-extractor'
 
+export interface OntologyExtractionOptions {
+  /** Include arrow functions / React components as entities. */
+  extractArrowFunctions: boolean
+  /** Keep decorator prefixes (e.g. `@Component(...)`) in entity signatures. */
+  extractDecorators: boolean
+}
+
+const DEFAULT_EXTRACTION_OPTIONS: OntologyExtractionOptions = {
+  extractArrowFunctions: true,
+  extractDecorators: true,
+}
+
 // Regex patterns for extracting code entities from different languages
 const PATTERNS = {
   classDecl: [
@@ -77,6 +89,12 @@ export class OntologyBuilder {
   private deferredRelations: Array<{ sourceId: string; targetName: string; type: OntologyRelationType }> = []
   // Import specifiers captured by the AST extractor, keyed by file path.
   private astImports: Map<string, string[]> = new Map()
+  private options: OntologyExtractionOptions = { ...DEFAULT_EXTRACTION_OPTIONS }
+
+  /** Configure which optional constructs are extracted (from `ontology` settings). */
+  setOptions(options: Partial<OntologyExtractionOptions>) {
+    this.options = { ...this.options, ...options }
+  }
 
   /**
    * Build ontology graph from a file tree and file contents
@@ -281,7 +299,7 @@ export class OntologyBuilder {
     }
 
     // Extract arrow functions and React components
-    for (const pattern of PATTERNS.arrowFunctionDecl) {
+    for (const pattern of (this.options.extractArrowFunctions ? PATTERNS.arrowFunctionDecl : [])) {
       let match
       const regex = new RegExp(pattern.source, pattern.flags)
       while ((match = regex.exec(content)) !== null) {
@@ -396,7 +414,7 @@ export class OntologyBuilder {
     ext: string,
   ) {
     const filePath = file.path
-    const { entities, imports } = extractTsAst(content, file.name, ext)
+    const { entities, imports } = extractTsAst(content, file.name, ext, this.options)
     this.astImports.set(filePath, imports)
 
     // Pass 1: create non-method entities so methods can resolve their parent.

@@ -13,6 +13,8 @@ interface Graph3DProps {
   nodeSize: number
   showLabels: boolean
   rotationSpeed: number
+  forceStrength: number
+  linkDistance: number
   onSelect: (id: string) => void
   /** Called when 3D rendering cannot run (no WebGL / library throws), so the
    *  parent can fall back to the 2D SVG instead of showing a blank canvas. */
@@ -43,7 +45,7 @@ type N = NodeObject & GraphNode
  */
 export function KnowledgeGraph3D({
   nodes, links, colors, sizes, selectedId,
-  nodeSize, showLabels, rotationSpeed, onSelect, onError,
+  nodeSize, showLabels, rotationSpeed, forceStrength, linkDistance, onSelect, onError,
 }: Graph3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const rotateRef = useRef(rotationSpeed)
@@ -102,6 +104,13 @@ export function KnowledgeGraph3D({
       .width(el.clientWidth)
       .height(el.clientHeight)
 
+    // Apply configurable force physics.
+    const chargeForce = graph.d3Force('charge')
+    if (chargeForce) chargeForce.strength(forceStrength)
+    const linkForce = graph.d3Force('link')
+    if (linkForce) linkForce.distance(linkDistance)
+    graph.d3ReheatSimulation()
+
     if (showLabels) {
       graph.nodeThreeObjectExtend(true).nodeThreeObject((n: NodeObject) => {
         const node = n as N
@@ -144,7 +153,7 @@ export function KnowledgeGraph3D({
       try { graph._destructor() } catch { /* ignore teardown errors */ }
       el.innerHTML = ''
     }
-  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels])
+  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels, forceStrength, linkDistance])
 
   return <div ref={containerRef} className="flex-1 w-full bg-wiki-bg" />
 }

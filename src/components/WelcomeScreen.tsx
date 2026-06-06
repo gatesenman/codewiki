@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   FolderOpen, Github, BookOpen, Cpu, Search, GitBranch,
   Loader2, Settings, ChevronRight, Clock, Trash2, Box,
@@ -7,6 +7,7 @@ import { useAppStore } from '../store'
 import { CodeIndexer } from '../services/indexer'
 import type { IndexProgress } from '../services/indexer'
 import { SettingsModal } from './SettingsModal'
+import { playCompletionSound } from '../services/notify'
 import { t } from '../services/i18n'
 
 export function WelcomeScreen() {
@@ -15,10 +16,14 @@ export function WelcomeScreen() {
     recentProjects, removeRecentProject,
   } = useAppStore()
   useAppStore(s => s.locale)
+  const showWelcomeIntro = useAppStore(s => s.config.behavior.showWelcome)
+  const rememberLastProject = useAppStore(s => s.config.behavior.rememberLastProject)
+  const showProgress = useAppStore(s => s.config.notifications.showProgress)
   const [repoUrl, setRepoUrl] = useState('')
   const [progress, setProgress] = useState<IndexProgress | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const autoOpened = useRef(false)
 
   const handleSelectFolder = async () => {
     try {
@@ -33,6 +38,7 @@ export function WelcomeScreen() {
       })
       addProject(project)
       setLoading(false)
+      playCompletionSound()
       setTimeout(() => saveProject(), 500)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errIndexFailed'))
@@ -54,6 +60,7 @@ export function WelcomeScreen() {
       })
       addProject(project)
       setLoading(false)
+      playCompletionSound()
       setTimeout(() => saveProject(), 500)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errFetchFailed'))
@@ -74,12 +81,23 @@ export function WelcomeScreen() {
         addProject(project)
       }
       setLoading(false)
+      playCompletionSound()
       setTimeout(() => saveProject(), 500)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errOpenFailed'))
       setLoading(false)
     }
   }
+
+  // Reopen the most recent project on startup when enabled.
+  useEffect(() => {
+    if (autoOpened.current) return
+    if (!rememberLastProject || recentProjects.length === 0) return
+    autoOpened.current = true
+    const last = recentProjects[0]
+    void handleOpenRecent(last.path, last.type)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rememberLastProject, recentProjects])
 
   return (
     <div className="h-full w-full flex flex-col items-center justify-center relative overflow-y-auto fade-in">
@@ -102,25 +120,29 @@ export function WelcomeScreen() {
             CodeWiki
           </h1>
         </div>
-        <p className="text-wiki-muted text-lg max-w-xl leading-relaxed">
-          {t('welcomeDescription')}
-        </p>
+        {showWelcomeIntro && (
+          <p className="text-wiki-muted text-lg max-w-xl leading-relaxed">
+            {t('welcomeDescription')}
+          </p>
+        )}
       </div>
 
       {/* Feature badges */}
-      <div className="flex flex-wrap justify-center gap-3 mb-8">
-        {[
-          { icon: <Cpu size={16} />, label: t('featOntology') },
-          { icon: <Search size={16} />, label: t('featSemantic') },
-          { icon: <GitBranch size={16} />, label: t('featGraph') },
-          { icon: <Box size={16} />, label: t('featImpact') },
-        ].map((feat) => (
-          <div key={feat.label} className="flex items-center gap-2 px-4 py-2 rounded-full bg-wiki-card/50 border border-wiki-border text-sm text-wiki-muted hover:border-wiki-accent/30 hover:text-wiki-accent transition-all duration-200 cursor-default">
-            {feat.icon}
-            {feat.label}
-          </div>
-        ))}
-      </div>
+      {showWelcomeIntro && (
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          {[
+            { icon: <Cpu size={16} />, label: t('featOntology') },
+            { icon: <Search size={16} />, label: t('featSemantic') },
+            { icon: <GitBranch size={16} />, label: t('featGraph') },
+            { icon: <Box size={16} />, label: t('featImpact') },
+          ].map((feat) => (
+            <div key={feat.label} className="flex items-center gap-2 px-4 py-2 rounded-full bg-wiki-card/50 border border-wiki-border text-sm text-wiki-muted hover:border-wiki-accent/30 hover:text-wiki-accent transition-all duration-200 cursor-default">
+              {feat.icon}
+              {feat.label}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Input cards */}
       <div className="flex gap-6 max-w-3xl w-full px-8 mb-8">
@@ -214,7 +236,7 @@ export function WelcomeScreen() {
       )}
 
       {/* Progress bar */}
-      {progress && (
+      {progress && showProgress && (
         <div className="max-w-3xl w-full px-8 mb-4">
           <div className="p-4 rounded-lg bg-wiki-card border border-wiki-border">
             <div className="flex items-center gap-3 mb-2">

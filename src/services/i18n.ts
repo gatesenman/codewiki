@@ -8,6 +8,13 @@ import type { OntologyEntityType } from '../types'
 export type Locale = 'en' | 'zh'
 
 export interface I18nStrings {
+  agentConfirmApply: string
+  settingsWatchMode: string
+  settingsWatchModeDesc: string
+  settingsIgnorePatterns: string
+  settingsIgnorePatternsDesc: string
+  settingsWarnThresholdHint: string
+  settingsMcpGenerated: string
   // App
   appName: string
   appDescription: string
@@ -467,6 +474,13 @@ export interface I18nStrings {
 }
 
 const en: I18nStrings = {
+  agentConfirmApply: 'Apply changes to the following files?',
+  settingsWatchMode: 'Watch Mode',
+  settingsWatchModeDesc: 'Watch the project folder for changes (enables the file watcher).',
+  settingsIgnorePatterns: 'Ignore Patterns',
+  settingsIgnorePatternsDesc: 'Glob patterns excluded from indexing (like .codewikiignore entries).',
+  settingsWarnThresholdHint: 'Enable "Impact Warnings" in the Behavior tab to apply these thresholds.',
+  settingsMcpGenerated: 'Generated client config',
   appName: 'CodeWiki',
   appDescription: 'AI-powered code knowledge base with ontology-based semantic model',
   appWindowTitle: 'CodeWiki - AI Code Knowledge Base',
@@ -903,6 +917,13 @@ const en: I18nStrings = {
 }
 
 const zh: I18nStrings = {
+  agentConfirmApply: '是否将更改应用到以下文件？',
+  settingsWatchMode: '监听模式',
+  settingsWatchModeDesc: '监听项目文件夹的变化（启用文件监听器）。',
+  settingsIgnorePatterns: '忽略模式',
+  settingsIgnorePatternsDesc: '从索引中排除的 glob 模式（类似 .codewikiignore 条目）。',
+  settingsWarnThresholdHint: '在「行为」标签开启「影响警告」后，这些阈值才会生效。',
+  settingsMcpGenerated: '生成的客户端配置',
   appName: 'CodeWiki',
   appDescription: '基于本体语义模型的 AI 代码知识库',
   appWindowTitle: 'CodeWiki - AI 代码知识库',
