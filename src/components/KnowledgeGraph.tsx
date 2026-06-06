@@ -3,6 +3,7 @@ import * as d3 from 'd3'
 import { ZoomIn, ZoomOut, Maximize2, Filter } from 'lucide-react'
 import { useAppStore } from '../store'
 import { OntologyBuilder } from '../services/ontology'
+import { t, tEntityType, tEntityTypePlural } from '../services/i18n'
 import type { GraphNode, GraphLink, OntologyEntityType } from '../types'
 
 const ENTITY_COLORS: Record<OntologyEntityType, string> = {
@@ -35,6 +36,7 @@ const ENTITY_SIZES: Record<OntologyEntityType, number> = {
 
 export function KnowledgeGraph() {
   const { currentProject, selectedGraphNode, setSelectedGraphNode } = useAppStore()
+  useAppStore(s => s.locale)
   const svgRef = useRef<SVGSVGElement>(null)
   const [filter, setFilter] = useState<OntologyEntityType | 'all'>('all')
   const [tooltip, setTooltip] = useState<{ x: number; y: number; node: GraphNode } | null>(null)
@@ -165,7 +167,7 @@ export function KnowledgeGraph() {
   if (!ontology || ontology.entities.length === 0) {
     return (
       <div className="h-full flex items-center justify-center text-wiki-muted">
-        <p className="text-sm">No code entities found. Index a project to see the knowledge graph.</p>
+        <p className="text-sm">{t('graphEmpty')}</p>
       </div>
     )
   }
@@ -186,9 +188,9 @@ export function KnowledgeGraph() {
           onChange={(e) => setFilter(e.target.value as typeof filter)}
           className="text-xs bg-wiki-card border border-wiki-border rounded px-2 py-1 text-wiki-text"
         >
-          <option value="all">All Entities ({ontology.entities.length})</option>
+          <option value="all">{t('graphAllEntities')} ({ontology.entities.length})</option>
           {Object.entries(typeCounts).map(([type, count]) => (
-            <option key={type} value={type}>{type}s ({count})</option>
+            <option key={type} value={type}>{tEntityTypePlural(type as OntologyEntityType)} ({count})</option>
           ))}
         </select>
 
@@ -201,7 +203,7 @@ export function KnowledgeGraph() {
             .map(([type, color]) => (
               <div key={type} className="flex items-center gap-1">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                {type}
+                {tEntityType(type as OntologyEntityType)}
               </div>
             ))}
         </div>
@@ -224,7 +226,7 @@ export function KnowledgeGraph() {
             <span className="font-medium text-wiki-text">{tooltip.node.name}</span>
           </div>
           <div className="text-[10px] text-wiki-muted">
-            {tooltip.node.type} &bull; {tooltip.node.filePath}
+            {tEntityType(tooltip.node.type)} &bull; {tooltip.node.filePath}
           </div>
         </div>
       )}

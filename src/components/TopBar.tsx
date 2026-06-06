@@ -7,13 +7,14 @@ import {
 import { useAppStore } from '../store'
 import { SettingsModal } from './SettingsModal'
 import { services } from '../services/service-registry'
+import { t } from '../services/i18n'
 
 const VIEW_TABS = [
-  { mode: 'wiki' as const, label: 'Wiki', icon: BookOpen },
-  { mode: 'graph' as const, label: 'Graph', icon: GitBranch },
-  { mode: 'search' as const, label: 'Search', icon: Search },
-  { mode: 'chat' as const, label: 'Chat', icon: MessageSquare },
-  { mode: 'agent' as const, label: 'Agent', icon: Bot },
+  { mode: 'wiki' as const, labelKey: 'navWiki' as const, icon: BookOpen },
+  { mode: 'graph' as const, labelKey: 'navGraph' as const, icon: GitBranch },
+  { mode: 'search' as const, labelKey: 'navSearch' as const, icon: Search },
+  { mode: 'chat' as const, labelKey: 'navChat' as const, icon: MessageSquare },
+  { mode: 'agent' as const, labelKey: 'navAgent' as const, icon: Bot },
 ]
 
 export function TopBar() {
@@ -24,6 +25,7 @@ export function TopBar() {
     isLoading, loadingMessage,
     updateProject, setLoading,
   } = useAppStore()
+  useAppStore(s => s.locale)
   const [showSettings, setShowSettings] = useState(false)
   const [isReindexing, setIsReindexing] = useState(false)
 
@@ -32,12 +34,12 @@ export function TopBar() {
     try {
       const { settings } = useAppStore.getState()
       if (!settings.apiKey && settings.llmProvider !== 'ollama') {
-        alert('Please configure your API key in Settings first.')
+        alert(t('topConfigureApiKey'))
         setShowSettings(true)
         return
       }
       updateProject({ ...currentProject, status: 'generating' })
-      setLoading(true, 'Generating wiki...')
+      setLoading(true, t('loadingGeneratingWiki'))
       const llm = services.getLLMService(settings)
       const { WikiGenerator } = await import('../services/wiki-generator')
       const { configManager } = await import('../services/config-manager')
@@ -64,7 +66,7 @@ export function TopBar() {
     if (!currentProject || isReindexing) return
     try {
       setIsReindexing(true)
-      setLoading(true, 'Re-indexing project...')
+      setLoading(true, t('loadingReindexing'))
       const { CodeIndexer } = await import('../services/indexer')
       const indexer = new CodeIndexer()
       const project = await indexer.indexLocalProject(currentProject.path, () => {}, { forceFull: true })
@@ -90,7 +92,7 @@ export function TopBar() {
         <button
           onClick={toggleSidebar}
           className="p-1.5 rounded-md hover:bg-wiki-card text-wiki-muted hover:text-wiki-text transition-colors"
-          title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+          title={sidebarCollapsed ? t('topShowSidebar') : t('topHideSidebar')}
         >
           {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
@@ -99,7 +101,7 @@ export function TopBar() {
         <button
           onClick={handleBackToWelcome}
           className="p-1.5 rounded-md hover:bg-wiki-card text-wiki-muted hover:text-wiki-text transition-colors"
-          title="Back to projects"
+          title={t('topBackToProjects')}
         >
           <Home size={16} />
         </button>
@@ -130,7 +132,7 @@ export function TopBar() {
                 }`}
               >
                 <Icon size={14} />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             )
           })}
@@ -143,10 +145,10 @@ export function TopBar() {
           onClick={handleReindex}
           disabled={isReindexing}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-wiki-muted hover:text-wiki-text hover:bg-wiki-card transition-colors disabled:opacity-50"
-          title="Re-index project"
+          title={t('topReindexTitle')}
         >
           <RefreshCw size={14} className={isReindexing ? 'animate-spin' : ''} />
-          Re-index
+          {t('reindex')}
         </button>
 
         {/* Generate Wiki button */}
@@ -157,7 +159,7 @@ export function TopBar() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-wiki-accent/10 text-wiki-accent hover:bg-wiki-accent/20 text-xs font-medium transition-colors disabled:opacity-50"
           >
             <BookOpen size={14} />
-            Generate Wiki
+            {t('topGenerateWiki')}
           </button>
         )}
 
@@ -173,7 +175,7 @@ export function TopBar() {
         <button
           onClick={() => setShowSettings(true)}
           className="p-1.5 rounded-md hover:bg-wiki-card text-wiki-muted hover:text-wiki-text transition-colors"
-          title="Settings"
+          title={t('settings')}
         >
           <Settings size={16} />
         </button>

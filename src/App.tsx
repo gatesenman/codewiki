@@ -3,9 +3,11 @@ import { useAppStore } from './store'
 import { Layout } from './components/Layout'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { useProjectWatcher } from './hooks/useProjectWatcher'
+import { t } from './services/i18n'
 
 export default function App() {
   const currentProject = useAppStore(s => s.currentProject)
+  const locale = useAppStore(s => s.locale)
   const config = useAppStore(s => s.config)
   const loadConfig = useAppStore(s => s.loadConfig)
   const loadRecentProjects = useAppStore(s => s.loadRecentProjects)
@@ -44,8 +46,8 @@ export default function App() {
   useEffect(() => {
     document.title = currentProject
       ? `${currentProject.name} - CodeWiki`
-      : 'CodeWiki - AI Code Knowledge Base'
-  }, [currentProject])
+      : t('appWindowTitle')
+  }, [currentProject, locale])
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-wiki-bg text-wiki-text">
