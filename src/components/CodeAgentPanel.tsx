@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import {
   Bot, Send, AlertTriangle, FileText, CheckCircle2,
-  Loader2, GitBranch, Code, Shield, Undo2, PlayCircle, XCircle,
+  Loader2, GitBranch, Code, Shield, Undo2, PlayCircle, XCircle, Wand2,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { services } from '../services/service-registry'
 import { PatchService, type PatchIO, type RollbackToken } from '../services/patch-service'
 import { TestRunner, stepsFromConfig, type CommandExecutor, type VerifyResult } from '../services/test-runner'
+import { CodeAgentPlanner, LocalStorageMemory, type PlannerAnalyzer, type PlannerVerifier, type PlanRun } from '../services/agent-planner'
 import type { CodeModification } from '../types'
 
 interface AgentResult {
@@ -27,6 +28,8 @@ export function CodeAgentPanel() {
   const [rollbackToken, setRollbackToken] = useState<RollbackToken | null>(null)
   const [verifying, setVerifying] = useState(false)
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
+  const [planning, setPlanning] = useState(false)
+  const [planRun, setPlanRun] = useState<PlanRun | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const verifySteps = stepsFromConfig(verifyConfig)
@@ -147,6 +150,57 @@ export function CodeAgentPanel() {
     }
   }
 
+  // Auto-fix: analyze -> apply -> verify -> (on failure) roll back & retry.
+  const handlePlan = async () => {
+    if (!request.trim() || !currentProject) return
+    const patch = getPatchService()
+    if (!patch) { setError('File system bridge unavailable.'); return }
+    setPlanning(true)
+    setError(null)
+    setResult(null)
+    setVerifyResult(null)
+    setPlanRun(null)
+    setRollbackToken(null)
+    setAppliedMods(new Set())
+    try {
+      const agent = services.getCodeAgent(settings)
+      const readFile = (path: string) => window.electronAPI.readFile(path)
+      const analyzer: PlannerAnalyzer = {
+        analyze: async (req, ctx) => {
+          const full = ctx ? `${req}\n\n--- Additional context ---\n${ctx}` : req
+          const r = await agent.analyzeModification(full, currentProject.ontologyGraph, readFile)
+          return { analysis: r.analysis, modifications: r.modifications, warnings: r.warnings }
+        },
+      }
+      const api = window.electronAPI
+      const verifier: PlannerVerifier | undefined = canVerify
+        ? {
+            verify: () => new TestRunner({
+              run: ({ cwd, command, timeoutMs }) => api.runCommand(cwd, command, timeoutMs),
+            }).verify(currentProject.path as string, verifySteps, verifyConfig.timeoutMs),
+          }
+        : undefined
+
+      const planner = new CodeAgentPlanner({ analyzer, patcher: patch, verifier, memory: new LocalStorageMemory() })
+      const run = await planner.run(request.trim(), { maxIterations: 3 })
+      setPlanRun(run)
+
+      const last = run.steps[run.steps.length - 1]
+      if (last) {
+        setResult({ analysis: last.analysis, modifications: last.modifications, impactedFiles: [], warnings: [] })
+        if (last.verify) setVerifyResult(last.verify)
+      }
+      if (run.success && run.rollback) {
+        setRollbackToken(run.rollback)
+        if (last) setAppliedMods(new Set(last.modifications.map((_, i) => i)))
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Auto-fix failed')
+    } finally {
+      setPlanning(false)
+    }
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -181,14 +235,27 @@ export function CodeAgentPanel() {
               {currentProject?.ontologyGraph.relations.length || 0} relations in knowledge graph
             </span>
           </div>
-          <button
-            onClick={handleAnalyze}
-            disabled={loading || !request.trim() || !currentProject}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-wiki-green/15 text-wiki-green text-sm font-medium hover:bg-wiki-green/25 disabled:opacity-50 transition-colors"
-          >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            {loading ? 'Analyzing...' : 'Analyze & Plan'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePlan}
+              disabled={planning || loading || !request.trim() || currentProject?.type !== 'local'}
+              title={canVerify
+                ? 'Analyze, apply, run verification, and auto-retry on failure'
+                : 'Analyze and apply automatically (enable Verification in Settings to add a test/build gate)'}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-wiki-accent/15 text-wiki-accent text-sm font-medium hover:bg-wiki-accent/25 disabled:opacity-50 transition-colors"
+            >
+              {planning ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              {planning ? 'Working...' : 'Auto-fix'}
+            </button>
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || planning || !request.trim() || !currentProject}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-wiki-green/15 text-wiki-green text-sm font-medium hover:bg-wiki-green/25 disabled:opacity-50 transition-colors"
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              {loading ? 'Analyzing...' : 'Analyze & Plan'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -200,6 +267,34 @@ export function CodeAgentPanel() {
               <AlertTriangle size={16} />
               {error}
             </div>
+          </div>
+        )}
+
+        {planRun && (
+          <div className={`mb-4 p-4 rounded-lg border ${planRun.success ? 'border-wiki-green/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+            <div className="flex items-center gap-2 text-sm font-semibold mb-2">
+              {planRun.success
+                ? <CheckCircle2 size={16} className="text-wiki-green" />
+                : <XCircle size={16} className="text-red-400" />}
+              <span className={planRun.success ? 'text-wiki-green' : 'text-red-400'}>Auto-fix: {planRun.summary}</span>
+            </div>
+            <ol className="space-y-1.5">
+              {planRun.steps.map((s, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-wiki-muted">
+                  <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-wiki-card border border-wiki-border flex items-center justify-center text-[10px] text-wiki-text">{i + 1}</span>
+                  <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    s.outcome === 'verified' || s.outcome === 'applied'
+                      ? 'bg-wiki-green/15 text-wiki-green'
+                      : s.outcome === 'no-changes'
+                        ? 'bg-wiki-card text-wiki-muted'
+                        : 'bg-red-500/15 text-red-400'
+                  }`}>
+                    {s.outcome}
+                  </span>
+                  <span className="text-wiki-text/80">{s.analysis.slice(0, 160)}</span>
+                </li>
+              ))}
+            </ol>
           </div>
         )}
 
