@@ -30,6 +30,16 @@ const ENTITY_COLORS: Record<OntologyEntityType, string> = {
   Type: '#f778ba',
   Enum: '#f778ba',
   Component: '#58a6ff',
+  Namespace: '#d29922',
+  Struct: '#58a6ff',
+  Trait: '#bc8cff',
+  Property: '#79c0ff',
+  Constant: '#ffa657',
+  Constructor: '#d2a8ff',
+  Decorator: '#ffa657',
+  Hook: '#3fb950',
+  Event: '#f0883e',
+  TypeAlias: '#f778ba',
 }
 
 const ENTITY_SIZES: Record<OntologyEntityType, number> = {
@@ -44,6 +54,16 @@ const ENTITY_SIZES: Record<OntologyEntityType, number> = {
   Type: 7,
   Enum: 7,
   Component: 10,
+  Namespace: 10,
+  Struct: 9,
+  Trait: 9,
+  Property: 5,
+  Constant: 5,
+  Constructor: 7,
+  Decorator: 6,
+  Hook: 7,
+  Event: 6,
+  TypeAlias: 7,
 }
 
 export function KnowledgeGraph() {

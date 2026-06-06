@@ -30,6 +30,35 @@ export interface I18nStrings {
   navAgent: string
   navInsights: string
   navCodeMap: string
+  navSymbolWiki: string
+  navCodeFlow: string
+
+  // Symbol Wiki
+  symbolWikiTitle: string
+  symbolWikiDesc: string
+  symbolWikiSearch: string
+  symbolWikiEmpty: string
+  symbolWikiNotFound: string
+  symbolWikiDefinition: string
+  symbolWikiUsages: string
+  symbolWikiNotes: string
+  symbolWikiSeeAlso: string
+  symbolWikiFollowUp: string
+  symbolWikiCallers: string
+  symbolWikiCallees: string
+  symbolWikiRelations: string
+  symbolWikiCoupling: string
+
+  // Code Flow Map
+  codeflowTitle: string
+  codeflowDesc: string
+  codeflowSearch: string
+  codeflowSuggestions: string
+  codeflowSaved: string
+  codeflowGenerated: string
+  codeflowEmpty: string
+  codeflowSavedLabel: string
+  codeflowSaveLabel: string
 
   // Code Map
   codeMapEmpty: string
@@ -520,6 +549,16 @@ const entityTypeZh: Record<OntologyEntityType, string> = {
   Package: '包',
   File: '文件',
   Component: '组件',
+  Namespace: '命名空间',
+  Struct: '结构体',
+  Trait: '特征',
+  Property: '属性',
+  Constant: '常量',
+  Constructor: '构造函数',
+  Decorator: '装饰器',
+  Hook: '钩子',
+  Event: '事件',
+  TypeAlias: '类型别名',
 }
 
 const entityTypePluralEn: Record<OntologyEntityType, string> = {
@@ -534,6 +573,16 @@ const entityTypePluralEn: Record<OntologyEntityType, string> = {
   Package: 'Packages',
   File: 'Files',
   Component: 'Components',
+  Namespace: 'Namespaces',
+  Struct: 'Structs',
+  Trait: 'Traits',
+  Property: 'Properties',
+  Constant: 'Constants',
+  Constructor: 'Constructors',
+  Decorator: 'Decorators',
+  Hook: 'Hooks',
+  Event: 'Events',
+  TypeAlias: 'Type Aliases',
 }
 
 let currentLocale: Locale = 'zh'

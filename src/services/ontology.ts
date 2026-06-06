@@ -71,6 +71,23 @@ const PATTERNS = {
     /(?:export\s+)?type\s+(\w+)(?:<[^>]+>)?\s*=/g,
     /(?:export\s+)?enum\s+(\w+)/g,
   ],
+  namespaceDecl: [
+    /(?:export\s+)?(?:namespace|module)\s+(\w+)/g, // TS
+    /namespace\s+([\w.\\]+)\s*[{;]/g, // C#, PHP
+    /package\s+(\w+)/g, // Go, Java, Kotlin
+  ],
+  structDecl: [
+    /(?:pub\s+)?struct\s+(\w+)/g, // Rust
+    /type\s+(\w+)\s+struct/g, // Go
+    /struct\s+(\w+)/g, // C, C++, C#, Swift
+  ],
+  traitDecl: [
+    /(?:pub\s+)?trait\s+(\w+)/g, // Rust, PHP
+    /protocol\s+(\w+)/g, // Swift
+  ],
+  decoratorDecl: [
+    /^@(\w+)(?:\([^)]*\))?\s*$/gm, // Python @decorator, Java @Annotation
+  ],
   methodDecl: [
     // eslint-disable-next-line no-useless-escape
     /(?:(?:public|private|protected|static|readonly|override|abstract|async)\s+)*(\w+)\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?::\s*[\w<>\[\]|&,\s]+)?\s*{/g,
@@ -135,7 +152,7 @@ export class OntologyBuilder {
     // Pre-build function name index for O(1) lookups instead of O(n²)
     const functionNameIndex = new Map<string, OntologyEntity[]>()
     for (const entity of this.entities.values()) {
-      if (entity.type === 'Function' || entity.type === 'Method' || entity.type === 'Component') {
+      if (entity.type === 'Function' || entity.type === 'Method' || entity.type === 'Component' || entity.type === 'Hook' || entity.type === 'Constructor') {
         const list = functionNameIndex.get(entity.name) || []
         list.push(entity)
         functionNameIndex.set(entity.name, list)
@@ -410,12 +427,95 @@ export class OntologyBuilder {
         this.entities.set(entityId, {
           id: entityId,
           name: match[1],
-          type: isEnum ? 'Enum' : 'Type',
+          type: isEnum ? 'Enum' : 'TypeAlias',
           filePath,
           line: lineNum,
           endLine: this.findBlockEnd(lines, lineNum - 1),
         })
         this.qualifiedNameMap.set(`${filePath}::${match[1]}`, entityId)
+        this.relations.push({
+          id: uuid(),
+          source: moduleId,
+          target: entityId,
+          type: 'contains',
+        })
+      }
+    }
+
+    // Extract namespaces
+    for (const pattern of PATTERNS.namespaceDecl) {
+      let match
+      const regex = new RegExp(pattern.source, pattern.flags)
+      while ((match = regex.exec(content)) !== null) {
+        const name = match[1]
+        if (this.qualifiedNameMap.has(`${filePath}::${name}`)) continue
+        const lineNum = content.substring(0, match.index).split('\n').length
+        const entityId = uuid()
+        this.entities.set(entityId, {
+          id: entityId,
+          name,
+          type: 'Namespace',
+          filePath,
+          line: lineNum,
+          endLine: this.findBlockEnd(lines, lineNum - 1),
+        })
+        this.qualifiedNameMap.set(`${filePath}::${name}`, entityId)
+        this.relations.push({
+          id: uuid(),
+          source: moduleId,
+          target: entityId,
+          type: 'contains',
+        })
+      }
+    }
+
+    // Extract structs
+    for (const pattern of PATTERNS.structDecl) {
+      let match
+      const regex = new RegExp(pattern.source, pattern.flags)
+      while ((match = regex.exec(content)) !== null) {
+        const name = match[1]
+        if (this.qualifiedNameMap.has(`${filePath}::${name}`)) continue
+        const lineNum = content.substring(0, match.index).split('\n').length
+        const entityId = uuid()
+        this.entities.set(entityId, {
+          id: entityId,
+          name,
+          type: 'Struct',
+          filePath,
+          line: lineNum,
+          endLine: this.findBlockEnd(lines, lineNum - 1),
+          signature: match[0].replace(/\s+/g, ' ').trim(),
+        })
+        this.qualifiedNameMap.set(`${filePath}::${name}`, entityId)
+        this.relations.push({
+          id: uuid(),
+          source: moduleId,
+          target: entityId,
+          type: 'contains',
+        })
+      }
+    }
+
+    // Extract traits
+    for (const pattern of PATTERNS.traitDecl) {
+      let match
+      const regex = new RegExp(pattern.source, pattern.flags)
+      while ((match = regex.exec(content)) !== null) {
+        const name = match[1]
+        if (this.qualifiedNameMap.has(`${filePath}::${name}`)) continue
+        const lineNum = content.substring(0, match.index).split('\n').length
+        const entityId = uuid()
+        this.entities.set(entityId, {
+          id: entityId,
+          name,
+          type: 'Trait',
+          filePath,
+          line: lineNum,
+          endLine: this.findBlockEnd(lines, lineNum - 1),
+          signature: match[0].replace(/\s+/g, ' ').trim(),
+        })
+        this.qualifiedNameMap.set(`${filePath}::${name}`, entityId)
         this.relations.push({
           id: uuid(),
           source: moduleId,
@@ -447,13 +547,14 @@ export class OntologyBuilder {
     this.astImports.set(filePath, imports)
 
     // Pass 1: create non-method entities so methods can resolve their parent.
-    // Dedup by name: Rust `impl` blocks may emit a second Class entry just to
-    // carry `implements` info for an already-declared struct.
+    // Dedup by name: Rust `impl` blocks may emit a second Class/Struct entry
+    // just to carry `implements` info for an already-declared struct.
     const classIdByName = new Map<string, string>()
+    const memberTypes = new Set(['Method', 'Constructor', 'Property', 'Constant'])
     for (const e of entities) {
-      if (e.type === 'Method') continue
+      if (memberTypes.has(e.type) && e.parentName) continue
 
-      const existing = (e.type === 'Class' || e.type === 'Interface')
+      const existing = (e.type === 'Class' || e.type === 'Interface' || e.type === 'Struct' || e.type === 'Trait')
         ? classIdByName.get(e.name)
         : undefined
       if (existing) {
@@ -480,7 +581,7 @@ export class OntologyBuilder {
       this.qualifiedNameMap.set(`${filePath}::${e.name}`, entityId)
       this.relations.push({ id: uuid(), source: moduleId, target: entityId, type: 'contains' })
 
-      if (e.type === 'Class' || e.type === 'Interface') {
+      if (e.type === 'Class' || e.type === 'Interface' || e.type === 'Struct' || e.type === 'Trait') {
         classIdByName.set(e.name, entityId)
       }
       for (const parent of e.extends || []) {
@@ -491,15 +592,16 @@ export class OntologyBuilder {
       }
     }
 
-    // Pass 2: methods, linked to their enclosing class/interface.
+    // Pass 2: class members (Method, Constructor, Property, Constant),
+    // linked to their enclosing class/interface.
     for (const e of entities) {
-      if (e.type !== 'Method') continue
+      if (!memberTypes.has(e.type) || !e.parentName) continue
       const parentId = e.parentName ? classIdByName.get(e.parentName) : undefined
       const entityId = uuid()
       this.entities.set(entityId, {
         id: entityId,
         name: e.name,
-        type: 'Method',
+        type: e.type,
         filePath,
         line: e.line,
         endLine: e.endLine,
@@ -706,6 +808,9 @@ export class OntologyBuilder {
       'Package': 0, 'Module': 1, 'File': 1, 'Class': 2,
       'Interface': 3, 'Function': 4, 'Method': 5,
       'Variable': 6, 'Type': 7, 'Enum': 8, 'Component': 9,
+      'Namespace': 1, 'Struct': 2, 'Trait': 3, 'Property': 6,
+      'Constant': 6, 'Constructor': 5, 'Decorator': 10,
+      'Hook': 4, 'Event': 10, 'TypeAlias': 7,
     }
 
     const nodes: GraphNode[] = graph.entities.map(e => ({

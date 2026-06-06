@@ -19,6 +19,16 @@ const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
   Enum: Database,
   Package: FolderOpen,
   Component: Box,
+  Namespace: FolderOpen,
+  Struct: Box,
+  Trait: Braces,
+  Property: Hash,
+  Constant: Hash,
+  Constructor: Code,
+  Decorator: Code,
+  Hook: Code,
+  Event: Code,
+  TypeAlias: Database,
 }
 
 export function Sidebar() {

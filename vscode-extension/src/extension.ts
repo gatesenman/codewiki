@@ -62,6 +62,16 @@ const I18N: Record<string, Record<Lang, string>> = {
   components: { en: 'Components', zh: '组件' },
   enums: { en: 'Enums', zh: '枚举' },
   variables: { en: 'Variables', zh: '变量' },
+  namespaces: { en: 'Namespaces', zh: '命名空间' },
+  structs: { en: 'Structs', zh: '结构体' },
+  traits: { en: 'Traits', zh: '特征' },
+  properties: { en: 'Properties', zh: '属性' },
+  constants: { en: 'Constants', zh: '常量' },
+  constructors: { en: 'Constructors', zh: '构造函数' },
+  decorators: { en: 'Decorators', zh: '装饰器' },
+  hooks: { en: 'Hooks', zh: '钩子' },
+  events: { en: 'Events', zh: '事件' },
+  typeAliases: { en: 'Type Aliases', zh: '类型别名' },
   notIndexed: { en: 'Not indexed — run Initialize or Index', zh: '未索引 —— 请运行「初始化」或「索引」' },
   gradeTip: { en: 'CodeWiki health grade — click for details', zh: 'CodeWiki 健康等级 —— 点击查看详情' },
   generating: { en: 'Generating wiki...', zh: '正在生成 Wiki...' },
@@ -1205,6 +1215,9 @@ function entityTypeToIcon(type: string): string {
     Class: 'class', Interface: 'interface', Function: 'method', Method: 'method',
     Type: 'structure', Enum: 'enum', Variable: 'variable', Component: 'namespace',
     Module: 'namespace', File: 'file', Package: 'package',
+    Namespace: 'namespace', Struct: 'structure', Trait: 'interface',
+    Property: 'property', Constant: 'constant', Constructor: 'method',
+    Decorator: 'decorator', Hook: 'event', Event: 'event', TypeAlias: 'type-hierarchy',
   }
   return map[type] || 'misc'
 }
@@ -1415,7 +1428,9 @@ function entityTypeLabel(type: string): string {
   const keyMap: Record<string, string> = {
     Class: 'classes', Interface: 'interfaces', Function: 'functions', Method: 'methods',
     Type: 'types', Enum: 'enums', Module: 'modules', Component: 'components',
-    Variable: 'variables',
+    Variable: 'variables', Namespace: 'namespaces', Struct: 'structs', Trait: 'traits',
+    Property: 'properties', Constant: 'constants', Constructor: 'constructors',
+    Decorator: 'decorators', Hook: 'hooks', Event: 'events', TypeAlias: 'typeAliases',
   }
   const key = keyMap[type]
   return key ? t(key) : type
@@ -1519,6 +1534,16 @@ function entityTypeToSymbolKind(type: string): vscode.SymbolKind {
     Component: vscode.SymbolKind.Class,
     Package: vscode.SymbolKind.Package,
     File: vscode.SymbolKind.File,
+    Namespace: vscode.SymbolKind.Namespace,
+    Struct: vscode.SymbolKind.Struct,
+    Trait: vscode.SymbolKind.Interface,
+    Property: vscode.SymbolKind.Property,
+    Constant: vscode.SymbolKind.Constant,
+    Constructor: vscode.SymbolKind.Constructor,
+    Decorator: vscode.SymbolKind.Function,
+    Hook: vscode.SymbolKind.Function,
+    Event: vscode.SymbolKind.Event,
+    TypeAlias: vscode.SymbolKind.TypeParameter,
   }
   return map[type] ?? vscode.SymbolKind.Object
 }

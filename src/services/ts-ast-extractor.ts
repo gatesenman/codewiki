@@ -88,9 +88,11 @@ function heritageNames(
 }
 
 function isLikelyComponent(name: string, ext: string): boolean {
-  // Uppercase-initial in a JSX-capable file is treated as a React component,
-  // matching the existing heuristic in the regex extractor.
   return /^[A-Z]/.test(name) && (ext === 'tsx' || ext === 'jsx')
+}
+
+function isHook(name: string): boolean {
+  return /^use[A-Z]/.test(name)
 }
 
 export interface AstExtractOptions {
@@ -180,7 +182,17 @@ export function extractTsAst(
         implements: heritageNames(node.heritageClauses, ts.SyntaxKind.ImplementsKeyword),
       })
       for (const member of node.members) {
-        if (
+        if (ts.isConstructorDeclaration(member)) {
+          const r = rangeOf(member)
+          entities.push({
+            name: 'constructor',
+            type: 'Constructor',
+            line: r.line,
+            endLine: r.endLine,
+            signature: sig(member),
+            parentName: className,
+          })
+        } else if (
           (ts.isMethodDeclaration(member) || ts.isGetAccessor(member) || ts.isSetAccessor(member)) &&
           member.name
         ) {
@@ -190,6 +202,21 @@ export function extractTsAst(
           entities.push({
             name: mName,
             type: 'Method',
+            line: r.line,
+            endLine: r.endLine,
+            signature: sig(member),
+            parentName: className,
+          })
+        } else if (ts.isPropertyDeclaration(member) && member.name) {
+          const pName = nameText(member.name)
+          if (!pName) continue
+          const r = rangeOf(member)
+          const isConst = member.modifiers?.some(m =>
+            m.kind === ts.SyntaxKind.ReadonlyKeyword || m.kind === ts.SyntaxKind.StaticKeyword,
+          )
+          entities.push({
+            name: pName,
+            type: isConst ? 'Constant' : 'Property',
             line: r.line,
             endLine: r.endLine,
             signature: sig(member),
@@ -220,9 +247,12 @@ export function extractTsAst(
     if (ts.isFunctionDeclaration(node) && node.name) {
       const { line, endLine } = rangeOf(node)
       const fnName = node.name.text
+      const fnType = isLikelyComponent(fnName, ext) ? 'Component'
+        : isHook(fnName) ? 'Hook'
+        : 'Function'
       entities.push({
         name: fnName,
-        type: isLikelyComponent(fnName, ext) ? 'Component' : 'Function',
+        type: fnType,
         line,
         endLine,
         signature: sig(node),
@@ -232,7 +262,8 @@ export function extractTsAst(
     }
 
     // ---- const/let arrow functions, function expressions, React.memo/forwardRef ----
-    if (extractArrowFunctions && ts.isVariableStatement(node)) {
+    if (ts.isVariableStatement(node)) {
+      const isConstDecl = (node.declarationList.flags & ts.NodeFlags.Const) !== 0
       for (const decl of node.declarationList.declarations) {
         const varName = nameText(decl.name)
         if (!varName || !decl.initializer) continue
@@ -241,25 +272,41 @@ export function extractTsAst(
           ts.isArrowFunction(init) ||
           ts.isFunctionExpression(init) ||
           isReactFactory(init)
-        if (!isFnLike) continue
-        const r = rangeOf(decl)
-        entities.push({
-          name: varName,
-          type: isLikelyComponent(varName, ext) ? 'Component' : 'Function',
-          line: r.line,
-          endLine: r.endLine,
-          signature: sig(node),
-        })
+        if (isFnLike && extractArrowFunctions) {
+          const r = rangeOf(decl)
+          const fnType = isLikelyComponent(varName, ext) ? 'Component'
+            : isHook(varName) ? 'Hook'
+            : 'Function'
+          entities.push({
+            name: varName,
+            type: fnType,
+            line: r.line,
+            endLine: r.endLine,
+            signature: sig(node),
+          })
+        } else if (!isFnLike && isConstDecl && /^[A-Z_][A-Z0-9_]*$/.test(varName)) {
+          const r = rangeOf(decl)
+          entities.push({
+            name: varName,
+            type: 'Constant',
+            line: r.line,
+            endLine: r.endLine,
+            signature: sig(node),
+          })
+        }
       }
     }
 
-    // ---- type aliases / enums ----
+    // ---- type aliases / enums / namespaces ----
     if (ts.isTypeAliasDeclaration(node)) {
       const { line, endLine } = rangeOf(node)
-      entities.push({ name: node.name.text, type: 'Type', line, endLine, signature: sig(node) })
+      entities.push({ name: node.name.text, type: 'TypeAlias', line, endLine, signature: sig(node) })
     } else if (ts.isEnumDeclaration(node)) {
       const { line, endLine } = rangeOf(node)
       entities.push({ name: node.name.text, type: 'Enum', line, endLine, signature: sig(node) })
+    } else if (ts.isModuleDeclaration(node) && node.name && ts.isIdentifier(node.name)) {
+      const { line, endLine } = rangeOf(node)
+      entities.push({ name: node.name.text, type: 'Namespace', line, endLine, signature: sig(node) })
     }
 
     ts.forEachChild(node, c => visit(c, enclosingType))

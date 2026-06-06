@@ -23,6 +23,16 @@ export type OntologyEntityType =
   | 'Package'
   | 'File'
   | 'Component'
+  | 'Namespace'
+  | 'Struct'
+  | 'Trait'
+  | 'Property'
+  | 'Constant'
+  | 'Constructor'
+  | 'Decorator'
+  | 'Hook'
+  | 'Event'
+  | 'TypeAlias'
 
 export type OntologyRelationType =
   | 'imports'
