@@ -19,6 +19,12 @@
 
 </div>
 
+<!-- codewiki-health-card:start -->
+
+_代码健康卡片由 [CodeWiki Health Card](.github/workflows/codewiki-health-card.yml) 工作流在每次推送到 `main` 时自动生成（`codewiki report` -> 健康/安全/模式徽章）。_
+
+<!-- codewiki-health-card:end -->
+
 ---
 
 ## 关于（About）

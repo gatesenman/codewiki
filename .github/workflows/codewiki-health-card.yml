@@ -1,0 +1,58 @@
+name: CodeWiki Health Card
+
+# Generates an ontology-based code-health card (health grade, circular deps,
+# dead code, god objects, security findings, pattern tags) and injects it into
+# the README between the codewiki-health-card markers on every push to main.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'README.zh-CN.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  health-card:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compute analysis report
+        run: |
+          npx ts-node cli/codewiki-cli.ts report json --project . -o codewiki-report.json || echo '{}' > codewiki-report.json
+
+      - name: Inject health card into README
+        run: |
+          node scripts/health-card.mjs codewiki-report.json README.md README.zh-CN.md
+
+      - name: Job summary
+        run: |
+          node scripts/health-card.mjs codewiki-report.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit updated README (if changed)
+        run: |
+          if git diff --quiet -- README.md README.zh-CN.md; then
+            echo "No README changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md README.zh-CN.md
+          git commit -m "docs: update CodeWiki health card [skip ci]"
+          git push
