@@ -12,12 +12,13 @@ export function Layout() {
   const viewMode = useAppStore(s => s.viewMode)
   const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed)
   const selectedEntityId = useAppStore(s => s.selectedEntityId)
+  const sidebarPosition = useAppStore(s => s.config.ui.sidebarPosition)
 
   return (
     <div className="h-full flex flex-col">
       <TopBar />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar />
+        {sidebarPosition === 'left' && <Sidebar />}
         <main className="flex-1 overflow-hidden transition-all" key={viewMode}>
           <div className="h-full fade-in">
             {viewMode === 'wiki' && <WikiViewer />}
@@ -28,6 +29,7 @@ export function Layout() {
           </div>
         </main>
         {selectedEntityId && <div className="slide-in-right"><EntityDetailPanel /></div>}
+        {sidebarPosition === 'right' && <Sidebar />}
       </div>
     </div>
   )

@@ -12,6 +12,7 @@
 import { v4 as uuid } from 'uuid'
 import type { WikiPage, WikiProject, OntologyGraph, FileNode } from '../types'
 import { LLMService } from './llm'
+import { configManager } from './config-manager'
 import { getWikiTemplate, DEFAULT_WIKI_STYLE, type WikiStyleId, type WikiPageKind } from './wiki-prompt-templates'
 
 export class WikiGenerator {
@@ -46,8 +47,12 @@ export class WikiGenerator {
     const readmeContent = await this.findAndReadFile(codeFiles, readFile, ['README.md', 'readme.md', 'README.rst'])
     const packageJson = await this.findAndReadFile(codeFiles, readFile, ['package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod', 'pom.xml'])
 
-    // Analyze project structure for hierarchical wiki plan
-    const modules = this.detectModules(graph, codeFiles)
+    // Analyze project structure for hierarchical wiki plan.
+    // `pageCount` caps the total pages: 4 fixed (overview/architecture/api/data-flow)
+    // plus a budget of per-module pages.
+    const pageCount = configManager.getConfig().wiki.pageCount
+    const moduleBudget = Math.max(1, pageCount - 4)
+    const modules = this.detectModules(graph, codeFiles, moduleBudget)
     const totalPages = 4 + modules.length  // overview + architecture + modules(n) + api + data flow
     let currentPage = 0
 
@@ -283,7 +288,7 @@ Requirements:
   /**
    * Detect logical modules from ontology graph
    */
-  private detectModules(graph: OntologyGraph, files: FileNode[]): Array<{
+  private detectModules(graph: OntologyGraph, files: FileNode[], maxModules = 5): Array<{
     name: string
     entities: typeof graph.entities
     entityIds: Set<string>
@@ -313,9 +318,9 @@ Requirements:
       })
     }
 
-    // Sort by entity count (most important modules first), limit to 5
+    // Sort by entity count (most important modules first), limit to the budget.
     modules.sort((a, b) => b.entities.length - a.entities.length)
-    return modules.slice(0, 5)
+    return modules.slice(0, maxModules)
   }
 
   /**

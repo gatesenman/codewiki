@@ -14,14 +14,19 @@ export function useProjectWatcher(): void {
   const projectPath = useAppStore(s => s.currentProject?.path)
   const projectType = useAppStore(s => s.currentProject?.type)
   const autoReindex = useAppStore(s => s.config.indexing.autoReindex)
+  const watchMode = useAppStore(s => s.config.indexing.watchMode)
   const updateProject = useAppStore(s => s.updateProject)
 
   const running = useRef(false)
   const queued = useRef(false)
 
+  // Watching is enabled by either the high-level "Auto Re-index" toggle or the
+  // lower-level "Watch Mode" toggle.
+  const watchEnabled = autoReindex || watchMode
+
   useEffect(() => {
     const api = window.electronAPI
-    if (!api?.watchProject || !projectPath || projectType !== 'local' || !autoReindex) return
+    if (!api?.watchProject || !projectPath || projectType !== 'local' || !watchEnabled) return
 
     let disposed = false
 
@@ -56,5 +61,5 @@ export function useProjectWatcher(): void {
       unsubscribe?.()
       void api.unwatchProject?.(projectPath)
     }
-  }, [projectPath, projectType, autoReindex, updateProject])
+  }, [projectPath, projectType, watchEnabled, updateProject])
 }

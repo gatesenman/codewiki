@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
-  readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
+  readDirectory: (dirPath: string, opts?: unknown) => ipcRenderer.invoke('read-directory', dirPath, opts),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
   applyModification: (

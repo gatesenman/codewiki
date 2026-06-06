@@ -186,9 +186,16 @@ export interface ModificationResult {
   actual?: string
 }
 
+export interface ScanOptions {
+  extensions?: string[]
+  ignoreDirs?: string[]
+  maxDepth?: number
+  maxFileSize?: number
+}
+
 export interface ElectronAPI {
   selectFolder: () => Promise<string | null>
-  readDirectory: (dirPath: string) => Promise<FileNode[]>
+  readDirectory: (dirPath: string, opts?: ScanOptions) => Promise<FileNode[]>
   readFile: (filePath: string) => Promise<string | null>
   writeFile: (filePath: string, content: string) => Promise<ModificationResult>
   applyModification: (

@@ -11,6 +11,7 @@ export default function App() {
   const config = useAppStore(s => s.config)
   const loadConfig = useAppStore(s => s.loadConfig)
   const loadRecentProjects = useAppStore(s => s.loadRecentProjects)
+  const saveProject = useAppStore(s => s.saveProject)
 
   // Auto incremental reindex on file changes (when "Auto Re-index" is enabled)
   useProjectWatcher()
@@ -41,6 +42,14 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.fontSize = `${config.ui.fontSize}px`
   }, [config.ui.fontSize])
+
+  // Periodic auto-save of the current project (behavior settings).
+  useEffect(() => {
+    if (!config.behavior.autoSave || !currentProject) return
+    const interval = Math.max(5000, config.behavior.autoSaveInterval)
+    const id = window.setInterval(() => { void saveProject() }, interval)
+    return () => window.clearInterval(id)
+  }, [config.behavior.autoSave, config.behavior.autoSaveInterval, currentProject, saveProject])
 
   // Update title and document language
   useEffect(() => {

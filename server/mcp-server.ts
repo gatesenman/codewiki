@@ -313,9 +313,15 @@ async function main() {
 
   const server = new Server({ name: 'codewiki', version: '1.0.0' }, { capabilities: { tools: {} } })
 
+  // Optional allow-list of exposed tools (CODEWIKI_ENABLED_TOOLS=comma,separated).
+  // Empty/unset means expose all registered tools.
+  const enabledTools = (process.env.CODEWIKI_ENABLED_TOOLS || '')
+    .split(',').map(s => s.trim()).filter(Boolean)
+  const isToolEnabled = (name: string) => enabledTools.length === 0 || enabledTools.includes(name)
+
   // List tools
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
+    tools: ([
       {
         name: 'read_wiki',
         description: 'Get a summary of the project structure and key entities.',
@@ -590,7 +596,7 @@ async function main() {
           required: ['entity'],
         },
       },
-    ],
+    ]).filter(tool => isToolEnabled(tool.name)),
   }))
 
   // Handle tool calls

@@ -27,6 +27,8 @@ export function Sidebar() {
     sidebarCollapsed, viewMode, setViewMode,
   } = useAppStore()
   useAppStore(s => s.locale)
+  const sidebarWidth = useAppStore(s => s.config.ui.sidebarWidth)
+  const sidebarPosition = useAppStore(s => s.config.ui.sidebarPosition)
 
   if (sidebarCollapsed) return null
 
@@ -34,7 +36,10 @@ export function Sidebar() {
   const ontology = currentProject?.ontologyGraph
 
   return (
-    <div className="w-64 h-full bg-wiki-sidebar border-r border-wiki-border flex flex-col overflow-hidden">
+    <div
+      className={`h-full bg-wiki-sidebar ${sidebarPosition === 'right' ? 'border-l' : 'border-r'} border-wiki-border flex flex-col overflow-hidden`}
+      style={{ width: `${sidebarWidth}px` }}
+    >
       {/* Wiki Pages */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-3 pt-3 pb-1">
