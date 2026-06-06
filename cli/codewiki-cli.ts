@@ -2281,6 +2281,62 @@ function cmdOwnership(filePath: string, projectPath: string): void {
   })
 }
 
+// ---- Security scan (CodeFlow-inspired) ----
+
+interface SecRule { id: string; severity: 'high' | 'medium' | 'low'; message: string; test: RegExp; skipComments?: boolean; mask?: boolean }
+
+const SEC_RULES: SecRule[] = [
+  { id: 'hardcoded-secret', severity: 'high', message: 'Possible hardcoded secret / credential', test: /(?:secret|token|password|passwd|api[_-]?key|access[_-]?key|client[_-]?secret|auth[_-]?token)\s*[:=]\s*["'][^"']{6,}["']/i, mask: true },
+  { id: 'known-token', severity: 'high', message: 'Hardcoded provider token', test: /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,})\b/, mask: true, skipComments: false },
+  { id: 'private-key', severity: 'high', message: 'Embedded private key block', test: /-----BEGIN [A-Z ]*PRIVATE KEY-----/, skipComments: false },
+  { id: 'eval-usage', severity: 'high', message: 'Use of eval()', test: /\beval\s*\(/ },
+  { id: 'function-constructor', severity: 'medium', message: 'Function constructor (eval-like)', test: /\bnew\s+Function\s*\(/ },
+  { id: 'sql-injection', severity: 'high', message: 'SQL built via concatenation/interpolation', test: /(?:SELECT|INSERT|UPDATE|DELETE)\b[\s\S]*?(?:["'`]\s*\+|\$\{|%s|\+\s*["'`])/i },
+  { id: 'shell-injection', severity: 'high', message: 'Shell command built with concatenation', test: /\b(?:exec|execSync|spawnSync|popen|system|os\.system|subprocess\.(?:call|run|Popen))\s*\([^)]*(?:\+|\$\{|%\s|`[^`]*\$\{)/ },
+  { id: 'dangerous-html', severity: 'medium', message: 'innerHTML / dangerouslySetInnerHTML (XSS)', test: /(?:\.innerHTML\s*=|dangerouslySetInnerHTML)/ },
+  { id: 'debug-statement', severity: 'low', message: 'Debug statement left in code', test: /\b(?:console\.(?:log|debug|trace)|debugger|System\.out\.println|fmt\.Println)\b/ },
+  { id: 'insecure-random', severity: 'low', message: 'Math.random() not cryptographically secure', test: /\bMath\.random\s*\(/ },
+  { id: 'http-url', severity: 'low', message: 'Cleartext http:// URL', test: /["'`]http:\/\/(?!localhost|127\.0\.0\.1|0\.0\.0\.0)/ },
+]
+
+function maskSecretLine(line: string): string {
+  return line.replace(/(["'])([^"']{6,})\1/g, (_m, q) => `${q}***${q}`)
+    .replace(/\b(gh[pousr]_[A-Za-z0-9]{6,}|github_pat_[A-Za-z0-9_]{6,}|sk-[A-Za-z0-9]{6,}|AKIA[0-9A-Z]{6,}|xox[baprs]-[A-Za-z0-9-]{6,})\b/g, '***')
+}
+
+function cmdScan(projectPath: string): void {
+  const absPath = path.resolve(projectPath)
+  const { fileContents } = getGraph(absPath)
+  const findings: Array<{ file: string; line: number; rule: string; severity: string; message: string; snippet: string }> = []
+  const commentRe = /^\s*(?:\/\/|#|\*|<!--)/
+  let scanned = 0
+  for (const [fp, content] of fileContents) {
+    if (!content) continue
+    if (/(^|\/)(node_modules|dist|build|out|vendor|\.min\.)/.test(fp) || /\.(test|spec)\.[tj]sx?$/.test(fp)) continue
+    scanned++
+    const rel = path.relative(absPath, fp) || fp
+    const lines = content.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.length > 1000) continue
+      const isComment = commentRe.test(line)
+      for (const rule of SEC_RULES) {
+        if (isComment && rule.skipComments !== false) continue
+        if (rule.test.test(line)) {
+          const raw = line.trim().slice(0, 200)
+          findings.push({ file: rel, line: i + 1, rule: rule.id, severity: rule.severity, message: rule.message, snippet: rule.mask ? maskSecretLine(raw) : raw })
+        }
+      }
+    }
+  }
+  const bySeverity = { high: 0, medium: 0, low: 0 }
+  const byRule: Record<string, number> = {}
+  for (const f of findings) { bySeverity[f.severity as 'high' | 'medium' | 'low']++; byRule[f.rule] = (byRule[f.rule] || 0) + 1 }
+  const order: Record<string, number> = { high: 0, medium: 1, low: 2 }
+  findings.sort((a, b) => order[a.severity] - order[b.severity] || a.file.localeCompare(b.file) || a.line - b.line)
+  output({ command: 'scan', filesScanned: scanned, total: findings.length, bySeverity, byRule, findings })
+}
+
 // ---- Find References ----
 
 function cmdFindReferences(entityName: string, projectPath: string): void {
@@ -4625,6 +4681,10 @@ function main() {
     case 'owners':
       if (!positional[0]) { console.error('Usage: codewiki ownership <file> [--project <path>]'); process.exit(1) }
       cmdOwnership(positional[0], projectPath)
+      break
+    case 'scan':
+    case 'security':
+      cmdScan(projectPath)
       break
     case 'find-references':
     case 'references':
