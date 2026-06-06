@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   X, Box, Code, FileText, ArrowRight, ArrowLeft,
   AlertTriangle, Copy, ExternalLink, Braces,
@@ -6,7 +6,23 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { t, tEntityType } from '../services/i18n'
-import type { OntologyEntity, OntologyRelation, OntologyEntityType } from '../types'
+import type { OntologyEntity, OntologyRelation, OntologyEntityType, OntologyGraph } from '../types'
+import { detectPatterns, patternsByEntity, type PatternTag, type PatternKind } from '../services/pattern-detector'
+
+const PATTERN_LABELS: Record<PatternKind, { en: string; zh: string }> = {
+  Singleton: { en: 'Singleton', zh: '单例' },
+  Factory: { en: 'Factory', zh: '工厂' },
+  Observer: { en: 'Observer', zh: '观察者' },
+  Builder: { en: 'Builder', zh: '建造者' },
+  Strategy: { en: 'Strategy', zh: '策略' },
+  Repository: { en: 'Repository', zh: '仓储' },
+  GodObject: { en: 'God Object', zh: '上帝对象' },
+  HighCoupling: { en: 'High Coupling', zh: '高耦合' },
+}
+function tPattern(kind: PatternKind): string {
+  const loc = useAppStore.getState().locale
+  return PATTERN_LABELS[kind][loc === 'zh' ? 'zh' : 'en']
+}
 
 const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
   Module: FolderOpen,
@@ -127,7 +143,7 @@ export function EntityDetailPanel() {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'info' && <InfoTab entity={entity} outgoing={outgoing} incoming={incoming} />}
+        {activeTab === 'info' && <InfoTab entity={entity} outgoing={outgoing} incoming={incoming} graph={ontology} />}
         {activeTab === 'source' && <SourceTab code={sourceCode} loading={loadingSource} entity={entity} />}
         {activeTab === 'relations' && (
           <RelationsTab
@@ -149,13 +165,34 @@ export function EntityDetailPanel() {
 }
 
 // --- Info Tab ---
-function InfoTab({ entity, outgoing, incoming }: {
+function InfoTab({ entity, outgoing, incoming, graph }: {
   entity: OntologyEntity
   outgoing: OntologyRelation[]
   incoming: OntologyRelation[]
+  graph: OntologyGraph
 }) {
+  const tags = useMemo<PatternTag[]>(
+    () => patternsByEntity(detectPatterns(graph)).get(entity.id) || [],
+    [graph, entity.id],
+  )
   return (
     <div className="p-4 space-y-4">
+      {tags.length > 0 && (
+        <section>
+          <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">{t('entityPatterns')}</h4>
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map(tg => (
+              <span
+                key={tg.kind}
+                title={tg.reason}
+                className={`px-2 py-0.5 rounded text-[11px] font-medium ${tg.anti ? 'text-amber-400 bg-amber-500/15' : 'text-wiki-accent bg-wiki-accent/15'}`}
+              >
+                {tPattern(tg.kind)}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
       {/* Basic Info */}
       <section>
         <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">{t('entityDetails')}</h4>

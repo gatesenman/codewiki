@@ -2337,6 +2337,55 @@ function cmdScan(projectPath: string): void {
   output({ command: 'scan', filesScanned: scanned, total: findings.length, bySeverity, byRule, findings })
 }
 
+// ---- Design pattern / anti-pattern detection ----
+
+function cmdPatterns(projectPath: string): void {
+  const absPath = path.resolve(projectPath)
+  const { graph } = getGraph(absPath)
+  const byId = new Map(graph.entities.map(e => [e.id, e]))
+  const DEP = new Set(['imports', 'dependsOn', 'calls', 'uses', 'extends', 'implements'])
+  const fanIn = new Map<string, number>()
+  const fanOut = new Map<string, number>()
+  const memberCount = new Map<string, number>()
+  const members = new Map<string, string[]>()
+  for (const r of graph.relations) {
+    if (r.type === 'contains') {
+      memberCount.set(r.source, (memberCount.get(r.source) || 0) + 1)
+      const m = byId.get(r.target)
+      if (m) { const arr = members.get(r.source) || []; arr.push(m.name.toLowerCase()); members.set(r.source, arr) }
+      continue
+    }
+    if (!DEP.has(r.type)) continue
+    fanOut.set(r.source, (fanOut.get(r.source) || 0) + 1)
+    fanIn.set(r.target, (fanIn.get(r.target) || 0) + 1)
+  }
+  const entities: Array<{ name: string; type: string; file: string; patterns: string[]; antiPatterns: string[] }> = []
+  const counts: Record<string, number> = {}
+  for (const e of graph.entities) {
+    if (e.type === 'File' || e.type === 'Module' || e.type === 'Package') continue
+    const ml = members.get(e.id) || []
+    const patterns: string[] = []
+    const anti: string[] = []
+    if (e.type === 'Class' || e.type === 'Function') {
+      if (ml.includes('getinstance') || /\bsingleton\b/i.test(e.name)) patterns.push('Singleton')
+      if (/factory$/i.test(e.name) || ml.some(m => /^create[a-z]/i.test(m) || /^make[a-z]/i.test(m))) patterns.push('Factory')
+      if (ml.some(m => ['subscribe', 'unsubscribe', 'notify', 'emit', 'addlistener', 'on', 'off', 'publish'].includes(m))) patterns.push('Observer')
+      if (/builder$/i.test(e.name)) patterns.push('Builder')
+      if (/strategy$/i.test(e.name)) patterns.push('Strategy')
+      if (/(repository|repo|dao)$/i.test(e.name)) patterns.push('Repository')
+    }
+    const fo = fanOut.get(e.id) || 0, fi = fanIn.get(e.id) || 0, mem = memberCount.get(e.id) || 0
+    if (fo >= 20 || mem >= 20) anti.push('GodObject')
+    else if (fi + fo >= 12) anti.push('HighCoupling')
+    if (patterns.length || anti.length) {
+      for (const p of [...patterns, ...anti]) counts[p] = (counts[p] || 0) + 1
+      entities.push({ name: e.name, type: e.type, file: path.relative(absPath, e.filePath) || e.filePath, patterns, antiPatterns: anti })
+    }
+  }
+  entities.sort((a, b) => (b.patterns.length + b.antiPatterns.length) - (a.patterns.length + a.antiPatterns.length))
+  output({ command: 'patterns', total: entities.length, counts, entities })
+}
+
 // ---- Find References ----
 
 function cmdFindReferences(entityName: string, projectPath: string): void {
@@ -4685,6 +4734,10 @@ function main() {
     case 'scan':
     case 'security':
       cmdScan(projectPath)
+      break
+    case 'patterns':
+    case 'design-patterns':
+      cmdPatterns(projectPath)
       break
     case 'find-references':
     case 'references':
