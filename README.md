@@ -19,6 +19,12 @@ precise, impact-aware code agent — all powered by an **ontology model** of you
 
 </div>
 
+<!-- codewiki-health-card:start -->
+
+_The code-health card is generated automatically on every push to `main` by the [CodeWiki Health Card](.github/workflows/codewiki-health-card.yml) workflow (`codewiki report` -> health/security/pattern badges)._
+
+<!-- codewiki-health-card:end -->
+
 ---
 
 ## About
