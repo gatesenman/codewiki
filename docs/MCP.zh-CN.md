@@ -22,6 +22,37 @@ VS Code、Windsurf、Cline 等。
 - [可用工具](#可用工具)
 - [排错](#排错)
 
+## 快速开始（推荐）：用 CLI 一键生成配置
+
+如果你装了 CLI（`./install-cli.sh`，或 `npm run install:cli`，或 `npm i -g .`），
+就**不用手写任何 JSON**。在你要查询的项目目录里运行：
+
+```bash
+codewiki init --ide cursor        # 生成 .cursor/mcp.json
+codewiki init --ide vscode        # 生成 .vscode/mcp.json
+codewiki init --ide claude-code   # 生成 ./.mcp.json
+codewiki init --ide all           # 一次性生成所有支持的 IDE 配置
+codewiki init --ide cursor --print   # 只预览不写文件
+```
+
+`init` 会自动探测内置 MCP server 的绝对路径（优先编译产物
+`dist/server/mcp-server.js`，否则回退用 `ts-node` 跑源码），自动填好
+`PROJECT_PATH`，并以**合并**方式写入已有配置（不会覆盖你其它的 server）。
+同时会写入 `.codewiki/agent-usage.md`（给 code agent 的使用约定）和默认
+`.codewikirc`。
+
+支持的 `--ide`：`cursor`、`vscode`、`claude`（Claude Desktop）、
+`claude-code`、`windsurf`、`cline`、`codex`、`all`。
+
+随时查看各 IDE 的配置指引：
+
+```bash
+codewiki mcp-guide cursor     # 单个 IDE 的说明
+codewiki mcp-guide --verify   # 显示如何冒烟测试 server
+```
+
+下文是各客户端的手动配置参考。
+
 ## 构建
 
 需要 Node.js 18+。

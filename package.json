@@ -17,6 +17,8 @@
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
     "build:cli": "tsc -p cli/tsconfig.json",
     "build:mcp": "tsc -p server/tsconfig.json",
+    "prepare": "npm run build:cli && npm run build:mcp",
+    "install:cli": "npm install && npm run build:cli && npm run build:mcp && npm link",
     "build:vscode": "cd vscode-extension && npm install && npm run package",
     "cli": "npx ts-node cli/codewiki-cli.ts",
     "test:accuracy": "npx ts-node cli/codewiki-cli.ts test test-fixtures",
