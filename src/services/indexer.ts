@@ -21,6 +21,7 @@ import { parseLsif, mergeLsifIntoGraph, LSIF_CANDIDATES } from './lsif-consumer'
 import {
   isMonorepo, resolvePackages, integrateWorkspaces, isPackageJson, WORKSPACE_FILES,
 } from './workspace-resolver'
+import { createPrivacyFilter, CODEWIKIIGNORE_FILE, type PrivacyFilter } from './privacy-filter'
 import {
   cacheKeyFor, buildManifest, diffManifest, isClean,
   loadSnapshot, saveSnapshot, INDEX_SNAPSHOT_VERSION,
@@ -63,14 +64,23 @@ export class CodeIndexer {
     })
 
     // Read directory tree via Electron IPC
-    const files = await window.electronAPI.readDirectory(folderPath)
+    const rawFiles = await window.electronAPI.readDirectory(folderPath)
+
+    // Honor .codewikiignore + default-sensitive files: drop ignored paths from
+    // the tree and redact secrets from any content that leaves the machine.
+    const ignoreText = await window.electronAPI
+      .readFile(folderPath + (folderPath.includes('\\') ? '\\' : '/') + CODEWIKIIGNORE_FILE)
+      .catch(() => null)
+    const privacy = createPrivacyFilter(ignoreText)
+    const files = this.filterTree(rawFiles, folderPath, privacy)
 
     const flatFiles = this.flattenFiles(files)
     const codeFiles = flatFiles.filter(f => f.type === 'file')
     const fileByPath = new Map(codeFiles.map(f => [f.path, f]))
 
     const readFile = async (path: string) => {
-      return await window.electronAPI.readFile(path)
+      const content = await window.electronAPI.readFile(path)
+      return content === null || content === undefined ? content : privacy.redact(content)
     }
     const addDoc = async (file: FileNode) => {
       const content = await readFile(file.path)
@@ -547,5 +557,28 @@ export class CodeIndexer {
       }
     }
     return result
+  }
+
+  /**
+   * Drop paths matched by `.codewikiignore` / default-sensitive globs from the
+   * file tree, so ignored content is never parsed, embedded, or exposed.
+   */
+  private filterTree(nodes: FileNode[], rootPath: string, privacy: PrivacyFilter): FileNode[] {
+    const root = rootPath.replace(/\\/g, '/').replace(/\/+$/, '')
+    const rel = (full: string) => full.replace(/\\/g, '/').replace(root + '/', '')
+    const walk = (list: FileNode[]): FileNode[] => {
+      const out: FileNode[] = []
+      for (const node of list) {
+        if (privacy.isIgnored(rel(node.path), node.type === 'directory')) continue
+        if (node.type === 'directory') {
+          const children = node.children ? walk(node.children) : []
+          if (children.length) out.push({ ...node, children })
+        } else {
+          out.push(node)
+        }
+      }
+      return out
+    }
+    return walk(nodes)
   }
 }
