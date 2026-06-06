@@ -23,7 +23,7 @@ interface AppState {
   setActivePageId: (id: string | null) => void
 
   // View mode
-  viewMode: 'wiki' | 'graph' | 'search' | 'chat' | 'agent'
+  viewMode: 'wiki' | 'graph' | 'search' | 'chat' | 'agent' | 'insights'
   setViewMode: (mode: AppState['viewMode']) => void
 
   // Sidebar

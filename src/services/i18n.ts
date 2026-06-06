@@ -19,6 +19,55 @@ export interface I18nStrings {
   navSearch: string
   navChat: string
   navAgent: string
+  navInsights: string
+
+  // Insights panel
+  insTitle: string
+  insSubtitle: string
+  insNoProject: string
+  insTabQuery: string
+  insTabHistory: string
+  insTabWiki: string
+  insTabEval: string
+  insQueryPlaceholder: string
+  insQueryRun: string
+  insQueryHint: string
+  insQueryNoResult: string
+  insQueryEntities: string
+  insQueryRelations: string
+  insHistSnapshot: string
+  insHistClear: string
+  insHistNoSnapshots: string
+  insHistHint: string
+  insHistTrend: string
+  insHistEntities: string
+  insHistRelations: string
+  insHistCouplingUp: string
+  insHistCouplingStable: string
+  insHistDiff: string
+  insHistAdded: string
+  insHistRemoved: string
+  insHistMoved: string
+  insWikiPlaceholder: string
+  insWikiRun: string
+  insWikiHint: string
+  insWikiNone: string
+  insWikiFull: string
+  insWikiAffected: string
+  insWikiDirect: string
+  insWikiTransitive: string
+  insEvalPlaceholder: string
+  insEvalBaselinePlaceholder: string
+  insEvalRun: string
+  insEvalHint: string
+  insEvalError: string
+  insEvalOverall: string
+  insEvalPrecision: string
+  insEvalRecall: string
+  insEvalF1: string
+  insEvalCases: string
+  insEvalRegressions: string
+  insEvalNoRegressions: string
 
   // TopBar
   home: string
@@ -383,6 +432,54 @@ const en: I18nStrings = {
   navSearch: 'Search',
   navChat: 'Chat',
   navAgent: 'Agent',
+  navInsights: 'Insights',
+
+  insTitle: 'Insights',
+  insSubtitle: 'Graph query, evolution, incremental wiki & evaluation — running on the indexed ontology.',
+  insNoProject: 'Open and index a project first to use Insights.',
+  insTabQuery: 'NL Query',
+  insTabHistory: 'Evolution',
+  insTabWiki: 'Wiki Incremental',
+  insTabEval: 'Evaluation',
+  insQueryPlaceholder: 'Ask in natural language, e.g. "who calls handleSearch" / "impact of getGraph" / "list all classes"',
+  insQueryRun: 'Run',
+  insQueryHint: 'Pattern-based NL → graph query (no LLM). Supports callers / callees / references / impact / deps / path / find.',
+  insQueryNoResult: 'Could not understand the query. Try "who calls X", "impact of X", "list all classes".',
+  insQueryEntities: 'Entities',
+  insQueryRelations: 'Relations',
+  insHistSnapshot: 'Capture snapshot',
+  insHistClear: 'Clear',
+  insHistNoSnapshots: 'No snapshots yet. Capture one now, then re-index after code changes and capture again to see the architecture evolve.',
+  insHistHint: 'Snapshots are kept for this session. Capture → change code → re-index → capture again.',
+  insHistTrend: 'Trend',
+  insHistEntities: 'entities',
+  insHistRelations: 'relations',
+  insHistCouplingUp: 'coupling rising',
+  insHistCouplingStable: 'coupling stable',
+  insHistDiff: 'Changes between snapshots',
+  insHistAdded: 'added',
+  insHistRemoved: 'removed',
+  insHistMoved: 'moved',
+  insWikiPlaceholder: 'Changed file paths, one per line, e.g.\nsrc/services/code-agent.ts\nsrc/components/SearchPanel.tsx',
+  insWikiRun: 'Compute affected pages',
+  insWikiHint: 'Given changed files, finds which wiki pages need regeneration (direct + transitive) instead of a full rebuild.',
+  insWikiNone: 'No wiki pages are affected by these changes.',
+  insWikiFull: 'All pages affected — a full regeneration is recommended.',
+  insWikiAffected: 'Affected pages',
+  insWikiDirect: 'direct',
+  insWikiTransitive: 'transitive',
+  insEvalPlaceholder: 'Ground-truth cases as JSON array (EvalCase[]). e.g.\n[{"name":"who calls foo","type":"callers","entity":"foo","expected_callers":["bar"]}]',
+  insEvalBaselinePlaceholder: 'Optional baseline JSON (from a previous run) for regression detection.',
+  insEvalRun: 'Run evaluation',
+  insEvalHint: 'Grades retrieval/impact accuracy (precision / recall / F1) against ground-truth cases; optional baseline detects regressions.',
+  insEvalError: 'Invalid JSON — expected an array of EvalCase objects.',
+  insEvalOverall: 'Overall',
+  insEvalPrecision: 'Precision',
+  insEvalRecall: 'Recall',
+  insEvalF1: 'F1',
+  insEvalCases: 'Cases',
+  insEvalRegressions: 'Regressions vs baseline',
+  insEvalNoRegressions: 'No regressions vs baseline.',
 
   home: 'Home',
   settings: 'Settings',
@@ -729,6 +826,54 @@ const zh: I18nStrings = {
   navSearch: '搜索',
   navChat: '对话',
   navAgent: '代理',
+  navInsights: '洞察',
+
+  insTitle: '洞察',
+  insSubtitle: '图查询、架构演变、Wiki 增量与评测——全部基于已索引的代码本体运行。',
+  insNoProject: '请先打开并索引一个项目，再使用洞察功能。',
+  insTabQuery: '自然语言查询',
+  insTabHistory: '架构演变',
+  insTabWiki: 'Wiki 增量',
+  insTabEval: '评测',
+  insQueryPlaceholder: '用自然语言提问，例如「谁调用 handleSearch」/「getGraph 的影响」/「列出所有类」',
+  insQueryRun: '运行',
+  insQueryHint: '基于模式匹配的自然语言→图查询（无需 LLM）。支持 调用者/被调用/引用/影响/依赖/路径/查找。',
+  insQueryNoResult: '无法理解该查询。可尝试「谁调用 X」「X 的影响」「列出所有类」。',
+  insQueryEntities: '实体',
+  insQueryRelations: '关系',
+  insHistSnapshot: '拍快照',
+  insHistClear: '清空',
+  insHistNoSnapshots: '暂无快照。先拍一张，改动代码并重新索引后再拍一张，即可看到架构演变。',
+  insHistHint: '快照仅保留在本次会话。拍快照 → 改代码 → 重新索引 → 再拍快照。',
+  insHistTrend: '趋势',
+  insHistEntities: '实体',
+  insHistRelations: '关系',
+  insHistCouplingUp: '耦合上升',
+  insHistCouplingStable: '耦合稳定',
+  insHistDiff: '快照间变更',
+  insHistAdded: '新增',
+  insHistRemoved: '删除',
+  insHistMoved: '移动',
+  insWikiPlaceholder: '改动的文件路径，每行一个，例如\nsrc/services/code-agent.ts\nsrc/components/SearchPanel.tsx',
+  insWikiRun: '计算受影响页面',
+  insWikiHint: '给定改动文件，找出需要重新生成的 Wiki 页面（直接 + 传递），而非全量重建。',
+  insWikiNone: '这些改动未影响任何 Wiki 页面。',
+  insWikiFull: '所有页面都受影响——建议执行全量重新生成。',
+  insWikiAffected: '受影响页面',
+  insWikiDirect: '直接',
+  insWikiTransitive: '传递',
+  insEvalPlaceholder: '真值用例 JSON 数组（EvalCase[]）。例如\n[{"name":"谁调用 foo","type":"callers","entity":"foo","expected_callers":["bar"]}]',
+  insEvalBaselinePlaceholder: '可选基线 JSON（来自上次运行），用于回归检测。',
+  insEvalRun: '运行评测',
+  insEvalHint: '基于真值用例对检索/影响准确率打分（precision / recall / F1）；可选基线用于检测回归。',
+  insEvalError: 'JSON 无效——需要一个 EvalCase 对象数组。',
+  insEvalOverall: '总体',
+  insEvalPrecision: '精确率',
+  insEvalRecall: '召回率',
+  insEvalF1: 'F1',
+  insEvalCases: '用例',
+  insEvalRegressions: '相对基线的回归',
+  insEvalNoRegressions: '相对基线无回归。',
 
   home: '首页',
   settings: '设置',
