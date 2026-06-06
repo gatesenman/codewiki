@@ -9,7 +9,7 @@
  * Pure functions — wiki pages in → formatted string out.
  */
 
-import type { WikiProject } from '../types'
+import type { WikiPage, WikiProject } from '../types'
 import { graphStats } from './graph-persistence'
 
 // ── Types ─────────────────────────────────────────────────────────────────
