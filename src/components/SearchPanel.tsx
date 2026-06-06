@@ -54,9 +54,9 @@ export function SearchPanel() {
       }
     }
 
-    // Vector search in code
+    // Vector search in code (hybrid when embeddings are available)
     if (searchType === 'all' || searchType === 'code') {
-      const vectorResults = services.vectorStore.search(searchQuery, 10)
+      const vectorResults = await services.vectorStore.searchHybrid(searchQuery, 10)
       for (const r of vectorResults) {
         results.push({
           id: r.id,

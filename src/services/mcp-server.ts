@@ -185,12 +185,12 @@ export class MCPServer {
     return { content: [{ type: 'text', text: wikiPage.content }] }
   }
 
-  private handleSearchCode(query: string, limit: number): MCPToolResult {
+  private async handleSearchCode(query: string, limit: number): Promise<MCPToolResult> {
     if (!this.vectorStore) {
       return { content: [{ type: 'text', text: 'No code indexed. Please index a project first.' }] }
     }
 
-    const results = this.vectorStore.search(query, limit)
+    const results = await this.vectorStore.searchHybrid(query, limit)
     if (results.length === 0) {
       return { content: [{ type: 'text', text: `No results found for "${query}"` }] }
     }

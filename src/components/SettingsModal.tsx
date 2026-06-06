@@ -440,6 +440,9 @@ function SearchSettings({ config, updateLocal }: TabProps) {
       <SettingRow label="Snippet Length" description="Max characters shown per result snippet.">
         <NumberInput value={config.search.snippetLength} onChange={v => updateLocal('search', { snippetLength: v })} min={100} max={2000} step={100} />
       </SettingRow>
+      <SettingRow label="Hybrid Search (Embeddings)" description="Combine TF-IDF with dense embeddings (RRF). Requires an OpenAI key or local Ollama; rebuild index after enabling.">
+        <Toggle checked={config.search.useEmbeddings} onChange={v => updateLocal('search', { useEmbeddings: v })} />
+      </SettingRow>
 
       <div className="border-t border-wiki-border pt-4 space-y-4">
         <h4 className="text-sm font-medium text-wiki-text flex items-center gap-2">

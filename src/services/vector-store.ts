@@ -1,16 +1,43 @@
 /**
  * Local Vector Store for Semantic Search
- * 
- * Lightweight in-memory vector store using TF-IDF-like scoring
- * for semantic search without requiring external services.
- * When an LLM API key is available, it can use OpenAI embeddings
- * for higher quality results.
+ *
+ * Lightweight in-memory vector store using TF-IDF-like scoring for semantic
+ * search without requiring external services. It is local-first: with no
+ * embedding provider configured it behaves exactly as a TF-IDF cosine index.
+ *
+ * When an (optional) embedding provider is configured, the store can also run
+ * dense vector search and fuse it with the keyword ranking via Reciprocal Rank
+ * Fusion (RRF) for higher-quality "hybrid" retrieval — see `searchHybrid`.
  */
 
 export interface VectorDocument {
   id: string
   content: string
   metadata: Record<string, string>
+}
+
+/**
+ * Pluggable embedding backend. Implementations turn text into dense vectors.
+ * Kept minimal so callers can supply OpenAI-compatible, Ollama, or any custom
+ * provider — or none at all (TF-IDF-only, fully offline).
+ */
+export interface EmbeddingProvider {
+  /** Embed a batch of texts; returns one vector per input, in order. */
+  embed(texts: string[]): Promise<number[][]>
+}
+
+export interface SearchResult {
+  id: string
+  score: number
+  content: string
+  metadata: Record<string, string>
+}
+
+export interface HybridSearchOptions {
+  /** RRF constant; larger = flatter weighting. Default 60. */
+  rrfK?: number
+  /** Candidate pool size pulled from each ranker before fusion. */
+  candidatePool?: number
 }
 
 interface IndexedDocument {
@@ -26,6 +53,23 @@ export class VectorStore {
   private documents: Map<string, IndexedDocument> = new Map()
   private idf: Map<string, number> = new Map()
   private totalDocs = 0
+  private embeddingProvider?: EmbeddingProvider
+
+  /**
+   * Configure (or clear) the optional embedding provider used by
+   * `embedDocuments` / `searchHybrid`. Pass `undefined` to revert to
+   * TF-IDF-only behaviour.
+   */
+  setEmbeddingProvider(provider?: EmbeddingProvider): void {
+    this.embeddingProvider = provider
+  }
+
+  hasEmbeddings(): boolean {
+    for (const doc of this.documents.values()) {
+      if (doc.embedding) return true
+    }
+    return false
+  }
 
   async addDocument(doc: VectorDocument): Promise<void> {
     const tokens = this.tokenize(doc.content)
@@ -72,7 +116,7 @@ export class VectorStore {
   /**
    * Search for similar documents using cosine similarity
    */
-  search(query: string, topK: number = 10): Array<{ id: string; score: number; content: string; metadata: Record<string, string> }> {
+  search(query: string, topK: number = 10): SearchResult[] {
     if (this.documents.size === 0) return []
 
     // Rebuild index if needed
@@ -93,7 +137,7 @@ export class VectorStore {
     if (queryNorm === 0) return []
 
     // Compute cosine similarity with all documents
-    const scores: Array<{ id: string; score: number; content: string; metadata: Record<string, string> }> = []
+    const scores: SearchResult[] = []
 
     for (const doc of this.documents.values()) {
       if (doc.norm === 0) continue
@@ -116,6 +160,80 @@ export class VectorStore {
     }
 
     return scores.sort((a, b) => b.score - a.score).slice(0, topK)
+  }
+
+  /**
+   * Compute and cache embeddings for every document missing one, using the
+   * configured provider. No-op when no provider is set. Safe to call after
+   * (re)indexing; subsequent calls only embed new documents.
+   */
+  async embedDocuments(batchSize: number = 64): Promise<number> {
+    if (!this.embeddingProvider) return 0
+    const pending = Array.from(this.documents.values()).filter(d => !d.embedding)
+    let embedded = 0
+    for (let i = 0; i < pending.length; i += batchSize) {
+      const batch = pending.slice(i, i + batchSize)
+      const vectors = await this.embeddingProvider.embed(batch.map(d => d.content))
+      for (let j = 0; j < batch.length; j++) {
+        const vec = vectors[j]
+        if (vec && vec.length) {
+          batch[j].embedding = vec
+          embedded++
+        }
+      }
+    }
+    return embedded
+  }
+
+  /**
+   * Dense vector search over documents that have embeddings. Returns ranked
+   * results by cosine similarity. Empty when no provider/embeddings exist.
+   */
+  async semanticSearch(query: string, topK: number = 10): Promise<SearchResult[]> {
+    if (!this.embeddingProvider || !this.hasEmbeddings()) return []
+    const [queryVec] = await this.embeddingProvider.embed([query])
+    if (!queryVec || !queryVec.length) return []
+    const queryNorm = denseNorm(queryVec)
+    if (queryNorm === 0) return []
+
+    const scores: SearchResult[] = []
+    for (const doc of this.documents.values()) {
+      if (!doc.embedding) continue
+      const sim = cosineDense(queryVec, doc.embedding, queryNorm)
+      if (sim > 0) {
+        scores.push({
+          id: doc.id,
+          score: sim,
+          content: doc.content.substring(0, 500),
+          metadata: doc.metadata,
+        })
+      }
+    }
+    return scores.sort((a, b) => b.score - a.score).slice(0, topK)
+  }
+
+  /**
+   * Hybrid retrieval: fuse the TF-IDF keyword ranking with the dense semantic
+   * ranking via Reciprocal Rank Fusion. Falls back to pure keyword search when
+   * no embedding provider/embeddings are available, so callers can always use
+   * this method regardless of configuration.
+   */
+  async searchHybrid(
+    query: string,
+    topK: number = 10,
+    options: HybridSearchOptions = {},
+  ): Promise<SearchResult[]> {
+    const rrfK = options.rrfK ?? 60
+    const pool = options.candidatePool ?? Math.max(topK * 4, 20)
+
+    const keyword = this.search(query, pool)
+    if (!this.embeddingProvider || !this.hasEmbeddings()) {
+      return keyword.slice(0, topK)
+    }
+    const semantic = await this.semanticSearch(query, pool)
+    if (semantic.length === 0) return keyword.slice(0, topK)
+
+    return fuseRrf([keyword, semantic], rrfK, this.documents, topK)
   }
 
   private tokenize(text: string): string[] {
@@ -156,5 +274,123 @@ export class VectorStore {
     this.documents.clear()
     this.idf.clear()
     this.totalDocs = 0
+  }
+}
+
+function denseNorm(v: number[]): number {
+  let s = 0
+  for (const x of v) s += x * x
+  return Math.sqrt(s)
+}
+
+/** Cosine similarity; `aNorm` may be precomputed for the query side. */
+function cosineDense(a: number[], b: number[], aNorm?: number): number {
+  const len = Math.min(a.length, b.length)
+  let dot = 0
+  let bNormSq = 0
+  for (let i = 0; i < len; i++) {
+    dot += a[i] * b[i]
+    bNormSq += b[i] * b[i]
+  }
+  const denom = (aNorm ?? denseNorm(a)) * Math.sqrt(bNormSq)
+  return denom === 0 ? 0 : dot / denom
+}
+
+/**
+ * Reciprocal Rank Fusion across multiple ranked result lists.
+ * score(d) = Σ 1 / (k + rank_i(d)). Rank-based, so it is robust to the
+ * different score scales of TF-IDF vs cosine embeddings.
+ */
+function fuseRrf(
+  rankings: SearchResult[][],
+  k: number,
+  documents: Map<string, IndexedDocument>,
+  topK: number,
+): SearchResult[] {
+  const fused = new Map<string, number>()
+  for (const ranking of rankings) {
+    ranking.forEach((res, idx) => {
+      const rank = idx + 1
+      fused.set(res.id, (fused.get(res.id) || 0) + 1 / (k + rank))
+    })
+  }
+  return Array.from(fused.entries())
+    .map(([id, score]) => {
+      const doc = documents.get(id)
+      return {
+        id,
+        score,
+        content: doc ? doc.content.substring(0, 500) : '',
+        metadata: doc ? doc.metadata : {},
+      }
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
+}
+
+/**
+ * OpenAI-compatible embedding provider (works with OpenAI and any service
+ * exposing a `/embeddings` endpoint with the same schema). Optional — only
+ * used when the app is configured with an API key.
+ */
+export class OpenAIEmbeddingProvider implements EmbeddingProvider {
+  private apiKey: string
+  private model: string
+  private baseURL: string
+
+  constructor(opts: { apiKey: string; model?: string; baseURL?: string }) {
+    this.apiKey = opts.apiKey
+    this.model = opts.model || 'text-embedding-3-small'
+    this.baseURL = (opts.baseURL || 'https://api.openai.com/v1').replace(/\/$/, '')
+  }
+
+  async embed(texts: string[]): Promise<number[][]> {
+    const res = await fetch(`${this.baseURL}/embeddings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({ model: this.model, input: texts }),
+    })
+    if (!res.ok) {
+      throw new Error(`Embedding request failed: ${res.status} ${await res.text()}`)
+    }
+    const json = (await res.json()) as { data: Array<{ embedding: number[]; index: number }> }
+    return json.data
+      .sort((a, b) => a.index - b.index)
+      .map(d => d.embedding)
+  }
+}
+
+/**
+ * Ollama embedding provider for fully-offline local embeddings (e.g.
+ * `nomic-embed-text`). Ollama embeds one prompt per request, so a batch is
+ * issued as sequential requests.
+ */
+export class OllamaEmbeddingProvider implements EmbeddingProvider {
+  private model: string
+  private baseURL: string
+
+  constructor(opts: { model?: string; baseURL?: string } = {}) {
+    this.model = opts.model || 'nomic-embed-text'
+    this.baseURL = (opts.baseURL || 'http://localhost:11434').replace(/\/$/, '')
+  }
+
+  async embed(texts: string[]): Promise<number[][]> {
+    const out: number[][] = []
+    for (const text of texts) {
+      const res = await fetch(`${this.baseURL}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: this.model, prompt: text }),
+      })
+      if (!res.ok) {
+        throw new Error(`Ollama embedding failed: ${res.status} ${await res.text()}`)
+      }
+      const json = (await res.json()) as { embedding: number[] }
+      out.push(json.embedding || [])
+    }
+    return out
   }
 }
