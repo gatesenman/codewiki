@@ -42,13 +42,21 @@ export function KnowledgeGraph() {
   const svgRef = useRef<SVGSVGElement>(null)
   const [filter, setFilter] = useState<OntologyEntityType | 'all'>('all')
   const [tooltip, setTooltip] = useState<{ x: number; y: number; node: GraphNode } | null>(null)
+  // Set when 3D rendering fails (no WebGL / library crash) so we degrade to 2D.
+  const [force2D, setForce2D] = useState(false)
 
   const ontology = currentProject?.ontologyGraph
   const graphCfg = configManager.getConfig().graph
   const render3D = graphCfg.render3D
+  const use3D = render3D && !force2D
+
+  // Re-attempt 3D whenever the user turns the setting back on.
+  useEffect(() => {
+    if (render3D) setForce2D(false)
+  }, [render3D])
 
   const buildGraph = useCallback(() => {
-    if (render3D || !ontology || !svgRef.current) return
+    if (use3D || !ontology || !svgRef.current) return
 
     const { nodes, links } = OntologyBuilder.toGraphVisualization(ontology)
 
@@ -161,7 +169,7 @@ export function KnowledgeGraph() {
     })
 
     return () => simulation.stop()
-  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, render3D])
+  }, [ontology, filter, selectedGraphNode, setSelectedGraphNode, use3D])
 
   useEffect(() => {
     const cleanup = buildGraph()
@@ -213,9 +221,16 @@ export function KnowledgeGraph() {
         </div>
       </div>
 
+      {/* 3D unavailable: degraded to 2D */}
+      {render3D && force2D && (
+        <div className="px-4 py-1.5 text-[11px] text-amber-500 bg-amber-500/10 border-b border-wiki-border">
+          {t('graph3dFallback')}
+        </div>
+      )}
+
       {/* Graph canvas */}
-      {render3D ? (
-        <Graph3DCanvas filter={filter} />
+      {use3D ? (
+        <Graph3DCanvas filter={filter} onError={() => setForce2D(true)} />
       ) : (
         <svg ref={svgRef} className="flex-1 w-full bg-wiki-bg" />
       )}
@@ -243,7 +258,7 @@ export function KnowledgeGraph() {
 }
 
 /** Computes filtered graph data and renders the 3D (three.js) canvas. */
-function Graph3DCanvas({ filter }: { filter: OntologyEntityType | 'all' }) {
+function Graph3DCanvas({ filter, onError }: { filter: OntologyEntityType | 'all'; onError: () => void }) {
   const { currentProject, selectedGraphNode, setSelectedGraphNode } = useAppStore()
   const ontology = currentProject?.ontologyGraph
   const cfg = configManager.getConfig().graph
@@ -268,6 +283,7 @@ function Graph3DCanvas({ filter }: { filter: OntologyEntityType | 'all' }) {
       showLabels={cfg.showLabels}
       rotationSpeed={cfg.rotationSpeed}
       onSelect={(id) => setSelectedGraphNode(id === selectedGraphNode ? null : id)}
+      onError={onError}
     />
   )
 }
