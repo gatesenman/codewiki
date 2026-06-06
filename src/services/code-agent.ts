@@ -62,8 +62,8 @@ export class CodeAgent {
     impactedFiles: string[]
     warnings: string[]
   }> {
-    // Step 1: Find relevant code through semantic search
-    const searchResults = this.vectorStore.search(request, 10)
+    // Step 1: Find relevant code through hybrid search (semantic + keyword)
+    const searchResults = await this.vectorStore.searchHybrid(request, 10)
 
     // Step 2: Identify relevant entities from ontology
     const relevantEntities = this.findRelevantEntities(request, graph)
@@ -150,8 +150,8 @@ Provide precise modifications in the specified JSON format.`,
   ): Promise<CodeSource[]> {
     const sources: CodeSource[] = []
 
-    // Vector search
-    const searchResults = this.vectorStore.search(query, 5)
+    // Vector search (hybrid when embeddings are available)
+    const searchResults = await this.vectorStore.searchHybrid(query, 5)
     for (const result of searchResults) {
       const content = await readFile(result.id)
       if (content) {

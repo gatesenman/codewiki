@@ -42,6 +42,12 @@ export interface SearchConfig {
   maxResults: number
   minScore: number
   snippetLength: number
+  /**
+   * Enable hybrid retrieval: compute dense embeddings at index time and fuse
+   * them with TF-IDF via RRF. Off by default to keep CodeWiki fully local and
+   * free; requires an embedding-capable provider (OpenAI key or local Ollama).
+   */
+  useEmbeddings: boolean
 }
 
 export interface WikiConfig {
@@ -136,6 +142,7 @@ export const DEFAULT_CONFIG: CodeWikiConfig = {
     maxResults: 10,
     minScore: 0.01,
     snippetLength: 500,
+    useEmbeddings: false,
   },
   wiki: {
     pageCount: 6,

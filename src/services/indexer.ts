@@ -11,8 +11,12 @@
 import { v4 as uuid } from 'uuid'
 import type { FileNode, WikiProject, OntologyGraph } from '../types'
 import { OntologyBuilder } from './ontology'
-import { VectorStore } from './vector-store'
+import {
+  VectorStore, OpenAIEmbeddingProvider, OllamaEmbeddingProvider,
+  type EmbeddingProvider,
+} from './vector-store'
 import { services } from './service-registry'
+import { configManager } from './config-manager'
 
 export interface IndexProgress {
   phase: 'scanning' | 'parsing' | 'ontology' | 'embedding' | 'complete'
@@ -105,6 +109,8 @@ export class CodeIndexer {
         message: `Indexing ${file.relativePath}...`,
       })
     }
+
+    await this.maybeBuildEmbeddings(onProgress)
 
     onProgress?.({
       phase: 'complete',
@@ -209,6 +215,8 @@ export class CodeIndexer {
       })
     }
 
+    await this.maybeBuildEmbeddings(onProgress)
+
     onProgress?.({
       phase: 'complete',
       current: codeFiles.length,
@@ -299,6 +307,64 @@ export class CodeIndexer {
 
   getVectorStore(): VectorStore {
     return this.vectorStore
+  }
+
+  /**
+   * Build an embedding provider from the current config, or undefined when
+   * hybrid retrieval is disabled or no embedding-capable backend is available.
+   */
+  private buildEmbeddingProvider(): EmbeddingProvider | undefined {
+    const config = configManager.getConfig()
+    if (!config.search.useEmbeddings) return undefined
+    const llm = config.llm
+    if (llm.provider === 'ollama') {
+      return new OllamaEmbeddingProvider({
+        model: llm.embeddingModel,
+        baseURL: llm.apiBaseUrl || undefined,
+      })
+    }
+    if (llm.apiKey) {
+      return new OpenAIEmbeddingProvider({
+        apiKey: llm.apiKey,
+        model: llm.embeddingModel,
+        baseURL: llm.apiBaseUrl || undefined,
+      })
+    }
+    return undefined
+  }
+
+  /**
+   * Optionally compute dense embeddings for the indexed documents so that
+   * `searchHybrid` can fuse semantic + keyword results. Resilient: any failure
+   * (e.g. Ollama not running, network error) leaves the store in TF-IDF mode.
+   */
+  private async maybeBuildEmbeddings(
+    onProgress?: (progress: IndexProgress) => void,
+  ): Promise<void> {
+    const provider = this.buildEmbeddingProvider()
+    if (!provider) {
+      this.vectorStore.setEmbeddingProvider(undefined)
+      return
+    }
+    this.vectorStore.setEmbeddingProvider(provider)
+    onProgress?.({
+      phase: 'embedding',
+      current: 0,
+      total: 0,
+      message: 'Computing semantic embeddings (hybrid search)...',
+    })
+    try {
+      const count = await this.vectorStore.embedDocuments()
+      onProgress?.({
+        phase: 'embedding',
+        current: count,
+        total: count,
+        message: `Computed embeddings for ${count} documents.`,
+      })
+    } catch (err) {
+      console.warn('[indexer] Embedding generation failed; using TF-IDF only.', err)
+      this.vectorStore.setEmbeddingProvider(undefined)
+    }
   }
 
   getOntologyBuilder(): OntologyBuilder {
