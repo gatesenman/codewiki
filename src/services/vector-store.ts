@@ -49,6 +49,21 @@ interface IndexedDocument {
   norm: number
 }
 
+export const VECTOR_SNAPSHOT_VERSION = 1
+
+/** A document as persisted to disk (no derived TF-IDF state). */
+export interface PersistedDocument {
+  id: string
+  content: string
+  metadata: Record<string, string>
+  embedding?: number[]
+}
+
+export interface VectorStoreSnapshot {
+  version: number
+  documents: PersistedDocument[]
+}
+
 export class VectorStore {
   private documents: Map<string, IndexedDocument> = new Map()
   private idf: Map<string, number> = new Map()
@@ -75,12 +90,58 @@ export class VectorStore {
     const tokens = this.tokenize(doc.content)
     const tf = this.computeTF(tokens)
 
+    // Preserve a previously-computed embedding when re-adding the same id so an
+    // unchanged document does not need to be re-embedded.
+    const existing = this.documents.get(doc.id)
     this.documents.set(doc.id, {
       ...doc,
       tokens: tf,
+      embedding: existing?.embedding,
       norm: 0,
     })
-    this.totalDocs++
+    this.totalDocs = this.documents.size
+  }
+
+  /** Remove a document by id. Returns true if it existed. */
+  removeDocument(id: string): boolean {
+    const existed = this.documents.delete(id)
+    this.totalDocs = this.documents.size
+    return existed
+  }
+
+  hasDocument(id: string): boolean {
+    return this.documents.has(id)
+  }
+
+  /**
+   * Export documents (content, metadata, cached embeddings) for persistence.
+   * Derived data (tokens/idf/norm) is intentionally omitted and recomputed on
+   * import via `rebuildIndex`, keeping snapshots compact.
+   */
+  export(): VectorStoreSnapshot {
+    const documents: PersistedDocument[] = []
+    for (const doc of this.documents.values()) {
+      documents.push({
+        id: doc.id,
+        content: doc.content,
+        metadata: doc.metadata,
+        embedding: doc.embedding,
+      })
+    }
+    return { version: VECTOR_SNAPSHOT_VERSION, documents }
+  }
+
+  /** Restore documents from a snapshot, replacing current contents. */
+  async import(snapshot: VectorStoreSnapshot): Promise<void> {
+    this.clear()
+    for (const d of snapshot.documents) {
+      await this.addDocument({ id: d.id, content: d.content, metadata: d.metadata })
+      if (d.embedding) {
+        const doc = this.documents.get(d.id)
+        if (doc) doc.embedding = d.embedding
+      }
+    }
+    this.rebuildIndex()
   }
 
   /**

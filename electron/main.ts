@@ -165,6 +165,28 @@ ipcMain.handle('load-wiki-data', async (_event, projectId: string) => {
   return null
 })
 
+// Persist index snapshot (ontology + vectors + file manifest) keyed by project
+ipcMain.handle('save-index-data', async (_event, cacheKey: string, data: string) => {
+  try {
+    const dir = path.join(app.getPath('userData'), 'codewiki-data', 'index-cache')
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(path.join(dir, `${cacheKey}.json`), data, 'utf-8')
+    return true
+  } catch (err) {
+    console.error('Error saving index cache:', err)
+    return false
+  }
+})
+
+// Load index snapshot
+ipcMain.handle('load-index-data', async (_event, cacheKey: string) => {
+  const filePath = path.join(app.getPath('userData'), 'codewiki-data', 'index-cache', `${cacheKey}.json`)
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath, 'utf-8')
+  }
+  return null
+})
+
 interface FileNode {
   name: string
   path: string
@@ -173,6 +195,7 @@ interface FileNode {
   children?: FileNode[]
   extension?: string
   size?: number
+  mtimeMs?: number
 }
 
 const IGNORED_DIRS = new Set([
@@ -224,6 +247,7 @@ function readDirectoryRecursive(dirPath: string, basePath: string, depth: number
             type: 'file',
             extension: ext,
             size: stats.size,
+            mtimeMs: stats.mtimeMs,
           })
         }
       }

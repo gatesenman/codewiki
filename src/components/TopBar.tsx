@@ -67,7 +67,7 @@ export function TopBar() {
       setLoading(true, 'Re-indexing project...')
       const { CodeIndexer } = await import('../services/indexer')
       const indexer = new CodeIndexer()
-      const project = await indexer.indexLocalProject(currentProject.path, () => {})
+      const project = await indexer.indexLocalProject(currentProject.path, () => {}, { forceFull: true })
       updateProject({ ...project, id: currentProject.id, wikiPages: currentProject.wikiPages })
       setLoading(false)
       setIsReindexing(false)

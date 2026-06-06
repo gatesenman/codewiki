@@ -13,4 +13,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppDataPath: () => ipcRenderer.invoke('get-app-data-path'),
   saveWikiData: (projectId: string, data: string) => ipcRenderer.invoke('save-wiki-data', projectId, data),
   loadWikiData: (projectId: string) => ipcRenderer.invoke('load-wiki-data', projectId),
+  saveIndexData: (cacheKey: string, data: string) => ipcRenderer.invoke('save-index-data', cacheKey, data),
+  loadIndexData: (cacheKey: string) => ipcRenderer.invoke('load-index-data', cacheKey),
 })
