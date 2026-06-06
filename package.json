@@ -15,6 +15,7 @@
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
     "build:cli": "tsc -p cli/tsconfig.json",
     "build:mcp": "tsc -p server/tsconfig.json",
+    "build:vscode": "cd vscode-extension && npm install && npm run package",
     "cli": "npx ts-node cli/codewiki-cli.ts",
     "test:accuracy": "npx ts-node cli/codewiki-cli.ts test test-fixtures",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
