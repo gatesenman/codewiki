@@ -15,9 +15,17 @@
 ![Platform](https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-2b3137)
 ![Electron](https://img.shields.io/badge/Electron-React%2018%20%2B%20TypeScript-47848F?logo=electron&logoColor=white)
 ![Vite](https://img.shields.io/badge/构建-Vite-646CFF?logo=vite&logoColor=white)
+![Release](https://img.shields.io/github/v/release/gaosichun888/codewiki?label=release&color=blueviolet)
+![Downloads](https://img.shields.io/github/downloads/gaosichun888/codewiki/total?label=downloads&color=2b3137)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 
 </div>
+
+<!-- codewiki-health-card:start -->
+
+_代码健康卡片由 [CodeWiki Health Card](.github/workflows/codewiki-health-card.yml) 工作流在每次推送到 `main` 时自动生成（`codewiki report` -> 健康/安全/模式徽章）。_
+
+<!-- codewiki-health-card:end -->
 
 ---
 
@@ -73,10 +81,10 @@
 - **类型感知检索**：用本体关系增强语义搜索
 
 ### 知识图谱可视化
-- **D3 力导向图**：交互式展示代码实体关系
+- **2D & 3D 双模式**：经典 D3 力导向图，或 GitNexus 风格的 **3D** 力导向图（three.js / `3d-force-graph`）——在「设置 → 图谱」中切换
 - **按类型筛选**：Class、Function、Interface、Component 等
-- **拖拽 & 缩放**：以可视化方式浏览大型代码库
-- **颜色编码**：不同实体类型采用不同颜色
+- **轨道旋转 / 拖拽 & 缩放**：旋转、缩放、平移，以可视化方式浏览大型代码库
+- **颜色编码**：不同实体类型采用不同颜色，可选标签与自动旋转
 
 ### 语义搜索
 - **TF‑IDF 向量库**：本地语义搜索，无需外部 API
@@ -135,6 +143,23 @@ irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | i
 
 预编译安装包（`.AppImage`、`.deb`、Windows `.exe`、macOS `.dmg`）发布在
 [GitHub Releases](https://github.com/gaosichun888/codewiki/releases)。
+
+## 下载（最新：v1.0.2）
+
+从 [v1.0.2 发布页](https://github.com/gaosichun888/codewiki/releases/tag/v1.0.2) 选择你平台的预编译安装包：
+
+| 平台 | 下载 |
+|---|---|
+| Windows（安装版） | [`CodeWiki.Setup.1.0.2.exe`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki.Setup.1.0.2.exe) |
+| Windows（便携版） | [`CodeWiki.1.0.2.exe`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki.1.0.2.exe) |
+| macOS（Apple Silicon） | [`CodeWiki-1.0.2-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2-arm64.dmg) |
+| macOS（Intel） | [`CodeWiki-1.0.2.dmg`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2.dmg) |
+| Linux（AppImage） | [`CodeWiki-1.0.2.AppImage`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/CodeWiki-1.0.2.AppImage) |
+| Linux（Debian/Ubuntu） | [`codewiki_1.0.2_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/codewiki_1.0.2_amd64.deb) |
+| VSCode 扩展 | [`codewiki-vscode-0.2.0.vsix`](https://github.com/gaosichun888/codewiki/releases/download/v1.0.2/codewiki-vscode-0.2.0.vsix) |
+
+> macOS 为未签名构建：首次打开请右键 → 打开，或在「系统设置 → 隐私与安全性」中放行。
+> VSCode 扩展安装：`code --install-extension codewiki-vscode-0.2.0.vsix`。
 
 ## 从源码运行
 

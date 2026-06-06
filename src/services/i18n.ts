@@ -8,6 +8,13 @@ import type { OntologyEntityType } from '../types'
 export type Locale = 'en' | 'zh'
 
 export interface I18nStrings {
+  agentConfirmApply: string
+  settingsWatchMode: string
+  settingsWatchModeDesc: string
+  settingsIgnorePatterns: string
+  settingsIgnorePatternsDesc: string
+  settingsWarnThresholdHint: string
+  settingsMcpGenerated: string
   // App
   appName: string
   appDescription: string
@@ -19,6 +26,87 @@ export interface I18nStrings {
   navSearch: string
   navChat: string
   navAgent: string
+  navInsights: string
+
+  // Insights panel
+  insTitle: string
+  insSubtitle: string
+  insNoProject: string
+  insTabHealth: string
+  insTabSecurity: string
+  insTabQuery: string
+  insTabHistory: string
+  insTabWiki: string
+  insTabEval: string
+  // Health tool
+  insHealthHint: string
+  insHealthRefresh: string
+  insHealthEntities: string
+  insHealthFiles: string
+  insHealthAvgDegree: string
+  insHealthCircular: string
+  insHealthDead: string
+  insHealthGod: string
+  insHealthBreakdown: string
+  insHealthCircularTitle: string
+  insHealthNoCircular: string
+  insHealthFilesWord: string
+  insHealthEdgesWord: string
+  insHealthHotspots: string
+  insHealthNoHotspots: string
+  insHealthC_circularDeps: string
+  insHealthC_deadCode: string
+  insHealthC_coupling: string
+  insHealthC_godObjects: string
+  insHealthC_security: string
+  // Security tool
+  insSecHint: string
+  insSecScan: string
+  insSecScanning: string
+  insSecClean: string
+  insSecNoFs: string
+  insSev_high: string
+  insSev_medium: string
+  insSev_low: string
+  insQueryPlaceholder: string
+  insQueryRun: string
+  insQueryHint: string
+  insQueryNoResult: string
+  insQueryEntities: string
+  insQueryRelations: string
+  insHistSnapshot: string
+  insHistClear: string
+  insHistNoSnapshots: string
+  insHistHint: string
+  insHistTrend: string
+  insHistEntities: string
+  insHistRelations: string
+  insHistCouplingUp: string
+  insHistCouplingStable: string
+  insHistDiff: string
+  insHistAdded: string
+  insHistRemoved: string
+  insHistMoved: string
+  insWikiPlaceholder: string
+  insWikiRun: string
+  insWikiHint: string
+  insWikiNone: string
+  insWikiFull: string
+  insWikiAffected: string
+  insWikiDirect: string
+  insWikiTransitive: string
+  insEvalPlaceholder: string
+  insEvalBaselinePlaceholder: string
+  insEvalRun: string
+  insEvalHint: string
+  insEvalError: string
+  insEvalOverall: string
+  insEvalPrecision: string
+  insEvalRecall: string
+  insEvalF1: string
+  insEvalCases: string
+  insEvalRegressions: string
+  insEvalNoRegressions: string
 
   // TopBar
   home: string
@@ -80,6 +168,17 @@ export interface I18nStrings {
   graphRelations: string
   graphEmpty: string
   graphAllEntities: string
+  graph3dFallback: string
+  graphColorMode: string
+  graphColorType: string
+  graphColorCoupling: string
+  graphColorRisk: string
+  graphColorLow: string
+  graphColorMed: string
+  graphColorHigh: string
+  graphColorAnti: string
+  graphColorPattern: string
+  graphColorPlain: string
 
   // Search
   searchPlaceholder: string
@@ -162,6 +261,7 @@ export interface I18nStrings {
   entitySignature: string
   entityDescription: string
   entityProperties: string
+  entityPatterns: string
   entityDetails: string
   entityConnections: string
   entityIncoming: string
@@ -374,6 +474,13 @@ export interface I18nStrings {
 }
 
 const en: I18nStrings = {
+  agentConfirmApply: 'Apply changes to the following files?',
+  settingsWatchMode: 'Watch Mode',
+  settingsWatchModeDesc: 'Watch the project folder for changes (enables the file watcher).',
+  settingsIgnorePatterns: 'Ignore Patterns',
+  settingsIgnorePatternsDesc: 'Glob patterns excluded from indexing (like .codewikiignore entries).',
+  settingsWarnThresholdHint: 'Enable "Impact Warnings" in the Behavior tab to apply these thresholds.',
+  settingsMcpGenerated: 'Generated client config',
   appName: 'CodeWiki',
   appDescription: 'AI-powered code knowledge base with ontology-based semantic model',
   appWindowTitle: 'CodeWiki - AI Code Knowledge Base',
@@ -383,6 +490,84 @@ const en: I18nStrings = {
   navSearch: 'Search',
   navChat: 'Chat',
   navAgent: 'Agent',
+  navInsights: 'Insights',
+
+  insTitle: 'Insights',
+  insSubtitle: 'Health, graph query, evolution, incremental wiki & evaluation — running on the indexed ontology.',
+  insNoProject: 'Open and index a project first to use Insights.',
+  insTabHealth: 'Health',
+  insTabSecurity: 'Security',
+  insTabQuery: 'NL Query',
+  insTabHistory: 'Evolution',
+  insTabWiki: 'Wiki Incremental',
+  insTabEval: 'Evaluation',
+  insHealthHint: 'A–F health grade from circular dependencies, dead code, coupling & God Objects — computed on the ontology graph.',
+  insHealthRefresh: 'Recompute',
+  insHealthEntities: 'Entities',
+  insHealthFiles: 'Files',
+  insHealthAvgDegree: 'Avg degree',
+  insHealthCircular: 'Circular deps',
+  insHealthDead: 'Dead code',
+  insHealthGod: 'God objects',
+  insHealthBreakdown: 'Score breakdown',
+  insHealthCircularTitle: 'Circular dependencies',
+  insHealthNoCircular: 'No circular dependencies detected.',
+  insHealthFilesWord: 'files',
+  insHealthEdgesWord: 'edges',
+  insHealthHotspots: 'Coupling hotspots',
+  insHealthNoHotspots: 'No high-coupling hotspots.',
+  insHealthC_circularDeps: 'Circular deps',
+  insHealthC_deadCode: 'Dead code',
+  insHealthC_coupling: 'Coupling',
+  insHealthC_godObjects: 'God objects',
+  insHealthC_security: 'Security',
+  insSecHint: 'Rule-based scan for hardcoded secrets, eval(), SQL/shell injection, unsafe HTML & debug statements.',
+  insSecScan: 'Scan',
+  insSecScanning: 'Scanning…',
+  insSecClean: 'No security findings.',
+  insSecNoFs: 'File access unavailable (run in the desktop app to scan source).',
+  insSev_high: 'High',
+  insSev_medium: 'Medium',
+  insSev_low: 'Low',
+  insQueryPlaceholder: 'Ask in natural language, e.g. "who calls handleSearch" / "impact of getGraph" / "list all classes"',
+  insQueryRun: 'Run',
+  insQueryHint: 'Pattern-based NL → graph query (no LLM). Supports callers / callees / references / impact / deps / path / find.',
+  insQueryNoResult: 'Could not understand the query. Try "who calls X", "impact of X", "list all classes".',
+  insQueryEntities: 'Entities',
+  insQueryRelations: 'Relations',
+  insHistSnapshot: 'Capture snapshot',
+  insHistClear: 'Clear',
+  insHistNoSnapshots: 'No snapshots yet. Capture one now, then re-index after code changes and capture again to see the architecture evolve.',
+  insHistHint: 'Snapshots are kept for this session. Capture → change code → re-index → capture again.',
+  insHistTrend: 'Trend',
+  insHistEntities: 'entities',
+  insHistRelations: 'relations',
+  insHistCouplingUp: 'coupling rising',
+  insHistCouplingStable: 'coupling stable',
+  insHistDiff: 'Changes between snapshots',
+  insHistAdded: 'added',
+  insHistRemoved: 'removed',
+  insHistMoved: 'moved',
+  insWikiPlaceholder: 'Changed file paths, one per line, e.g.\nsrc/services/code-agent.ts\nsrc/components/SearchPanel.tsx',
+  insWikiRun: 'Compute affected pages',
+  insWikiHint: 'Given changed files, finds which wiki pages need regeneration (direct + transitive) instead of a full rebuild.',
+  insWikiNone: 'No wiki pages are affected by these changes.',
+  insWikiFull: 'All pages affected — a full regeneration is recommended.',
+  insWikiAffected: 'Affected pages',
+  insWikiDirect: 'direct',
+  insWikiTransitive: 'transitive',
+  insEvalPlaceholder: 'Ground-truth cases as JSON array (EvalCase[]). e.g.\n[{"name":"who calls foo","type":"callers","entity":"foo","expected_callers":["bar"]}]',
+  insEvalBaselinePlaceholder: 'Optional baseline JSON (from a previous run) for regression detection.',
+  insEvalRun: 'Run evaluation',
+  insEvalHint: 'Grades retrieval/impact accuracy (precision / recall / F1) against ground-truth cases; optional baseline detects regressions.',
+  insEvalError: 'Invalid JSON — expected an array of EvalCase objects.',
+  insEvalOverall: 'Overall',
+  insEvalPrecision: 'Precision',
+  insEvalRecall: 'Recall',
+  insEvalF1: 'F1',
+  insEvalCases: 'Cases',
+  insEvalRegressions: 'Regressions vs baseline',
+  insEvalNoRegressions: 'No regressions vs baseline.',
 
   home: 'Home',
   settings: 'Settings',
@@ -440,6 +625,17 @@ const en: I18nStrings = {
   graphRelations: 'Relations',
   graphEmpty: 'No code entities found. Index a project to see the knowledge graph.',
   graphAllEntities: 'All Entities',
+  graph3dFallback: '3D rendering unavailable on this device (no WebGL / GPU) — showing the 2D graph instead.',
+  graphColorMode: 'Color by',
+  graphColorType: 'Type',
+  graphColorCoupling: 'Coupling',
+  graphColorRisk: 'Risk',
+  graphColorLow: 'Low',
+  graphColorMed: 'Medium',
+  graphColorHigh: 'High',
+  graphColorAnti: 'Anti-pattern',
+  graphColorPattern: 'Pattern',
+  graphColorPlain: 'Normal',
 
   searchPlaceholder: 'Search code, wiki, entities...',
   searchResults: 'Results',
@@ -518,6 +714,7 @@ const en: I18nStrings = {
   entitySignature: 'Signature',
   entityDescription: 'Description',
   entityProperties: 'Properties',
+  entityPatterns: 'Patterns',
   entityDetails: 'Details',
   entityConnections: 'Connections',
   entityIncoming: 'Incoming',
@@ -720,6 +917,13 @@ const en: I18nStrings = {
 }
 
 const zh: I18nStrings = {
+  agentConfirmApply: '是否将更改应用到以下文件？',
+  settingsWatchMode: '监听模式',
+  settingsWatchModeDesc: '监听项目文件夹的变化（启用文件监听器）。',
+  settingsIgnorePatterns: '忽略模式',
+  settingsIgnorePatternsDesc: '从索引中排除的 glob 模式（类似 .codewikiignore 条目）。',
+  settingsWarnThresholdHint: '在「行为」标签开启「影响警告」后，这些阈值才会生效。',
+  settingsMcpGenerated: '生成的客户端配置',
   appName: 'CodeWiki',
   appDescription: '基于本体语义模型的 AI 代码知识库',
   appWindowTitle: 'CodeWiki - AI 代码知识库',
@@ -729,6 +933,84 @@ const zh: I18nStrings = {
   navSearch: '搜索',
   navChat: '对话',
   navAgent: '代理',
+  navInsights: '洞察',
+
+  insTitle: '洞察',
+  insSubtitle: '图查询、架构演变、Wiki 增量与评测——全部基于已索引的代码本体运行。',
+  insNoProject: '请先打开并索引一个项目，再使用洞察功能。',
+  insTabQuery: '自然语言查询',
+  insTabHistory: '架构演变',
+  insTabWiki: 'Wiki 增量',
+  insTabEval: '评测',
+  insTabHealth: '健康',
+  insTabSecurity: '安全',
+  insHealthHint: '基于循环依赖、死代码、耦合与上帝对象，在本体图上计算的 A–F 健康评分。',
+  insHealthRefresh: '重新计算',
+  insHealthEntities: '实体',
+  insHealthFiles: '文件',
+  insHealthAvgDegree: '平均度',
+  insHealthCircular: '循环依赖',
+  insHealthDead: '死代码',
+  insHealthGod: '上帝对象',
+  insHealthBreakdown: '评分构成',
+  insHealthCircularTitle: '循环依赖',
+  insHealthNoCircular: '未检测到循环依赖。',
+  insHealthFilesWord: '个文件',
+  insHealthEdgesWord: '条边',
+  insHealthHotspots: '高耦合热点',
+  insHealthNoHotspots: '无高耦合热点。',
+  insHealthC_circularDeps: '循环依赖',
+  insHealthC_deadCode: '死代码',
+  insHealthC_coupling: '耦合',
+  insHealthC_godObjects: '上帝对象',
+  insHealthC_security: '安全',
+  insSecHint: '基于规则扫描硬编码密钥、eval()、SQL/Shell 注入、不安全 HTML 与调试语句。',
+  insSecScan: '扫描',
+  insSecScanning: '扫描中…',
+  insSecClean: '未发现安全问题。',
+  insSecNoFs: '无法访问文件（请在桌面应用中运行以扫描源码）。',
+  insSev_high: '高危',
+  insSev_medium: '中危',
+  insSev_low: '低危',
+  insQueryPlaceholder: '用自然语言提问，例如「谁调用 handleSearch」/「getGraph 的影响」/「列出所有类」',
+  insQueryRun: '运行',
+  insQueryHint: '基于模式匹配的自然语言→图查询（无需 LLM）。支持 调用者/被调用/引用/影响/依赖/路径/查找。',
+  insQueryNoResult: '无法理解该查询。可尝试「谁调用 X」「X 的影响」「列出所有类」。',
+  insQueryEntities: '实体',
+  insQueryRelations: '关系',
+  insHistSnapshot: '拍快照',
+  insHistClear: '清空',
+  insHistNoSnapshots: '暂无快照。先拍一张，改动代码并重新索引后再拍一张，即可看到架构演变。',
+  insHistHint: '快照仅保留在本次会话。拍快照 → 改代码 → 重新索引 → 再拍快照。',
+  insHistTrend: '趋势',
+  insHistEntities: '实体',
+  insHistRelations: '关系',
+  insHistCouplingUp: '耦合上升',
+  insHistCouplingStable: '耦合稳定',
+  insHistDiff: '快照间变更',
+  insHistAdded: '新增',
+  insHistRemoved: '删除',
+  insHistMoved: '移动',
+  insWikiPlaceholder: '改动的文件路径，每行一个，例如\nsrc/services/code-agent.ts\nsrc/components/SearchPanel.tsx',
+  insWikiRun: '计算受影响页面',
+  insWikiHint: '给定改动文件，找出需要重新生成的 Wiki 页面（直接 + 传递），而非全量重建。',
+  insWikiNone: '这些改动未影响任何 Wiki 页面。',
+  insWikiFull: '所有页面都受影响——建议执行全量重新生成。',
+  insWikiAffected: '受影响页面',
+  insWikiDirect: '直接',
+  insWikiTransitive: '传递',
+  insEvalPlaceholder: '真值用例 JSON 数组（EvalCase[]）。例如\n[{"name":"谁调用 foo","type":"callers","entity":"foo","expected_callers":["bar"]}]',
+  insEvalBaselinePlaceholder: '可选基线 JSON（来自上次运行），用于回归检测。',
+  insEvalRun: '运行评测',
+  insEvalHint: '基于真值用例对检索/影响准确率打分（precision / recall / F1）；可选基线用于检测回归。',
+  insEvalError: 'JSON 无效——需要一个 EvalCase 对象数组。',
+  insEvalOverall: '总体',
+  insEvalPrecision: '精确率',
+  insEvalRecall: '召回率',
+  insEvalF1: 'F1',
+  insEvalCases: '用例',
+  insEvalRegressions: '相对基线的回归',
+  insEvalNoRegressions: '相对基线无回归。',
 
   home: '首页',
   settings: '设置',
@@ -786,6 +1068,17 @@ const zh: I18nStrings = {
   graphRelations: '关系',
   graphEmpty: '未找到代码实体。请先索引一个项目以查看知识图谱。',
   graphAllEntities: '全部实体',
+  graph3dFallback: '当前设备无法渲染 3D（无 WebGL / GPU），已自动切换到 2D 图谱。',
+  graphColorMode: '着色',
+  graphColorType: '类型',
+  graphColorCoupling: '耦合度',
+  graphColorRisk: '风险',
+  graphColorLow: '低',
+  graphColorMed: '中',
+  graphColorHigh: '高',
+  graphColorAnti: '反模式',
+  graphColorPattern: '设计模式',
+  graphColorPlain: '普通',
 
   searchPlaceholder: '搜索代码、文档、实体...',
   searchResults: '结果',
@@ -864,6 +1157,7 @@ const zh: I18nStrings = {
   entitySignature: '签名',
   entityDescription: '描述',
   entityProperties: '属性',
+  entityPatterns: '设计模式',
   entityDetails: '详情',
   entityConnections: '连接',
   entityIncoming: '传入',

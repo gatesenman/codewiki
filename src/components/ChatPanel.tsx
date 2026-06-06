@@ -11,7 +11,7 @@ import type { ChatMessage, CodeSource } from '../types'
 
 export function ChatPanel() {
   const {
-    currentProject, chatMessages, addChatMessage, clearChat, settings,
+    currentProject, chatMessages, addChatMessage, updateChatMessage, clearChat, settings,
   } = useAppStore()
   useAppStore(s => s.locale)
   const [input, setInput] = useState('')
@@ -60,20 +60,38 @@ Project has ${currentProject.ontologyGraph.entities.length} code entities and ${
 Relevant code context:
 ${contextStr}`
 
-      const response = await llm.chat([
-        { role: 'system', content: systemPrompt },
+      const promptMessages = [
+        { role: 'system' as const, content: systemPrompt },
         ...chatMessages.slice(-10).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-        { role: 'user', content: input.trim() },
-      ])
+        { role: 'user' as const, content: input.trim() },
+      ]
 
-      const assistantMessage: ChatMessage = {
-        id: uuid(),
-        role: 'assistant',
-        content: response.content,
-        timestamp: Date.now(),
-        sources: sources.slice(0, 3),
+      if (llm.streamEnabled) {
+        // Stream tokens into a placeholder assistant message.
+        const assistantMessage: ChatMessage = {
+          id: uuid(),
+          role: 'assistant',
+          content: '',
+          timestamp: Date.now(),
+          sources: sources.slice(0, 3),
+        }
+        addChatMessage(assistantMessage)
+        let acc = ''
+        for await (const chunk of llm.streamChat(promptMessages)) {
+          acc += chunk
+          updateChatMessage(assistantMessage.id, acc)
+        }
+      } else {
+        const response = await llm.chat(promptMessages)
+        const assistantMessage: ChatMessage = {
+          id: uuid(),
+          role: 'assistant',
+          content: response.content,
+          timestamp: Date.now(),
+          sources: sources.slice(0, 3),
+        }
+        addChatMessage(assistantMessage)
       }
-      addChatMessage(assistantMessage)
     } catch (err) {
       const errorMessage: ChatMessage = {
         id: uuid(),

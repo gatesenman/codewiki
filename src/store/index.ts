@@ -23,7 +23,7 @@ interface AppState {
   setActivePageId: (id: string | null) => void
 
   // View mode
-  viewMode: 'wiki' | 'graph' | 'search' | 'chat' | 'agent'
+  viewMode: 'wiki' | 'graph' | 'search' | 'chat' | 'agent' | 'insights'
   setViewMode: (mode: AppState['viewMode']) => void
 
   // Sidebar
@@ -33,6 +33,7 @@ interface AppState {
   // Chat
   chatMessages: ChatMessage[]
   addChatMessage: (message: ChatMessage) => void
+  updateChatMessage: (id: string, content: string) => void
   clearChat: () => void
 
   // Search
@@ -153,6 +154,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Chat
   chatMessages: [],
   addChatMessage: (message) => set((state) => ({ chatMessages: [...state.chatMessages, message] })),
+  updateChatMessage: (id, content) => set((state) => ({
+    chatMessages: state.chatMessages.map(m => m.id === id ? { ...m, content } : m),
+  })),
   clearChat: () => set({ chatMessages: [] }),
 
   // Search

@@ -45,6 +45,15 @@ export class CodeIndexer {
     this.vectorStore = services.vectorStore
   }
 
+  /** Push the current `ontology` settings into the builder before a build. */
+  private applyOntologyOptions() {
+    const ontologyCfg = configManager.getConfig().ontology
+    this.ontologyBuilder.setOptions({
+      extractDecorators: ontologyCfg.extractDecorators,
+      extractArrowFunctions: ontologyCfg.extractArrowFunctions,
+    })
+  }
+
   /**
    * Index a local project folder
    */
@@ -63,8 +72,15 @@ export class CodeIndexer {
       message: 'Scanning directory structure...',
     })
 
-    // Read directory tree via Electron IPC
-    const rawFiles = await window.electronAPI.readDirectory(folderPath)
+    // Read directory tree via Electron IPC, honoring the user's indexing
+    // settings (extensions / ignored dirs / max depth / max file size).
+    const indexingScan = configManager.getConfig().indexing
+    const rawFiles = await window.electronAPI.readDirectory(folderPath, {
+      extensions: indexingScan.extensions,
+      ignoreDirs: indexingScan.ignoreDirs,
+      maxDepth: indexingScan.maxDepth,
+      maxFileSize: indexingScan.maxFileSize,
+    })
 
     // Honor .codewikiignore + default-sensitive files: drop ignored paths from
     // the tree and redact secrets from any content that leaves the machine.
@@ -72,11 +88,13 @@ export class CodeIndexer {
       .readFile(folderPath + (folderPath.includes('\\') ? '\\' : '/') + CODEWIKIIGNORE_FILE)
       .catch(() => null)
     const privacyCfg = configManager.getConfig().privacy
+    const indexingCfg = configManager.getConfig().indexing
     const privacy = createPrivacyFilter(ignoreText, {
       useIgnoreFile: privacyCfg.useIgnoreFile,
       excludeSensitiveDefaults: privacyCfg.excludeSensitiveDefaults,
       redactSecrets: privacyCfg.redactSecrets,
-      extraPatterns: privacyCfg.extraPatterns,
+      // Combine privacy excludes with the indexing "ignore patterns" setting.
+      extraPatterns: [...privacyCfg.extraPatterns, ...indexingCfg.ignorePatterns],
     })
     const files = this.filterTree(rawFiles, folderPath, privacy)
 
@@ -143,6 +161,7 @@ export class CodeIndexer {
         this.vectorStore.rebuildIndex()
 
         // Ontology is rebuilt fully (CPU-only) to guarantee graph correctness.
+        this.applyOntologyOptions()
         const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
         this.ontologyBuilder.resolveDeferredRelations()
         await this.enrichWithLsif(folderPath, ontologyGraph, readFile)
@@ -173,6 +192,7 @@ export class CodeIndexer {
     })
 
     this.vectorStore.clear()
+    this.applyOntologyOptions()
     const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
     this.ontologyBuilder.resolveDeferredRelations()
     await this.enrichWithLsif(folderPath, ontologyGraph, readFile, onProgress)
@@ -365,6 +385,7 @@ export class CodeIndexer {
       } catch { return null }
     }
 
+    this.applyOntologyOptions()
     const ontologyGraph = await this.ontologyBuilder.buildFromFiles(tree, readFile)
     this.ontologyBuilder.resolveDeferredRelations()
 

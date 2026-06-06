@@ -7,10 +7,14 @@ import { useAppStore } from '../store'
 import { MermaidDiagram } from './MermaidDiagram'
 import { validateWikiPage } from '../services/wiki-generator'
 import { t } from '../services/i18n'
+import { getCodeTheme, wrapClass } from '../services/code-style'
 
 export function WikiViewer() {
   const { currentProject, activePageId, setActivePageId } = useAppStore()
   useAppStore(s => s.locale)
+  const ui = useAppStore(s => s.config.ui)
+  const includeMermaid = useAppStore(s => s.config.wiki.includeMermaid)
+  const codeTheme = getCodeTheme(ui.codeTheme)
   const contentRef = useRef<HTMLDivElement>(null)
   const [showQuality, setShowQuality] = useState(false)
   const wikiPages = currentProject?.wikiPages || []
@@ -104,14 +108,21 @@ export function WikiViewer() {
                 const lang = match?.[1]
                 const content = String(children).replace(/\n$/, '')
 
-                if (lang === 'mermaid') {
+                if (lang === 'mermaid' && includeMermaid) {
                   return <MermaidDiagram chart={content} />
                 }
 
                 if (lang) {
                   return (
-                    <pre className="bg-wiki-card rounded-lg border border-wiki-border overflow-x-auto">
-                      <code className={className} {...props}>
+                    <pre
+                      className="rounded-lg border overflow-x-auto"
+                      style={{ background: codeTheme.background, borderColor: codeTheme.border }}
+                    >
+                      <code
+                        className={`${className || ''} ${wrapClass(ui.wordWrap)}`}
+                        style={{ color: codeTheme.color }}
+                        {...props}
+                      >
                         {children}
                       </code>
                     </pre>

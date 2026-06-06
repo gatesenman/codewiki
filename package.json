@@ -1,6 +1,6 @@
 {
   "name": "codewiki",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "DeepWiki-like cross-platform desktop app for code wiki generation, knowledge graph, semantic search, and precise code agent",
   "author": "gaosichun888",
   "license": "MIT",
@@ -17,6 +17,8 @@
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
     "build:cli": "tsc -p cli/tsconfig.json",
     "build:mcp": "tsc -p server/tsconfig.json",
+    "prepare": "npm run build:cli && npm run build:mcp",
+    "install:cli": "npm install && npm run build:cli && npm run build:mcp && npm link",
     "build:vscode": "cd vscode-extension && npm install && npm run package",
     "cli": "npx ts-node cli/codewiki-cli.ts",
     "test:accuracy": "npx ts-node cli/codewiki-cli.ts test test-fixtures",
@@ -137,8 +139,10 @@
     "remark-gfm": "^4.0.0",
     "three": "^0.184.0",
     "three-spritetext": "^1.10.0",
+    "tree-sitter-wasms": "^0.1.13",
     "typescript": "^5.6.3",
     "uuid": "^10.0.0",
+    "web-tree-sitter": "^0.22.6",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
