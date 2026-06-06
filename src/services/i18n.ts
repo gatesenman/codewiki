@@ -49,6 +49,7 @@ export interface I18nStrings {
   codeMapArchitecture: string
   codeMapArchDiagrams: string
   codeMapArchDesc: string
+  wikiExport: string
 
   // Insights panel
   insTitle: string
