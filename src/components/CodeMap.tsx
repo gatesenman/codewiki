@@ -5,6 +5,7 @@
  *   1. **Treemap** — file-system hierarchy sized by entity count, colored by coupling
  *   2. **Module Graph** — force-directed module dependency graph (directory-level)
  *   3. **File Explorer** — collapsible tree with per-file entity details
+ *   4. **Architecture** — auto-generated Mermaid diagrams (module deps, class hierarchy, component flow)
  */
 
 import { useMemo, useState, useEffect, useRef } from 'react'
@@ -12,7 +13,7 @@ import * as d3 from 'd3'
 import {
   LayoutGrid, GitBranch, FolderTree, ChevronRight, ChevronDown,
   FileText, FolderOpen, Box, Braces, Code, Hash, Database,
-  ArrowUpRight, ArrowDownLeft,
+  ArrowUpRight, ArrowDownLeft, Share2,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import {
@@ -23,10 +24,12 @@ import {
   type FileDetail,
   type EntitySummary,
 } from '../services/codemap-analyzer'
+import { generateAllDiagrams } from '../services/architecture-diagram'
+import { MermaidDiagram } from './MermaidDiagram'
 import { t } from '../services/i18n'
 import type { OntologyEntityType } from '../types'
 
-type SubView = 'treemap' | 'module-graph' | 'explorer'
+type SubView = 'treemap' | 'module-graph' | 'explorer' | 'architecture'
 
 const ENTITY_COLORS: Record<OntologyEntityType, string> = {
   Package: '#d29922',
@@ -93,6 +96,7 @@ export function CodeMap() {
     { key: 'treemap' as SubView, icon: LayoutGrid, labelKey: 'codeMapTreemap' as const },
     { key: 'module-graph' as SubView, icon: GitBranch, labelKey: 'codeMapModuleGraph' as const },
     { key: 'explorer' as SubView, icon: FolderTree, labelKey: 'codeMapExplorer' as const },
+    { key: 'architecture' as SubView, icon: Share2, labelKey: 'codeMapArchitecture' as const },
   ]
 
   return (
@@ -138,6 +142,9 @@ export function CodeMap() {
             onSelectFile={setSelectedFile}
             onSelectEntity={setSelectedEntityId}
           />
+        )}
+        {subView === 'architecture' && (
+          <ArchitectureView graph={currentProject.ontologyGraph} />
         )}
       </div>
 
@@ -638,6 +645,27 @@ function EntityRow({ entity, onSelect }: { entity: EntitySummary; onSelect: (id:
         {entity.callees > 0 && <span className="flex items-center gap-0.5"><ArrowUpRight size={10} />{entity.callees}</span>}
       </div>
     </button>
+  )
+}
+
+// ── Architecture diagrams view ──────────────────────────────────────────
+
+function ArchitectureView({ graph }: { graph: import('../types').OntologyGraph }) {
+  const diagrams = useMemo(() => generateAllDiagrams(graph), [graph])
+
+  return (
+    <div className="h-full overflow-y-auto px-6 py-4 space-y-8">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-wiki-text">{t('codeMapArchDiagrams')}</h2>
+        <p className="text-xs text-wiki-muted mt-1">{t('codeMapArchDesc')}</p>
+      </div>
+      {diagrams.map(diagram => (
+        <div key={diagram.type} className="rounded-lg border border-wiki-border bg-wiki-card/30 p-4">
+          <h3 className="text-sm font-semibold text-wiki-text mb-3">{diagram.title}</h3>
+          <MermaidDiagram chart={diagram.mermaid} />
+        </div>
+      ))}
+    </div>
   )
 }
 

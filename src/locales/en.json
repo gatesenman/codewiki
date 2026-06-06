@@ -439,5 +439,8 @@
   "codeMapInbound": "inbound",
   "codeMapOutbound": "outbound",
   "codeMapLines": "lines",
-  "codeMapEntitiesInFile": "Entities"
+  "codeMapEntitiesInFile": "Entities",
+  "codeMapArchitecture": "Architecture",
+  "codeMapArchDiagrams": "Architecture Diagrams",
+  "codeMapArchDesc": "Auto-generated from the ontology graph. Module dependencies, class hierarchy, and component interactions."
 }
