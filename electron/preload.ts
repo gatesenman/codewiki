@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadIndexData: (cacheKey: string) => ipcRenderer.invoke('load-index-data', cacheKey),
   watchProject: (folderPath: string) => ipcRenderer.invoke('watch-project', folderPath),
   unwatchProject: (folderPath: string) => ipcRenderer.invoke('unwatch-project', folderPath),
+  runCommand: (cwd: string, command: string, timeoutMs: number) => ipcRenderer.invoke('run-command', cwd, command, timeoutMs),
   onProjectFilesChanged: (callback: (folderPath: string) => void) => {
     const listener = (_e: unknown, folderPath: string) => callback(folderPath)
     ipcRenderer.on('project-files-changed', listener)

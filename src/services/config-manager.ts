@@ -75,6 +75,19 @@ export interface UIConfig {
   codeTheme: 'github-dark' | 'github-light' | 'monokai' | 'one-dark'
 }
 
+export interface VerifyConfig {
+  /**
+   * Allow the Code Agent to run project commands (tests/build/lint) in the
+   * project directory to verify edits. Off by default — running commands is a
+   * privileged action, so the user must opt in.
+   */
+  enabled: boolean
+  testCommand: string
+  buildCommand: string
+  lintCommand: string
+  timeoutMs: number
+}
+
 export interface BehaviorConfig {
   autoSave: boolean
   autoSaveInterval: number
@@ -100,6 +113,7 @@ export interface CodeWikiConfig {
   ui: UIConfig
   behavior: BehaviorConfig
   notifications: NotificationConfig
+  verify: VerifyConfig
 }
 
 export const DEFAULT_CONFIG: CodeWikiConfig = {
@@ -178,6 +192,13 @@ export const DEFAULT_CONFIG: CodeWikiConfig = {
     showProgress: true,
     showImpactWarning: true,
     soundEnabled: false,
+  },
+  verify: {
+    enabled: false,
+    testCommand: 'npm test',
+    buildCommand: '',
+    lintCommand: '',
+    timeoutMs: 120000,
   },
 }
 

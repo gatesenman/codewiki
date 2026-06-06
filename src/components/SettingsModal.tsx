@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   X, Key, Server, Cpu, Palette, Monitor, FolderCog,
-  Eye, Bell, RotateCcw, Search, GitBranch, FileCode, BookOpen,
+  Eye, Bell, RotateCcw, Search, GitBranch, FileCode, BookOpen, TerminalSquare,
 } from 'lucide-react'
 import { listWikiTemplates } from '../services/wiki-prompt-templates'
 import { useAppStore } from '../store'
@@ -543,6 +543,50 @@ function BehaviorSettings({ config, updateLocal }: TabProps) {
         <SettingRow label="Impact Warnings" description="Show warnings for high-impact changes.">
           <Toggle checked={config.notifications.showImpactWarning} onChange={v => updateLocal('notifications', { showImpactWarning: v })} />
         </SettingRow>
+      </div>
+
+      <div className="border-t border-wiki-border pt-4 space-y-4">
+        <h4 className="text-sm font-medium text-wiki-text flex items-center gap-2">
+          <TerminalSquare size={14} />
+          Verification
+        </h4>
+        <SettingRow label="Enable Verify" description="Let the Code Agent run project commands (lint/build/test) to verify edits.">
+          <Toggle checked={config.verify.enabled} onChange={v => updateLocal('verify', { enabled: v })} />
+        </SettingRow>
+        {config.verify.enabled && (
+          <>
+            <div>
+              <label className="text-sm text-wiki-text mb-1 block">Lint Command</label>
+              <input
+                type="text" value={config.verify.lintCommand}
+                onChange={e => updateLocal('verify', { lintCommand: e.target.value })}
+                placeholder="e.g. npm run lint"
+                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-wiki-text mb-1 block">Build Command</label>
+              <input
+                type="text" value={config.verify.buildCommand}
+                onChange={e => updateLocal('verify', { buildCommand: e.target.value })}
+                placeholder="e.g. npm run build"
+                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-wiki-text mb-1 block">Test Command</label>
+              <input
+                type="text" value={config.verify.testCommand}
+                onChange={e => updateLocal('verify', { testCommand: e.target.value })}
+                placeholder="e.g. npm test"
+                className="w-full px-3 py-2 rounded-lg bg-wiki-bg border border-wiki-border text-sm font-mono text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
+              />
+            </div>
+            <SettingRow label="Timeout" description="Max seconds per command before it is killed.">
+              <NumberInput value={Math.round(config.verify.timeoutMs / 1000)} onChange={v => updateLocal('verify', { timeoutMs: v * 1000 })} min={5} max={1800} step={5} />
+            </SettingRow>
+          </>
+        )}
       </div>
     </>
   )
