@@ -17,6 +17,7 @@ import {
 } from './vector-store'
 import { services } from './service-registry'
 import { configManager } from './config-manager'
+import { parseLsif, mergeLsifIntoGraph, LSIF_CANDIDATES } from './lsif-consumer'
 import {
   cacheKeyFor, buildManifest, diffManifest, isClean,
   loadSnapshot, saveSnapshot, INDEX_SNAPSHOT_VERSION,
@@ -125,6 +126,7 @@ export class CodeIndexer {
         // Ontology is rebuilt fully (CPU-only) to guarantee graph correctness.
         const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
         this.ontologyBuilder.resolveDeferredRelations()
+        await this.enrichWithLsif(folderPath, ontologyGraph, readFile)
         await this.maybeBuildEmbeddings(onProgress) // embeds only changed/added docs
 
         await this.persistSnapshot(cacheKey, projectName, folderPath, 'local', manifest, ontologyGraph)
@@ -153,6 +155,7 @@ export class CodeIndexer {
     this.vectorStore.clear()
     const ontologyGraph = await this.ontologyBuilder.buildFromFiles(files, readFile)
     this.ontologyBuilder.resolveDeferredRelations()
+    await this.enrichWithLsif(folderPath, ontologyGraph, readFile, onProgress)
 
     onProgress?.({
       phase: 'embedding',
@@ -182,6 +185,41 @@ export class CodeIndexer {
     })
 
     return this.buildProject(projectId, projectName, folderPath, 'local', ontologyGraph)
+  }
+
+  /**
+   * If the project ships a textual LSIF dump, consume it to add
+   * compiler-accurate calls/uses relations on top of the heuristic ontology.
+   * No-op (and silent) when no dump is present or it can't be parsed.
+   */
+  private async enrichWithLsif(
+    folderPath: string,
+    graph: OntologyGraph,
+    readFile: (path: string) => Promise<string | null>,
+    onProgress?: (progress: IndexProgress) => void,
+  ): Promise<void> {
+    const sep = folderPath.includes('\\') ? '\\' : '/'
+    for (const candidate of LSIF_CANDIDATES) {
+      const full = folderPath + sep + candidate.replace(/\//g, sep)
+      let text: string | null = null
+      try {
+        text = await readFile(full)
+      } catch {
+        text = null
+      }
+      if (!text) continue
+      try {
+        const parsed = parseLsif(text)
+        const stats = mergeLsifIntoGraph(graph, parsed.symbols)
+        onProgress?.({
+          phase: 'ontology', current: 0, total: 0,
+          message: `LSIF index found (${candidate}): +${stats.added} compiler-accurate relations.`,
+        })
+      } catch {
+        // Malformed dump — keep the heuristic graph as-is.
+      }
+      return // first existing candidate wins
+    }
   }
 
   private buildProject(
