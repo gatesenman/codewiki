@@ -2,10 +2,12 @@ import { useState, useCallback } from 'react'
 import { Search, FileText, Code, Box, Loader2 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { services } from '../services/service-registry'
+import { t, tEntityType } from '../services/i18n'
 import type { SearchResult, OntologyEntityType } from '../types'
 
 export function SearchPanel() {
   const { currentProject, searchQuery, setSearchQuery, searchResults, setSearchResults } = useAppStore()
+  useAppStore(s => s.locale)
   const [searching, setSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [searchType, setSearchType] = useState<'all' | 'code' | 'entity' | 'wiki'>('all')
@@ -54,9 +56,9 @@ export function SearchPanel() {
       }
     }
 
-    // Vector search in code
+    // Vector search in code (hybrid when embeddings are available)
     if (searchType === 'all' || searchType === 'code') {
-      const vectorResults = services.vectorStore.search(searchQuery, 10)
+      const vectorResults = await services.vectorStore.searchHybrid(searchQuery, 10)
       for (const r of vectorResults) {
         results.push({
           id: r.id,
@@ -87,7 +89,7 @@ export function SearchPanel() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search code, wiki, entities..."
+              placeholder={t('searchPlaceholder')}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-wiki-bg border border-wiki-border text-sm text-wiki-text placeholder:text-wiki-muted/50 focus:outline-none focus:border-wiki-accent"
               autoFocus
             />
@@ -97,17 +99,17 @@ export function SearchPanel() {
             disabled={searching || !searchQuery.trim()}
             className="px-4 py-2 rounded-lg bg-wiki-accent text-white text-sm font-medium hover:bg-wiki-accent/80 disabled:opacity-50 transition-colors"
           >
-            {searching ? <Loader2 size={16} className="animate-spin" /> : 'Search'}
+            {searching ? <Loader2 size={16} className="animate-spin" /> : t('searchButton')}
           </button>
         </div>
 
         {/* Search type filter */}
         <div className="flex gap-2">
           {[
-            { id: 'all' as const, label: 'All' },
-            { id: 'code' as const, label: 'Code' },
-            { id: 'entity' as const, label: 'Entities' },
-            { id: 'wiki' as const, label: 'Wiki' },
+            { id: 'all' as const, label: t('searchAll') },
+            { id: 'code' as const, label: t('searchCode') },
+            { id: 'entity' as const, label: t('searchEntities') },
+            { id: 'wiki' as const, label: t('searchWiki') },
           ].map(type => (
             <button
               key={type.id}
@@ -129,7 +131,7 @@ export function SearchPanel() {
         {searchResults.length === 0 && searchQuery && hasSearched && !searching ? (
           <div className="text-center text-wiki-muted py-12">
             <Search size={32} className="mx-auto mb-3 text-wiki-muted/30" />
-            <p className="text-sm">No results found for "{searchQuery}"</p>
+            <p className="text-sm">{t('searchNoResults')} "{searchQuery}"</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -153,9 +155,9 @@ function SearchResultCard({ result }: { result: SearchResult }) {
   }
 
   const typeLabels = {
-    wiki: 'Wiki',
-    code: 'Code',
-    entity: 'Entity',
+    wiki: t('searchWiki'),
+    code: t('searchCode'),
+    entity: t('searchEntity'),
   }
 
   const handleClick = () => {
@@ -176,11 +178,11 @@ function SearchResultCard({ result }: { result: SearchResult }) {
         </span>
         {result.entityType && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-wiki-purple/10 text-wiki-purple">
-            {result.entityType}
+            {tEntityType(result.entityType)}
           </span>
         )}
         <span className="ml-auto text-[10px] text-wiki-muted/50">
-          {(result.score * 100).toFixed(0)}% match
+          {(result.score * 100).toFixed(0)}% {t('searchMatch')}
         </span>
       </div>
       <h4 className="text-sm font-medium text-wiki-text mb-1">{result.title}</h4>

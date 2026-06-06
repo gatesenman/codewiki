@@ -5,6 +5,7 @@ import {
   FolderOpen, Hash, Database,
 } from 'lucide-react'
 import { useAppStore } from '../store'
+import { t, tEntityType } from '../services/i18n'
 import type { OntologyEntity, OntologyRelation, OntologyEntityType } from '../types'
 
 const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
@@ -37,6 +38,7 @@ const TYPE_COLORS: Record<OntologyEntityType, string> = {
 
 export function EntityDetailPanel() {
   const { currentProject, selectedEntityId, setSelectedEntityId } = useAppStore()
+  useAppStore(s => s.locale)
   const [sourceCode, setSourceCode] = useState<string | null>(null)
   const [loadingSource, setLoadingSource] = useState(false)
   const [activeTab, setActiveTab] = useState<'info' | 'source' | 'relations' | 'impact'>('info')
@@ -104,10 +106,10 @@ export function EntityDetailPanel() {
       {/* Tabs */}
       <div className="flex border-b border-wiki-border bg-wiki-sidebar/50">
         {([
-          { id: 'info', label: 'Info' },
-          { id: 'source', label: 'Source' },
-          { id: 'relations', label: `Relations (${outgoing.length + incoming.length})` },
-          { id: 'impact', label: `Impact (${impactEntities.length})` },
+          { id: 'info', label: t('entityInfo') },
+          { id: 'source', label: t('entitySource') },
+          { id: 'relations', label: `${t('entityRelations')} (${outgoing.length + incoming.length})` },
+          { id: 'impact', label: `${t('entityImpact')} (${impactEntities.length})` },
         ] as const).map(tab => (
           <button
             key={tab.id}
@@ -156,21 +158,21 @@ function InfoTab({ entity, outgoing, incoming }: {
     <div className="p-4 space-y-4">
       {/* Basic Info */}
       <section>
-        <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">Details</h4>
+        <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">{t('entityDetails')}</h4>
         <div className="space-y-2">
-          <InfoRow label="Type" value={entity.type} />
-          <InfoRow label="Name" value={entity.name} />
-          <InfoRow label="File" value={entity.filePath} mono />
-          <InfoRow label="Lines" value={`${entity.line} – ${entity.endLine}`} />
-          {entity.signature && <InfoRow label="Signature" value={entity.signature} mono />}
-          {entity.description && <InfoRow label="Description" value={entity.description} />}
+          <InfoRow label={t('entityType')} value={tEntityType(entity.type)} />
+          <InfoRow label={t('entityName')} value={entity.name} />
+          <InfoRow label={t('entityFile')} value={entity.filePath} mono />
+          <InfoRow label={t('entityLines')} value={`${entity.line} – ${entity.endLine}`} />
+          {entity.signature && <InfoRow label={t('entitySignature')} value={entity.signature} mono />}
+          {entity.description && <InfoRow label={t('entityDescription')} value={entity.description} />}
         </div>
       </section>
 
       {/* Properties */}
       {entity.properties && Object.keys(entity.properties).length > 0 && (
         <section>
-          <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">Properties</h4>
+          <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">{t('entityProperties')}</h4>
           <div className="space-y-1">
             {Object.entries(entity.properties).map(([key, val]) => (
               <InfoRow key={key} label={key} value={val} />
@@ -181,10 +183,10 @@ function InfoTab({ entity, outgoing, incoming }: {
 
       {/* Summary stats */}
       <section>
-        <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">Connections</h4>
+        <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">{t('entityConnections')}</h4>
         <div className="grid grid-cols-2 gap-2">
-          <StatCard label="Outgoing" value={outgoing.length} color="text-wiki-green" />
-          <StatCard label="Incoming" value={incoming.length} color="text-wiki-accent" />
+          <StatCard label={t('entityOutgoing')} value={outgoing.length} color="text-wiki-green" />
+          <StatCard label={t('entityIncoming')} value={incoming.length} color="text-wiki-accent" />
         </div>
       </section>
     </div>
@@ -212,13 +214,13 @@ function SourceTab({ code, loading, entity }: { code: string | null; loading: bo
         <button
           onClick={handleCopy}
           className="p-1 rounded hover:bg-wiki-border/50 text-wiki-muted hover:text-wiki-text transition-colors"
-          title="Copy source"
+          title={t('entityCopySource')}
         >
           <Copy size={14} />
         </button>
       </div>
       {loading ? (
-        <div className="text-center py-8 text-wiki-muted text-sm">Loading source code...</div>
+        <div className="text-center py-8 text-wiki-muted text-sm">{t('entityLoadingSource')}</div>
       ) : code ? (
         <pre className="p-3 rounded-lg bg-wiki-card border border-wiki-border text-xs font-mono text-wiki-text overflow-x-auto whitespace-pre leading-5">
           {code.split('\n').map((line, i) => (
@@ -232,13 +234,13 @@ function SourceTab({ code, loading, entity }: { code: string | null; loading: bo
         </pre>
       ) : (
         <div className="text-center py-8 text-wiki-muted text-sm">
-          No source available in browser mode.
+          {t('entityNoSourceBrowser')}
           <br />
-          <span className="text-[10px]">Source preview works in Electron desktop app.</span>
+          <span className="text-[10px]">{t('entitySourcePreviewElectron')}</span>
         </div>
       )}
       {copied && (
-        <div className="mt-2 text-xs text-wiki-green">Copied to clipboard!</div>
+        <div className="mt-2 text-xs text-wiki-green">{t('entityCopiedClipboard')}</div>
       )}
     </div>
   )
@@ -260,7 +262,7 @@ function RelationsTab({ outgoing, incoming, entities, onEntityClick }: {
         <section>
           <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2 flex items-center gap-1">
             <ArrowRight size={12} className="text-wiki-green" />
-            Outgoing ({outgoing.length})
+            {t('entityOutgoing')} ({outgoing.length})
           </h4>
           <div className="space-y-1">
             {outgoing.map(rel => {
@@ -285,7 +287,7 @@ function RelationsTab({ outgoing, incoming, entities, onEntityClick }: {
         <section>
           <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2 flex items-center gap-1">
             <ArrowLeft size={12} className="text-wiki-accent" />
-            Incoming ({incoming.length})
+            {t('entityIncoming')} ({incoming.length})
           </h4>
           <div className="space-y-1">
             {incoming.map(rel => {
@@ -307,7 +309,7 @@ function RelationsTab({ outgoing, incoming, entities, onEntityClick }: {
 
       {outgoing.length === 0 && incoming.length === 0 && (
         <div className="text-center py-8 text-wiki-muted text-sm">
-          No relations found for this entity.
+          {t('entityNoRelationsForEntity')}
         </div>
       )}
     </div>
@@ -333,14 +335,14 @@ function ImpactTab({ impactEntities, onEntityClick }: {
           <div className="flex items-center gap-2 p-2 rounded-lg bg-wiki-orange/10 border border-wiki-orange/20">
             <AlertTriangle size={14} className="text-wiki-orange shrink-0" />
             <span className="text-xs text-wiki-orange">
-              {impactEntities.length} entities may be affected by changes
+              {impactEntities.length} {t('footerEntities')} {t('entityMayBeAffected')}
             </span>
           </div>
 
           {Array.from(byDepth.entries()).sort(([a], [b]) => a - b).map(([depth, items]) => (
             <section key={depth}>
               <h4 className="text-xs font-semibold text-wiki-muted uppercase tracking-wider mb-2">
-                Depth {depth} ({items.length} entities)
+                {t('entityDepth')} {depth} ({items.length} {t('footerEntities')})
               </h4>
               <div className="space-y-1">
                 {items.slice(0, 20).map(item => {
@@ -357,13 +359,13 @@ function ImpactTab({ impactEntities, onEntityClick }: {
                         {item.entity.name}
                       </span>
                       <span className="ml-auto text-[10px] text-wiki-muted/50 font-mono shrink-0">
-                        {item.entity.type}
+                        {tEntityType(item.entity.type)}
                       </span>
                     </button>
                   )
                 })}
                 {items.length > 20 && (
-                  <div className="text-[10px] text-wiki-muted/50 px-2">+{items.length - 20} more</div>
+                  <div className="text-[10px] text-wiki-muted/50 px-2">+{items.length - 20} {t('more')}</div>
                 )}
               </div>
             </section>
@@ -371,7 +373,7 @@ function ImpactTab({ impactEntities, onEntityClick }: {
         </>
       ) : (
         <div className="text-center py-8 text-wiki-muted text-sm">
-          No downstream impact detected (isolated entity).
+          {t('entityNoImpact')}
         </div>
       )}
     </div>
@@ -417,7 +419,7 @@ function RelationRow({ relationType, entity, direction, onClick }: {
       </span>
       <Icon size={12} className={color} />
       <span className="text-xs text-wiki-text group-hover:text-wiki-accent truncate">{entity.name}</span>
-      <span className="ml-auto text-[10px] text-wiki-muted/50 font-mono shrink-0">{entity.type}</span>
+      <span className="ml-auto text-[10px] text-wiki-muted/50 font-mono shrink-0">{tEntityType(entity.type)}</span>
     </button>
   )
 }

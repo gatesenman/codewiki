@@ -157,7 +157,11 @@ async function cmdSearch() {
 
   const result = await runCliJson(['search', `"${query}"`, '-p', `"${getProjectPath()}"`])
   if (result?.results) {
-    const items = result.results.map((r: any) => ({
+    interface SearchQuickPickItem extends vscode.QuickPickItem {
+      filePath?: string
+      line?: number
+    }
+    const items: SearchQuickPickItem[] = result.results.map((r: any) => ({
       label: r.file || r.entity || r.title,
       description: `Score: ${(r.score * 100).toFixed(0)}%`,
       detail: r.snippet?.substring(0, 200),

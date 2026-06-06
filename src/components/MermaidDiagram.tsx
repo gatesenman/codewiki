@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
+import { t } from '../services/i18n'
+import { useAppStore } from '../store'
 
 mermaid.initialize({
   startOnLoad: false,
@@ -26,6 +28,7 @@ interface Props {
 
 export function MermaidDiagram({ chart }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  useAppStore(s => s.locale)
   const [error, setError] = useState<string | null>(null)
   const [rendered, setRendered] = useState(false)
 
@@ -44,7 +47,7 @@ export function MermaidDiagram({ chart }: Props) {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to render diagram')
+          setError(err instanceof Error ? err.message : t('mermaidRenderFailed'))
         }
       }
     }
@@ -55,7 +58,7 @@ export function MermaidDiagram({ chart }: Props) {
   if (error) {
     return (
       <div className="my-4 p-4 rounded-lg bg-wiki-card border border-wiki-border">
-        <div className="text-xs text-wiki-muted mb-2">Diagram (raw)</div>
+        <div className="text-xs text-wiki-muted mb-2">{t('mermaidRaw')}</div>
         <pre className="text-xs text-wiki-text/70 overflow-x-auto">
           <code>{chart}</code>
         </pre>

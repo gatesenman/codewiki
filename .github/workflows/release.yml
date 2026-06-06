@@ -40,10 +40,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build app + CLI
+      - name: Build app + CLI + MCP server
         run: |
           npm run build
           npm run build:cli
+          npm run build:mcp
 
       - name: Package installer
         run: npx electron-builder ${{ matrix.platform }} --publish never
@@ -51,6 +52,17 @@ jobs:
           # Build unsigned artifacts (no code-signing certs in CI).
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The VS Code extension is platform-independent — build the .vsix once (Linux).
+      - name: Build VS Code extension (.vsix)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:vscode
+
+      - name: Collect VS Code extension
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p release
+          cp vscode-extension/*.vsix release/ || true
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
@@ -62,6 +74,7 @@ jobs:
             release/*.exe
             release/*.dmg
             release/*.zip
+            release/*.vsix
           if-no-files-found: ignore
 
       - name: Attach installers to GitHub Release
@@ -74,4 +87,5 @@ jobs:
             release/*.exe
             release/*.dmg
             release/*.zip
+            release/*.vsix
           fail_on_unmatched_files: false
