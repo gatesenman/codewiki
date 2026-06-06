@@ -3126,15 +3126,21 @@ function cmdGitDiffImpact(projectPath: string, depth: number): void {
   const absPath = path.resolve(projectPath)
   const { graph } = getGraph(absPath)
 
-  // Run git diff to get changed files
+  // Run git diff to get changed files. With `--base <ref>` (e.g. a PR base
+  // branch) we diff <base>...HEAD; otherwise we use the working tree + stage.
+  const baseIdx = process.argv.indexOf('--base')
+  const baseRef = baseIdx !== -1 ? process.argv[baseIdx + 1] : undefined
   let diffOutput = ''
   try {
     const { execSync } = require('child_process')
-    diffOutput = execSync('git diff --name-only', { cwd: absPath, encoding: 'utf-8' })
-    // Also include staged changes
-    const stagedOutput = execSync('git diff --staged --name-only', { cwd: absPath, encoding: 'utf-8' })
-    const allFiles = new Set([...diffOutput.trim().split('\n'), ...stagedOutput.trim().split('\n')].filter(Boolean))
-    diffOutput = Array.from(allFiles).join('\n')
+    if (baseRef) {
+      diffOutput = execSync(`git diff --name-only ${baseRef}...HEAD`, { cwd: absPath, encoding: 'utf-8' })
+    } else {
+      diffOutput = execSync('git diff --name-only', { cwd: absPath, encoding: 'utf-8' })
+      const stagedOutput = execSync('git diff --staged --name-only', { cwd: absPath, encoding: 'utf-8' })
+      const allFiles = new Set([...diffOutput.trim().split('\n'), ...stagedOutput.trim().split('\n')].filter(Boolean))
+      diffOutput = Array.from(allFiles).join('\n')
+    }
   } catch {
     output({ command: 'git-diff', error: 'Not a git repository or git not available' })
     return
