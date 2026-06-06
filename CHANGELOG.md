@@ -3,6 +3,19 @@
 All notable changes to CodeWiki are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.4] — 2026-06-06
+
+VS Code extension feature-completeness release (extension `0.4.0`).
+
+### Added
+- **VS Code extension v0.4.0** — bilingual (EN/中文) feature-complete companion:
+  - **Initialize** command: detect CLI, write `.vscode/mcp.json`, index + verify.
+  - **Health Check** tabbed panel (grade A–F / security / patterns) + status-bar grade.
+  - **Security Scan** publishes findings to the **Problems** panel (per-file squiggles).
+  - **Usage Panel** (activity-bar sidebar + standalone) with one-click action buttons.
+  - **Getting Started walkthrough**, keybindings, Refresh command, richer entity tree.
+  - Settings command; runtime i18n via `codewiki.language`; `README.zh-CN.md`.
+
 ## [1.0.3] — 2026-06-06
 
 CodeFlow-inspired "trust signals" release: turn the read-only ontology into
