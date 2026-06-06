@@ -16,6 +16,8 @@ interface Graph3DProps {
   forceStrength: number
   linkDistance: number
   onSelect: (id: string) => void
+  /** Optional search term to highlight matching nodes. */
+  highlightTerm?: string
   /** Called when 3D rendering cannot run (no WebGL / library throws), so the
    *  parent can fall back to the 2D SVG instead of showing a blank canvas. */
   onError?: () => void
@@ -45,7 +47,7 @@ type N = NodeObject & GraphNode
  */
 export function KnowledgeGraph3D({
   nodes, links, colors, sizes, selectedId,
-  nodeSize, showLabels, rotationSpeed, forceStrength, linkDistance, onSelect, onError,
+  nodeSize, showLabels, rotationSpeed, forceStrength, linkDistance, onSelect, highlightTerm, onError,
 }: Graph3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const rotateRef = useRef(rotationSpeed)
@@ -87,7 +89,9 @@ export function KnowledgeGraph3D({
       .graphData(data)
       .nodeColor((n: NodeObject) => {
         const node = n as N
-        return node.id === selectedId ? '#58a6ff' : (colors[node.type] || '#8b949e')
+        if (node.id === selectedId) return '#58a6ff'
+        if (highlightTerm && node.name.toLowerCase().includes(highlightTerm.toLowerCase())) return '#f0883e'
+        return colors[node.type] || '#8b949e'
       })
       .nodeVal((n: NodeObject) => (sizes[(n as N).type] || 6) * nodeSize)
       .nodeOpacity(0.92)
@@ -153,7 +157,7 @@ export function KnowledgeGraph3D({
       try { graph._destructor() } catch { /* ignore teardown errors */ }
       el.innerHTML = ''
     }
-  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels, forceStrength, linkDistance])
+  }, [nodes, links, colors, sizes, selectedId, nodeSize, showLabels, forceStrength, linkDistance, highlightTerm])
 
   return <div ref={containerRef} className="flex-1 w-full bg-wiki-bg" />
 }

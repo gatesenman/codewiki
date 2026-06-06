@@ -444,5 +444,9 @@
   "codeMapArchDiagrams": "Architecture Diagrams",
   "codeMapArchDesc": "Auto-generated from the ontology graph. Module dependencies, class hierarchy, and component interactions.",
   "wikiExport": "Export",
-  "insHistTimeline": "Timeline"
+  "insHistTimeline": "Timeline",
+  "insTabNLQuery": "Ask Graph",
+  "insNLQueryPlaceholder": "Ask a question about your code... (e.g. \"what calls UserService?\")",
+  "insNLQueryRun": "Ask",
+  "insNLQueryHint": "Ask in English or Chinese. Examples: \"what calls X?\", \"show all classes\", \"isolated entities\""
 }

@@ -444,5 +444,9 @@
   "codeMapArchDiagrams": "架构图表",
   "codeMapArchDesc": "从本体图谱自动生成。包含模块依赖、类层级和组件交互关系。",
   "wikiExport": "导出",
-  "insHistTimeline": "时间线"
+  "insHistTimeline": "时间线",
+  "insTabNLQuery": "自然语言查询",
+  "insNLQueryPlaceholder": "用自然语言提问... (如 \"谁调用了UserService?\")",
+  "insNLQueryRun": "查询",
+  "insNLQueryHint": "支持中英文提问，例如：\"谁调用了X?\"，\"所有的类\"，\"孤立的实体\""
 }
