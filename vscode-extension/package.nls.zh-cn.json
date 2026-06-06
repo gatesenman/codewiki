@@ -19,6 +19,7 @@
   "cmd.status": "查看状态",
   "cmd.refresh": "刷新（重新索引）",
   "cmd.clearDiagnostics": "清除安全问题",
+  "cmd.goToEntity": "跳转到实体",
   "walkthrough.title": "CodeWiki 快速上手",
   "walkthrough.description": "初始化、检查代码健康、使用一键面板。",
   "walkthrough.step.init": "初始化",

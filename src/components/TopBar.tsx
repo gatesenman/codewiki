@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   BookOpen, GitBranch, Search, MessageSquare, Bot, Activity,
   Loader2, Settings, PanelLeftClose, PanelLeftOpen,
-  RefreshCw, FolderOpen, Home,
+  RefreshCw, FolderOpen, Home, LayoutGrid,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { SettingsModal } from './SettingsModal'
@@ -17,6 +17,7 @@ const VIEW_TABS = [
   { mode: 'chat' as const, labelKey: 'navChat' as const, icon: MessageSquare },
   { mode: 'agent' as const, labelKey: 'navAgent' as const, icon: Bot },
   { mode: 'insights' as const, labelKey: 'navInsights' as const, icon: Activity },
+  { mode: 'codemap' as const, labelKey: 'navCodeMap' as const, icon: LayoutGrid },
 ]
 
 export function TopBar() {
@@ -76,8 +77,7 @@ export function TopBar() {
     if (autoGenTriggered.current === currentProject.id) return
     autoGenTriggered.current = currentProject.id
     void handleGenerateWiki()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoGenerate, currentProject?.id, currentProject?.wikiPages?.length])
+  }, [autoGenerate, currentProject?.id, currentProject?.wikiPages?.length]) // eslint-disable-line
 
   const handleReindex = async () => {
     if (!currentProject || isReindexing) return

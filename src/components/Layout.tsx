@@ -6,8 +6,10 @@ import { SearchPanel } from './SearchPanel'
 import { ChatPanel } from './ChatPanel'
 import { CodeAgentPanel } from './CodeAgentPanel'
 import { InsightsPanel } from './InsightsPanel'
+import { CodeMap } from './CodeMap'
 import { EntityDetailPanel } from './EntityDetailPanel'
 import { TopBar } from './TopBar'
+import { ErrorBoundary } from './ErrorBoundary'
 
 export function Layout() {
   const viewMode = useAppStore(s => s.viewMode)
@@ -21,14 +23,17 @@ export function Layout() {
       <div className="flex-1 flex overflow-hidden">
         {sidebarPosition === 'left' && <Sidebar />}
         <main className="flex-1 overflow-hidden transition-all" key={viewMode}>
-          <div className="h-full fade-in">
-            {viewMode === 'wiki' && <WikiViewer />}
-            {viewMode === 'graph' && <KnowledgeGraph />}
-            {viewMode === 'search' && <SearchPanel />}
-            {viewMode === 'chat' && <ChatPanel />}
-            {viewMode === 'agent' && <CodeAgentPanel />}
-            {viewMode === 'insights' && <InsightsPanel />}
-          </div>
+          <ErrorBoundary>
+            <div className="h-full fade-in">
+              {viewMode === 'wiki' && <WikiViewer />}
+              {viewMode === 'graph' && <KnowledgeGraph />}
+              {viewMode === 'search' && <SearchPanel />}
+              {viewMode === 'chat' && <ChatPanel />}
+              {viewMode === 'agent' && <CodeAgentPanel />}
+              {viewMode === 'insights' && <InsightsPanel />}
+              {viewMode === 'codemap' && <CodeMap />}
+            </div>
+          </ErrorBoundary>
         </main>
         {selectedEntityId && <div className="slide-in-right"><EntityDetailPanel /></div>}
         {sidebarPosition === 'right' && <Sidebar />}

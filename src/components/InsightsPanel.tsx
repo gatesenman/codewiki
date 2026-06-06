@@ -2,14 +2,14 @@ import { useState, useCallback, useMemo } from 'react'
 import {
   Activity, Search, History, FileText, FlaskConical,
   Camera, Trash2, ArrowRight, AlertTriangle, CheckCircle2,
-  HeartPulse, RefreshCw, ShieldAlert, Loader2,
+  HeartPulse, RefreshCw, ShieldAlert, Loader2, MessageSquare,
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { t, tEntityType } from '../services/i18n'
 import { answerQuery, type QueryResult } from '../services/graph-query'
 import {
   buildTimeline,
-  type GraphSnapshot, type EvolutionTimeline,
+  type GraphSnapshot, type EvolutionTimeline, type GraphDiff, type SnapshotMetrics,
 } from '../services/graph-history'
 import {
   computeIncrementalPlan, type IncrementalPlan,
@@ -20,9 +20,10 @@ import {
 } from '../services/eval-harness'
 import { analyzeHealth, type HealthReport } from '../services/health-analyzer'
 import { scanSecurity, type SecurityReport, type Severity } from '../services/security-scan'
+import { executeNLQuery, type NLQueryResult } from '../services/nl-graph-query'
 import type { OntologyEntityType, OntologyGraph, WikiPage } from '../types'
 
-type InsightTab = 'health' | 'security' | 'query' | 'history' | 'wiki' | 'eval'
+type InsightTab = 'health' | 'security' | 'query' | 'nlquery' | 'history' | 'wiki' | 'eval'
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
@@ -47,6 +48,7 @@ export function InsightsPanel() {
     { id: 'health', label: t('insTabHealth'), icon: HeartPulse },
     { id: 'security', label: t('insTabSecurity'), icon: ShieldAlert },
     { id: 'query', label: t('insTabQuery'), icon: Search },
+    { id: 'nlquery', label: t('insTabNLQuery'), icon: MessageSquare },
     { id: 'history', label: t('insTabHistory'), icon: History },
     { id: 'wiki', label: t('insTabWiki'), icon: FileText },
     { id: 'eval', label: t('insTabEval'), icon: FlaskConical },
@@ -85,6 +87,7 @@ export function InsightsPanel() {
         {tab === 'health' && <HealthTool graph={graph} />}
         {tab === 'security' && <SecurityTool graph={graph} />}
         {tab === 'query' && <QueryTool graph={graph} />}
+        {tab === 'nlquery' && <NLQueryTool graph={graph} />}
         {tab === 'history' && <HistoryTool graph={graph} />}
         {tab === 'wiki' && <WikiTool graph={graph} wikiPages={wikiPages} />}
         {tab === 'eval' && <EvalTool graph={graph} />}
@@ -458,23 +461,199 @@ function HistoryTool({ graph }: { graph: OntologyGraph }) {
             </table>
           </div>
 
+          {/* Timeline chart */}
+          {timeline.metrics.length >= 2 && (
+            <div className="bg-wiki-card border border-wiki-border rounded-md px-4 py-3">
+              <div className="text-xs font-semibold text-wiki-muted mb-2">{t('insHistTimeline')}</div>
+              <TimelineChart metrics={timeline.metrics} />
+            </div>
+          )}
+
           {/* Diffs */}
           {timeline.diffs.length > 0 && (
-            <div>
-              <div className="text-xs font-semibold text-wiki-muted mb-1.5">{t('insHistDiff')}</div>
-              <div className="space-y-1.5">
-                {timeline.diffs.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm bg-wiki-card border border-wiki-border rounded-md px-3 py-2">
-                    <span className="text-wiki-muted">{d.fromRef}</span>
-                    <ArrowRight size={12} className="text-wiki-muted" />
-                    <span className="text-wiki-muted">{d.toRef}</span>
-                    <span className="text-green-500 ml-2">+{d.addedEntities.length} {t('insHistAdded')}</span>
-                    <span className="text-red-500">-{d.removedEntities.length} {t('insHistRemoved')}</span>
-                    <span className="text-amber-500">~{d.movedEntities.length} {t('insHistMoved')}</span>
-                    <span className="text-wiki-muted ml-auto">Δrel {d.relationDelta >= 0 ? '+' : ''}{d.relationDelta}</span>
+            <DiffList diffs={timeline.diffs} />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---- Timeline mini chart (entities + relations over snapshots) ---------------
+
+function TimelineChart({ metrics }: { metrics: SnapshotMetrics[] }) {
+  if (metrics.length < 2) return null
+
+  const maxE = Math.max(...metrics.map(m => m.entityCount), 1)
+  const maxR = Math.max(...metrics.map(m => m.relationCount), 1)
+  const h = 80
+  const w = 100
+
+  const eLine = metrics.map((m, i) => {
+    const x = (i / (metrics.length - 1)) * w
+    const y = h - (m.entityCount / maxE) * h
+    return `${x},${y}`
+  }).join(' ')
+
+  const rLine = metrics.map((m, i) => {
+    const x = (i / (metrics.length - 1)) * w
+    const y = h - (m.relationCount / maxR) * h
+    return `${x},${y}`
+  }).join(' ')
+
+  return (
+    <div className="flex items-end gap-4">
+      <svg viewBox={`-2 -2 ${w + 4} ${h + 4}`} className="w-full max-w-xs" style={{ height: h + 8 }}>
+        <polyline fill="none" stroke="rgb(var(--wiki-accent))" strokeWidth="1.5" points={eLine} />
+        <polyline fill="none" stroke="rgb(var(--wiki-green))" strokeWidth="1.5" strokeDasharray="4 2" points={rLine} />
+        {/* dots at each snapshot */}
+        {metrics.map((m, i) => {
+          const x = (i / (metrics.length - 1)) * w
+          const yE = h - (m.entityCount / maxE) * h
+          return <circle key={i} cx={x} cy={yE} r={2} fill="rgb(var(--wiki-accent))" />
+        })}
+      </svg>
+      <div className="text-[10px] text-wiki-muted space-y-1 shrink-0">
+        <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-wiki-accent" /> {t('insHistEntities')}</div>
+        <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-wiki-green" style={{ borderBottom: '1px dashed' }} /> {t('insHistRelations')}</div>
+      </div>
+    </div>
+  )
+}
+
+// ---- Expandable diff list ---------------------------------------------------
+
+function DiffList({ diffs }: { diffs: GraphDiff[] }) {
+  const [expanded, setExpanded] = useState<number | null>(null)
+
+  return (
+    <div>
+      <div className="text-xs font-semibold text-wiki-muted mb-1.5">{t('insHistDiff')}</div>
+      <div className="space-y-1.5">
+        {diffs.map((d, i) => (
+          <div key={i} className="bg-wiki-card border border-wiki-border rounded-md overflow-hidden">
+            <button
+              onClick={() => setExpanded(expanded === i ? null : i)}
+              className="w-full flex items-center gap-2 text-sm px-3 py-2 hover:bg-wiki-card/80 transition-colors"
+            >
+              <span className="text-wiki-muted">{d.fromRef}</span>
+              <ArrowRight size={12} className="text-wiki-muted" />
+              <span className="text-wiki-muted">{d.toRef}</span>
+              <span className="text-green-500 ml-2">+{d.addedEntities.length} {t('insHistAdded')}</span>
+              <span className="text-red-500">-{d.removedEntities.length} {t('insHistRemoved')}</span>
+              <span className="text-amber-500">~{d.movedEntities.length} {t('insHistMoved')}</span>
+              <span className="text-wiki-muted ml-auto">Δrel {d.relationDelta >= 0 ? '+' : ''}{d.relationDelta}</span>
+            </button>
+            {expanded === i && (
+              <div className="border-t border-wiki-border px-3 py-2 space-y-2">
+                {d.addedEntities.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-green-500 mb-1">{t('insHistAdded')}</div>
+                    {d.addedEntities.map((e, j) => (
+                      <div key={j} className="text-xs text-wiki-text flex items-center gap-2 py-0.5">
+                        <span className="text-wiki-muted">{e.type}</span>
+                        <span className="font-mono">{e.name}</span>
+                        {e.toFile && <span className="text-wiki-muted text-[10px]">{e.toFile}</span>}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                {d.removedEntities.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-red-500 mb-1">{t('insHistRemoved')}</div>
+                    {d.removedEntities.map((e, j) => (
+                      <div key={j} className="text-xs text-wiki-text flex items-center gap-2 py-0.5">
+                        <span className="text-wiki-muted">{e.type}</span>
+                        <span className="font-mono">{e.name}</span>
+                        {e.fromFile && <span className="text-wiki-muted text-[10px]">{e.fromFile}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {d.movedEntities.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-amber-500 mb-1">{t('insHistMoved')}</div>
+                    {d.movedEntities.map((e, j) => (
+                      <div key={j} className="text-xs text-wiki-text flex items-center gap-2 py-0.5">
+                        <span className="text-wiki-muted">{e.type}</span>
+                        <span className="font-mono">{e.name}</span>
+                        <span className="text-wiki-muted text-[10px]">{e.fromFile} → {e.toFile}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ---- Natural language graph query -----------------------------------------
+
+function NLQueryTool({ graph }: { graph: OntologyGraph }) {
+  const [input, setInput] = useState('')
+  const [result, setResult] = useState<NLQueryResult | null>(null)
+
+  const handleQuery = useCallback(() => {
+    if (!input.trim()) return
+    setResult(executeNLQuery(input, graph))
+  }, [input, graph])
+
+  return (
+    <div className="max-w-4xl space-y-4">
+      <div className="flex items-center gap-2">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleQuery()}
+          placeholder={t('insNLQueryPlaceholder')}
+          className="flex-1 px-3 py-2 rounded-md bg-wiki-card border border-wiki-border text-sm text-wiki-text placeholder:text-wiki-muted focus:outline-none focus:border-wiki-accent"
+        />
+        <button
+          onClick={handleQuery}
+          className="px-4 py-2 rounded-md bg-wiki-accent/10 text-wiki-accent hover:bg-wiki-accent/20 text-sm font-medium transition-colors"
+        >
+          {t('insNLQueryRun')}
+        </button>
+      </div>
+      <p className="text-xs text-wiki-muted">{t('insNLQueryHint')}</p>
+
+      {result && (
+        <div className="space-y-3">
+          <div className="bg-wiki-card border border-wiki-border rounded-md px-4 py-3 text-sm">
+            <span className="font-semibold text-wiki-text">{result.explanation}</span>
+            <span className="text-wiki-muted ml-2">({result.intent})</span>
+          </div>
+
+          {result.entities.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-wiki-muted border-b border-wiki-border">
+                    <th className="py-1.5 pr-4">Name</th>
+                    <th className="py-1.5 pr-4">Type</th>
+                    <th className="py-1.5 pr-4">File</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.entities.slice(0, 50).map(e => (
+                    <tr key={e.id} className="border-b border-wiki-border/50">
+                      <td className="py-1.5 pr-4 text-wiki-text font-mono">{e.name}</td>
+                      <td className="py-1.5 pr-4 text-wiki-muted">{e.type}</td>
+                      <td className="py-1.5 pr-4 text-wiki-muted text-xs">{e.filePath}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {result.relations.length > 0 && (
+            <div className="text-xs text-wiki-muted">
+              {result.relations.length} relation(s) found
             </div>
           )}
         </div>

@@ -72,7 +72,9 @@ const PATTERNS = {
     /(?:export\s+)?enum\s+(\w+)/g,
   ],
   methodDecl: [
+    // eslint-disable-next-line no-useless-escape
     /(?:(?:public|private|protected|static|readonly|override|abstract|async)\s+)*(\w+)\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?::\s*[\w<>\[\]|&,\s]+)?\s*{/g,
+    // eslint-disable-next-line no-useless-escape
     /(?:abstract)\s+(\w+)\s*(?:<[^>]+>)?\s*\([^)]*\)\s*(?::\s*[\w<>\[\]|&, \t]+)?/g,
   ],
 }

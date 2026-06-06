@@ -2,8 +2,9 @@ import { useState, useCallback } from 'react'
 import { Search, FileText, Code, Box, Loader2 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { services } from '../services/service-registry'
+import { rerankWithOntology } from '../services/ontology-reranker'
 import { t, tEntityType } from '../services/i18n'
-import type { SearchResult, OntologyEntityType } from '../types'
+import type { SearchResult } from '../types'
 
 export function SearchPanel() {
   const { currentProject, searchQuery, setSearchQuery, searchResults, setSearchResults } = useAppStore()
@@ -58,9 +59,14 @@ export function SearchPanel() {
     }
 
     // Vector search in code (hybrid when embeddings are available)
+    // Then rerank using the ontology graph for context-aware results.
     if (searchType === 'all' || searchType === 'code') {
-      const vectorResults = await services.vectorStore.searchHybrid(searchQuery, searchCfg.maxResults)
-      for (const r of vectorResults) {
+      const vectorResults = await services.vectorStore.searchHybrid(searchQuery, searchCfg.maxResults * 2)
+      const graph = currentProject.ontologyGraph
+      const reranked = graph && graph.entities.length > 0
+        ? rerankWithOntology(vectorResults, searchQuery, graph)
+        : vectorResults.map(r => ({ ...r, originalScore: r.score }))
+      for (const r of reranked.slice(0, searchCfg.maxResults)) {
         results.push({
           id: r.id,
           type: 'code',

@@ -19,6 +19,7 @@
   "cmd.status": "Show Status",
   "cmd.refresh": "Refresh (re-index)",
   "cmd.clearDiagnostics": "Clear Security Problems",
+  "cmd.goToEntity": "Go to Entity",
   "walkthrough.title": "Get Started with CodeWiki",
   "walkthrough.description": "Initialize, check code health, and use the one-click panel.",
   "walkthrough.step.init": "Initialize",
