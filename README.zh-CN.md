@@ -219,18 +219,18 @@ irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | i
 预编译安装包（`.AppImage`、`.deb`、Windows `.exe`、macOS `.dmg`）发布在
 [GitHub Releases](https://github.com/gaosichun888/codewiki/releases)。
 
-## 下载（最新：v1.1.0）
+## 下载（最新：v1.1.1）
 
 从 [最新发布页](https://github.com/gaosichun888/codewiki/releases/latest) 选择你平台的预编译安装包：
 
 | 平台 | 下载 |
 |---|---|
-| Windows（安装版） | [`CodeWiki.Setup.1.1.0.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows（便携版） | [`CodeWiki.1.1.0.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Apple Silicon） | [`CodeWiki-1.1.0-arm64.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Intel） | [`CodeWiki-1.1.0.dmg`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（AppImage） | [`CodeWiki-1.1.0.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（Debian/Ubuntu） | [`codewiki_1.1.0_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows（安装版） | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows（便携版） | [`CodeWiki.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS（Apple Silicon） | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| macOS（Intel） | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux（AppImage） | [`CodeWiki-1.1.1.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Linux（Debian/Ubuntu） | [`codewiki_1.1.1_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
 | VSCode 扩展 | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
 
 > macOS 为未签名构建：首次打开请右键 → 打开，或在「系统设置 → 隐私与安全性」中放行。
