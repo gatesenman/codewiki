@@ -32,10 +32,12 @@ const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
 }
 
 export function Sidebar() {
-  const {
-    currentProject, activePageId, setActivePageId,
-    sidebarCollapsed, viewMode, setViewMode,
-  } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const activePageId = useAppStore(s => s.activePageId)
+  const setActivePageId = useAppStore(s => s.setActivePageId)
+  const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed)
+  const viewMode = useAppStore(s => s.viewMode)
+  const setViewMode = useAppStore(s => s.setViewMode)
   useAppStore(s => s.locale)
   const sidebarWidth = useAppStore(s => s.config.ui.sidebarWidth)
   const sidebarPosition = useAppStore(s => s.config.ui.sidebarPosition)

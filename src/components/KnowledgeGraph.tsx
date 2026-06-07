@@ -67,7 +67,9 @@ const ENTITY_SIZES: Record<OntologyEntityType, number> = {
 }
 
 export function KnowledgeGraph() {
-  const { currentProject, selectedGraphNode, setSelectedGraphNode } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const selectedGraphNode = useAppStore(s => s.selectedGraphNode)
+  const setSelectedGraphNode = useAppStore(s => s.setSelectedGraphNode)
   useAppStore(s => s.locale)
   const svgRef = useRef<SVGSVGElement>(null)
   const [filter, setFilter] = useState<OntologyEntityType | 'all'>('all')
@@ -362,7 +364,9 @@ export function KnowledgeGraph() {
 
 /** Computes filtered graph data and renders the 3D (three.js) canvas. */
 function Graph3DCanvas({ filter, onError }: { filter: OntologyEntityType | 'all'; onError: () => void }) {
-  const { currentProject, selectedGraphNode, setSelectedGraphNode } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const selectedGraphNode = useAppStore(s => s.selectedGraphNode)
+  const setSelectedGraphNode = useAppStore(s => s.setSelectedGraphNode)
   const ontology = currentProject?.ontologyGraph
   const cfg = useAppStore(s => s.config.graph)
   if (!ontology) return null

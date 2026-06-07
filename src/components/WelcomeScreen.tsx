@@ -11,10 +11,11 @@ import { playCompletionSound } from '../services/notify'
 import { t } from '../services/i18n'
 
 export function WelcomeScreen() {
-  const {
-    addProject, setLoading, saveProject,
-    recentProjects, removeRecentProject,
-  } = useAppStore()
+  const addProject = useAppStore(s => s.addProject)
+  const setLoading = useAppStore(s => s.setLoading)
+  const saveProject = useAppStore(s => s.saveProject)
+  const recentProjects = useAppStore(s => s.recentProjects)
+  const removeRecentProject = useAppStore(s => s.removeRecentProject)
   useAppStore(s => s.locale)
   const showWelcomeIntro = useAppStore(s => s.config.behavior.showWelcome)
   const rememberLastProject = useAppStore(s => s.config.behavior.rememberLastProject)

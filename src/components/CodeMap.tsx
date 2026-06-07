@@ -89,7 +89,8 @@ function couplingColor(t01: number): string {
 // ── Main component ──────────────────────────────────────────────────────
 
 export function CodeMap() {
-  const { currentProject, setSelectedEntityId } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const setSelectedEntityId = useAppStore(s => s.setSelectedEntityId)
   useAppStore(s => s.locale)
   const [subView, setSubView] = useState<SubView>('treemap')
   const [selectedFile, setSelectedFile] = useState<FileDetail | null>(null)

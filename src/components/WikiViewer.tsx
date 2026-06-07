@@ -11,7 +11,9 @@ import { t } from '../services/i18n'
 import { getCodeTheme, wrapClass } from '../services/code-style'
 
 export function WikiViewer() {
-  const { currentProject, activePageId, setActivePageId } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const activePageId = useAppStore(s => s.activePageId)
+  const setActivePageId = useAppStore(s => s.setActivePageId)
   useAppStore(s => s.locale)
   const ui = useAppStore(s => s.config.ui)
   const includeMermaid = useAppStore(s => s.config.wiki.includeMermaid)

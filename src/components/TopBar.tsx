@@ -23,13 +23,16 @@ const VIEW_TABS = [
 ]
 
 export function TopBar() {
-  const {
-    viewMode, setViewMode,
-    currentProject, setCurrentProject,
-    sidebarCollapsed, toggleSidebar,
-    isLoading, loadingMessage,
-    updateProject, setLoading,
-  } = useAppStore()
+  const viewMode = useAppStore(s => s.viewMode)
+  const setViewMode = useAppStore(s => s.setViewMode)
+  const currentProject = useAppStore(s => s.currentProject)
+  const setCurrentProject = useAppStore(s => s.setCurrentProject)
+  const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed)
+  const toggleSidebar = useAppStore(s => s.toggleSidebar)
+  const isLoading = useAppStore(s => s.isLoading)
+  const loadingMessage = useAppStore(s => s.loadingMessage)
+  const updateProject = useAppStore(s => s.updateProject)
+  const setLoading = useAppStore(s => s.setLoading)
   useAppStore(s => s.locale)
   const [showSettings, setShowSettings] = useState(false)
   const [isReindexing, setIsReindexing] = useState(false)

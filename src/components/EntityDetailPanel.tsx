@@ -74,7 +74,9 @@ const TYPE_COLORS: Record<OntologyEntityType, string> = {
 }
 
 export function EntityDetailPanel() {
-  const { currentProject, selectedEntityId, setSelectedEntityId } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const selectedEntityId = useAppStore(s => s.selectedEntityId)
+  const setSelectedEntityId = useAppStore(s => s.setSelectedEntityId)
   useAppStore(s => s.locale)
   const [sourceCode, setSourceCode] = useState<string | null>(null)
   const [loadingSource, setLoadingSource] = useState(false)

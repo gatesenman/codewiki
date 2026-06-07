@@ -7,7 +7,11 @@ import { t, tEntityType } from '../services/i18n'
 import type { SearchResult } from '../types'
 
 export function SearchPanel() {
-  const { currentProject, searchQuery, setSearchQuery, searchResults, setSearchResults } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const searchQuery = useAppStore(s => s.searchQuery)
+  const setSearchQuery = useAppStore(s => s.setSearchQuery)
+  const searchResults = useAppStore(s => s.searchResults)
+  const setSearchResults = useAppStore(s => s.setSearchResults)
   useAppStore(s => s.locale)
   const searchCfg = useAppStore(s => s.config.search)
   const [searching, setSearching] = useState(false)
@@ -157,7 +161,7 @@ export function SearchPanel() {
 }
 
 function SearchResultCard({ result }: { result: SearchResult }) {
-  const { setSelectedEntityId } = useAppStore()
+  const setSelectedEntityId = useAppStore(s => s.setSelectedEntityId)
 
   const typeIcons = {
     wiki: <FileText size={14} className="text-wiki-accent" />,

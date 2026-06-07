@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { Send, Bot, User, Loader2, Trash2, Code } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -10,9 +10,12 @@ import { MermaidDiagram } from './MermaidDiagram'
 import type { ChatMessage, CodeSource } from '../types'
 
 export function ChatPanel() {
-  const {
-    currentProject, chatMessages, addChatMessage, updateChatMessage, clearChat, settings,
-  } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const chatMessages = useAppStore(s => s.chatMessages)
+  const addChatMessage = useAppStore(s => s.addChatMessage)
+  const updateChatMessage = useAppStore(s => s.updateChatMessage)
+  const clearChat = useAppStore(s => s.clearChat)
+  const settings = useAppStore(s => s.settings)
   useAppStore(s => s.locale)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -153,7 +156,7 @@ ${contextStr}`
         )}
 
         {chatMessages.map(msg => (
-          <MessageBubble key={msg.id} message={msg} />
+          <MemoMessageBubble key={msg.id} message={msg} />
         ))}
 
         {isTyping && (
@@ -199,6 +202,8 @@ ${contextStr}`
     </div>
   )
 }
+
+const MemoMessageBubble = memo(MessageBubble)
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
