@@ -20,7 +20,8 @@ interface AgentResult {
 }
 
 export function CodeAgentPanel() {
-  const { currentProject, settings } = useAppStore()
+  const currentProject = useAppStore(s => s.currentProject)
+  const settings = useAppStore(s => s.settings)
   const verifyConfig = useAppStore(s => s.config.verify)
   const confirmBeforeApply = useAppStore(s => s.config.behavior.confirmBeforeApply)
   const showImpactWarning = useAppStore(s => s.config.notifications.showImpactWarning)

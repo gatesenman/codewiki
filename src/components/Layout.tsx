@@ -24,7 +24,7 @@ export function Layout() {
       <TopBar />
       <div className="flex-1 flex overflow-hidden">
         {sidebarPosition === 'left' && <Sidebar />}
-        <main className="flex-1 overflow-hidden transition-all" key={viewMode}>
+        <main className="flex-1 overflow-hidden" key={viewMode}>
           <ErrorBoundary>
             <div className="h-full fade-in">
               {viewMode === 'wiki' && <WikiViewer />}

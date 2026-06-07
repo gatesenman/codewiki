@@ -34,7 +34,10 @@ const TABS: { id: SettingsTab; labelKey: keyof I18nStrings; icon: typeof Server 
 ]
 
 export function SettingsModal({ onClose }: Props) {
-  const { config, updateConfig, resetConfig, setAppLocale } = useAppStore()
+  const config = useAppStore(s => s.config)
+  const updateConfig = useAppStore(s => s.updateConfig)
+  const resetConfig = useAppStore(s => s.resetConfig)
+  const setAppLocale = useAppStore(s => s.setAppLocale)
   useAppStore(s => s.locale)
   const [activeTab, setActiveTab] = useState<SettingsTab>('ai')
   const [localConfig, setLocalConfig] = useState<CodeWikiConfig>(JSON.parse(JSON.stringify(config)))
