@@ -1,6 +1,6 @@
 {
   "name": "codewiki",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "DeepWiki-like cross-platform desktop app for code wiki generation, knowledge graph, semantic search, and precise code agent",
   "author": "gaosichun888",
   "license": "MIT",

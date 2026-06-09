@@ -2,7 +2,7 @@
   "name": "codewiki-vscode",
   "displayName": "CodeWiki - AI Code Knowledge Base",
   "description": "%ext.description%",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "codewiki",
   "license": "MIT",
   "icon": "resources/icon.png",
@@ -159,7 +159,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies -o codewiki-vscode-0.5.1.vsix"
+    "package": "vsce package --no-dependencies -o codewiki-vscode-0.5.2.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",

@@ -2,6 +2,17 @@
 
 All notable changes to CodeWiki will be documented in this file.
 
+## [1.1.2] — 2026-06-04
+
+VS Code extension UI fix (extension `0.5.2`).
+
+### Fixed
+- **Usage Panel font icons (codicons) now render offline** — the codicon font is
+  bundled in the extension and loaded via a CSP-safe webview stylesheet instead
+  of a remote CDN (which VS Code webviews block).
+- **Activity-bar icon now displays** — filled monochrome 24×24 `currentColor`
+  SVG so VS Code can mask and theme it.
+
 ## [1.1.0] — 2026-06-06
 
 ### Added

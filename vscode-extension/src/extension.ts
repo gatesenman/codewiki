@@ -201,7 +201,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (folders?.[0]) autoIndex(folders[0].uri.fsPath)
   }
 
-  outputChannel.appendLine('CodeWiki extension activated (v0.5.1)')
+  outputChannel.appendLine('CodeWiki extension activated (v0.5.2)')
 }
 
 export function deactivate() {
@@ -836,11 +836,22 @@ class HealthPanel {
 
 // ─── Usage Panel (Webview in sidebar + standalone) ─────────────────────────────
 
+function usageWebviewOptions(extUri: vscode.Uri): vscode.WebviewOptions {
+  return { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(extUri, 'resources')] }
+}
+
+function nonce(): string {
+  let s = ''
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  for (let i = 0; i < 24; i++) s += chars.charAt(Math.floor(Math.random() * chars.length))
+  return s
+}
+
 class UsagePanelViewProvider implements vscode.WebviewViewProvider {
   constructor(private ctx: vscode.ExtensionContext) {}
   resolveWebviewView(webviewView: vscode.WebviewView) {
-    webviewView.webview.options = { enableScripts: true }
-    webviewView.webview.html = usagePanelHtml()
+    webviewView.webview.options = usageWebviewOptions(this.ctx.extensionUri)
+    webviewView.webview.html = usagePanelHtml(webviewView.webview, this.ctx.extensionUri)
     webviewView.webview.onDidReceiveMessage((msg) => {
       if (msg.command) vscode.commands.executeCommand(msg.command)
     })
@@ -851,15 +862,15 @@ class UsagePanel {
   static panel: vscode.WebviewPanel | undefined
   static createOrShow(context: vscode.ExtensionContext) {
     if (UsagePanel.panel) { UsagePanel.panel.reveal(); return }
-    const panel = vscode.window.createWebviewPanel('codewikiUsage', `CodeWiki ${t('usageTitle')}`, vscode.ViewColumn.One, { enableScripts: true })
-    panel.webview.html = usagePanelHtml()
+    const panel = vscode.window.createWebviewPanel('codewikiUsage', `CodeWiki ${t('usageTitle')}`, vscode.ViewColumn.One, usageWebviewOptions(context.extensionUri))
+    panel.webview.html = usagePanelHtml(panel.webview, context.extensionUri)
     panel.webview.onDidReceiveMessage((msg) => { if (msg.command) vscode.commands.executeCommand(msg.command) })
     panel.onDidDispose(() => { UsagePanel.panel = undefined })
     UsagePanel.panel = panel
   }
 }
 
-function usagePanelHtml(): string {
+function usagePanelHtml(webview: vscode.Webview, extUri: vscode.Uri): string {
   const lang = getLang()
   const btns: Array<{ cmd: string; label: string; icon: string }> = [
     { cmd: 'codewiki.init', label: lang === 'zh' ? '初始化' : 'Initialize', icon: 'codicon-rocket' },
@@ -879,23 +890,26 @@ function usagePanelHtml(): string {
     { cmd: 'codewiki.openSettings', label: lang === 'zh' ? '设置' : 'Settings', icon: 'codicon-gear' },
     { cmd: 'codewiki.status', label: lang === 'zh' ? '状态' : 'Status', icon: 'codicon-info' },
   ]
+  const codiconUri = webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'resources', 'codicon.css'))
+  const n = nonce()
   return `<!DOCTYPE html><html><head>
-    <link rel="stylesheet" href="https://unpkg.com/@vscode/codicons@0.0.36/dist/codicon.css" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${n}';">
+    <link rel="stylesheet" href="${codiconUri}" />
     <style>
     body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 12px; margin:0; }
     h2 { font-size:13px; margin:0 0 10px; }
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
-    .btn { display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:6px; cursor:pointer; border:1px solid var(--vscode-panel-border); background:var(--vscode-editor-background); font-size:12px; transition:background .1s; }
+    .btn { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; border:1px solid var(--vscode-panel-border); background:var(--vscode-editor-background); font-size:12px; transition:background .1s; }
     .btn:hover { background:var(--vscode-list-hoverBackground); }
-    .icon { font-size:16px; display:flex; align-items:center; }
+    .icon { font-size:16px; display:flex; align-items:center; color: var(--vscode-textLink-foreground); }
     .footer { margin-top:14px; font-size:11px; opacity:.7; }
   </style></head><body>
     <h2>CodeWiki ${lang === 'zh' ? '使用面板' : 'Usage Panel'}</h2>
     <div class="grid">
-      ${btns.map(b => `<div class="btn" onclick="run('${b.cmd}')"><span class="icon codicon ${b.icon}"></span>${b.label}</div>`).join('\n      ')}
+      ${btns.map(b => `<div class="btn" data-cmd="${b.cmd}"><span class="icon codicon ${b.icon}"></span>${b.label}</div>`).join('\n      ')}
     </div>
     <div class="footer">${lang === 'zh' ? '提示：先运行「初始化」确保 CLI 和 MCP 配置正确。' : 'Tip: Run "Initialize" first to ensure CLI & MCP config are correct.'}</div>
-    <script>var vscode=acquireVsCodeApi();function run(c){vscode.postMessage({command:c});}</script>
+    <script nonce="${n}">var vscode=acquireVsCodeApi();document.querySelectorAll('.btn').forEach(function(b){b.addEventListener('click',function(){vscode.postMessage({command:b.getAttribute('data-cmd')});});});</script>
   </body></html>`
 }
 
