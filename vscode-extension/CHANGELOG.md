@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.5.2
+
+UI fix — usage-panel icons render offline; activity-bar icon visible.
+
+### Fixed
+- **Usage Panel codicons now load offline.** They were linked from a remote CDN (`unpkg.com/@vscode/codicons`), which VS Code webviews block (no network / CSP). The codicon font (`codicon.css` + `codicon.ttf`) is now bundled under `resources/` and loaded via `webview.asWebviewUri` with a proper CSP (`font-src`/`style-src` = `webview.cspSource`) and `localResourceRoots`. Button click handlers moved off inline `onclick` to a nonce'd listener (CSP-compliant).
+- **Activity-bar icon now renders reliably**: replaced the stroke/gradient SVG with a filled monochrome 24×24 `currentColor` glyph so VS Code's alpha mask + theming show it clearly.
+
 ## 0.5.1
 
 Enhanced developer experience with LSP-like features and editor integration.
