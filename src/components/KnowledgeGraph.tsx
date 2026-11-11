@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as d3 from 'd3'
-import { ZoomIn, ZoomOut, Maximize2, Filter, Palette } from 'lucide-react'
+import { Filter, Palette } from 'lucide-react'
 import { useAppStore } from '../store'
 import { OntologyBuilder } from '../services/ontology'
 import { detectPatterns } from '../services/pattern-detector'
 import { t, tEntityType, tEntityTypePlural } from '../services/i18n'
 import { KnowledgeGraph3D } from './KnowledgeGraph3D'
-import type { GraphNode, GraphLink, OntologyEntityType } from '../types'
+import type { GraphNode, OntologyEntityType } from '../types'
 
 type ColorMode = 'type' | 'coupling' | 'risk'
 

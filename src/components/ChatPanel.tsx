@@ -7,7 +7,7 @@ import { useAppStore } from '../store'
 import { services } from '../services/service-registry'
 import { t } from '../services/i18n'
 import { MermaidDiagram } from './MermaidDiagram'
-import type { ChatMessage, CodeSource } from '../types'
+import type { ChatMessage } from '../types'
 
 export function ChatPanel() {
   const currentProject = useAppStore(s => s.currentProject)
