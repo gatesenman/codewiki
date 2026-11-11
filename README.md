@@ -15,8 +15,8 @@ precise, impact-aware code agent — all powered by an **ontology model** of you
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-2b3137)
 ![Electron](https://img.shields.io/badge/Electron-React%2018%20%2B%20TypeScript-47848F?logo=electron&logoColor=white)
 ![Vite](https://img.shields.io/badge/built%20with-Vite-646CFF?logo=vite&logoColor=white)
-![Release](https://img.shields.io/github/v/release/gaosichun888/codewiki?label=release&color=blueviolet)
-![Downloads](https://img.shields.io/github/downloads/gaosichun888/codewiki/total?label=downloads&color=2b3137)
+![Release](https://img.shields.io/github/v/release/gatesenman/codewiki?label=release&color=blueviolet)
+![Downloads](https://img.shields.io/github/downloads/gatesenman/codewiki/total?label=downloads&color=2b3137)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 
 </div>
@@ -203,7 +203,7 @@ Auto-generated from the ontology graph:
 
 ## Quick Install (one-click)
 
-Requires Node.js 18+ and git. Clones, builds, and packages for your platform automatically. See [INSTALL.md](INSTALL.md) for details and prebuilt downloads.
+Requires Node.js 18+ and git. Clones, builds, and packages for your platform automatically. See [INSTALL.md](INSTALL.md) for details.
 
 ```bash
 # macOS / Linux
@@ -217,26 +217,7 @@ irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 
 Install options: `--no-desktop`, `--no-cli`, `--no-mcp`, `--no-vscode` to skip components.
 
-Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gatesenman/codewiki/releases).
-
-## Download (latest: v1.1.1)
-
-> Note: the old `github.com/gaosichun888/...` links no longer resolve, and no release has been published under `gatesenman/codewiki` yet — until one is, build from source (see below).
-
-Grab a prebuilt installer for your platform from the [latest release](https://github.com/gatesenman/codewiki/releases/latest):
-
-| Platform | Download |
-|---|---|
-| Windows (installer) | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
-| Windows (portable) | [`CodeWiki.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
-| macOS (Apple Silicon) | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
-| macOS (Intel) | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
-| Linux (AppImage) | [`CodeWiki-1.1.1.AppImage`](https://github.com/gatesenman/codewiki/releases/latest) |
-| Linux (Debian/Ubuntu) | [`codewiki_1.1.1_amd64.deb`](https://github.com/gatesenman/codewiki/releases/latest) |
-| VSCode extension | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gatesenman/codewiki/releases/latest) |
-
-> macOS builds are unsigned: on first launch use right-click → Open, or allow it under System Settings → Privacy & Security.
-> Install the VSCode extension with `code --install-extension codewiki-vscode-0.5.1.vsix`.
+This repository does not currently publish GitHub Release assets. The previous `github.com/gaosichun888/codewiki` download links return 404, and `https://github.com/gatesenman/codewiki/releases/download/v1.1.1/...` also returns 404. Use the one-click script above (it builds from this repo) or follow the from-source steps below. After a release is published, installers will appear on [GitHub Releases](https://github.com/gatesenman/codewiki/releases).
 
 ## Getting Started (from source)
 
