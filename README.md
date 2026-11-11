@@ -64,11 +64,11 @@ knowledge base, plus a companion **VSCode extension** and a full **CLI**.
 
 | Knowledge Graph | Generated Wiki (real DeepSeek output) |
 | --- | --- |
-| ![Knowledge graph](docs/images/graph.png) | ![Generated wiki](docs/images/wiki-generated.png) |
+| ![Knowledge graph](docs/images/graph-en.png) | ![Generated wiki](docs/images/wiki-generated.png) |
 
 | AI Architecture Diagram + Component Table | Semantic Search |
 | --- | --- |
-| ![Generated architecture](docs/images/wiki-diagram.png) | ![Search](docs/images/search.png) |
+| ![Generated architecture](docs/images/wiki-diagram.png) | ![Search](docs/images/search-en.png) |
 
 | LLM Settings | |
 | --- | --- |
@@ -77,6 +77,12 @@ knowledge base, plus a companion **VSCode extension** and a full **CLI**.
 > The "Generated Wiki" screenshots above are produced live by CodeWiki indexing this very
 > repository (354 entities / 832 relations) and generating documentation with **DeepSeek** —
 > including the Mermaid architecture diagram and the component table with real `file:line` references.
+> These two come from an earlier build (that run's index had 354 entities); the current top bar also has Insights / Code Map / Symbol Wiki / Code Flow.
+>
+> The welcome, knowledge graph, search and settings screenshots were re-captured from the current code: Electron was run under xvfb
+> and opened a local copy of this repository (indexing found 1483 entities and 3384 relations). The graph uses the 2D view
+> (`graph.render3D: false`, `maxNodes: 120`), because WebGL is not available without a GPU.
+> The Chinese UI versions of these screenshots are in [README.zh-CN.md](README.zh-CN.md).
 
 ## Features
 

@@ -63,18 +63,23 @@
 
 | 知识图谱 | AI 生成的 Wiki（DeepSeek 真实生成） |
 | --- | --- |
-| ![知识图谱](docs/images/graph.png) | ![生成的 Wiki](docs/images/wiki-generated.png) |
+| ![知识图谱](docs/images/graph-zh.png) | ![生成的 Wiki](docs/images/wiki-generated.png) |
 
 | AI 架构图 + 组件表 | 语义搜索 |
 | --- | --- |
-| ![生成的架构图](docs/images/wiki-diagram.png) | ![语义搜索](docs/images/search.png) |
+| ![生成的架构图](docs/images/wiki-diagram.png) | ![语义搜索](docs/images/search-zh.png) |
 
 | LLM 设置 | |
 | --- | --- |
-| ![设置](docs/images/settings.png) | |
+| ![设置](docs/images/settings-zh.png) | |
 
 > 上面「AI 生成的 Wiki」截图是 CodeWiki 直接索引本仓库（354 entities / 832 relations）后，
 > 用 **DeepSeek** 实时生成的文档——包括 Mermaid 架构图，以及带真实 `文件:行号` 引用的组件表。
+> 这两张来自较早的版本（当时索引出 354 个实体），英文界面；现在顶栏还多了「洞察 / 代码地图 / 符号 Wiki / 代码流程」。
+>
+> 欢迎页、知识图谱、搜索、设置四张截图按当前代码重新实拍：在 xvfb 下运行 Electron，打开本仓库的本地副本
+> （索引出 1483 个实体、3384 条关系），界面语言为中文。没有 GPU 时 WebGL 不可用，所以图谱用的是 2D 视图
+> （`graph.render3D: false`，`maxNodes: 120`）。英文界面的同一组截图见 [README.md](README.md)。
 
 ## 功能特性
 
