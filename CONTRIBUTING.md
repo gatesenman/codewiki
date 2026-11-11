@@ -11,7 +11,7 @@ Thank you for your interest in CodeWiki! This guide helps you get started.
 ## Setup
 
 ```bash
-git clone https://github.com/gaosichun888/codewiki.git
+git clone https://github.com/gatesenman/codewiki.git
 cd codewiki
 npm install
 ```
