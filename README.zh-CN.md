@@ -15,8 +15,8 @@
 ![Platform](https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-2b3137)
 ![Electron](https://img.shields.io/badge/Electron-React%2018%20%2B%20TypeScript-47848F?logo=electron&logoColor=white)
 ![Vite](https://img.shields.io/badge/构建-Vite-646CFF?logo=vite&logoColor=white)
-![Release](https://img.shields.io/github/v/release/gaosichun888/codewiki?label=release&color=blueviolet)
-![Downloads](https://img.shields.io/github/downloads/gaosichun888/codewiki/total?label=downloads&color=2b3137)
+![Release](https://img.shields.io/github/v/release/gatesenman/codewiki?label=release&color=blueviolet)
+![Downloads](https://img.shields.io/github/downloads/gatesenman/codewiki/total?label=downloads&color=2b3137)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 
 </div>
@@ -193,7 +193,7 @@
 - **图表**：Mermaid.js + PlantUML 导出
 - **图谱**：D3-force（2D）+ three.js / 3d-force-graph（3D）
 - **状态管理**：Zustand（6 个领域 slice）
-- **测试**：Vitest（126 个测试）
+- **测试**：Vitest（157 个测试）
 - **CI**：GitHub Actions
 - **代码规范**：ESLint 9（flat config）+ Prettier
 - **MCP**：`@modelcontextprotocol/sdk`
@@ -202,39 +202,21 @@
 ## 一键安装
 
 需要 Node.js 18+ 与 git。脚本会自动 clone、构建并打包成你当前平台的安装包。
-详见 [INSTALL.md](INSTALL.md)（含预编译安装包下载）。
+详见 [INSTALL.md](INSTALL.md)。
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 ```
 
 安装选项：`--no-desktop`、`--no-cli`、`--no-mcp`、`--no-vscode` 可跳过对应组件。
 
-预编译安装包（`.AppImage`、`.deb`、Windows `.exe`、macOS `.dmg`）发布在
-[GitHub Releases](https://github.com/gaosichun888/codewiki/releases)。
-
-## 下载（最新：v1.1.1）
-
-从 [最新发布页](https://github.com/gaosichun888/codewiki/releases/latest) 选择你平台的预编译安装包：
-
-| 平台 | 下载 |
-|---|---|
-| Windows（安装版） | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows（便携版） | [`CodeWiki.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Apple Silicon） | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Intel） | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（AppImage） | [`CodeWiki-1.1.1.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（Debian/Ubuntu） | [`codewiki_1.1.1_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| VSCode 扩展 | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
-
-> macOS 为未签名构建：首次打开请右键 → 打开，或在「系统设置 → 隐私与安全性」中放行。
-> VSCode 扩展安装：`code --install-extension codewiki-vscode-0.5.1.vsix`。
+本仓库目前还没有发布 GitHub Release 安装包。原先的 `github.com/gaosichun888/codewiki` 下载链接已返回 404，`https://github.com/gatesenman/codewiki/releases/download/v1.1.1/...` 同样是 404。请使用上面的一键安装脚本（会从本仓库源码构建），或按下面的步骤从源码运行。等到正式发布后，安装包会出现在 [GitHub Releases](https://github.com/gatesenman/codewiki/releases)。
 
 ## 从源码运行
 
@@ -245,7 +227,8 @@ npm install
 # 开发模式
 npm run electron:dev
 
-# Web 模式（无 Electron 外壳）
+# 只启动 Vite 开发服务器（vite-plugin-electron 仍会构建并启动 Electron 主进程；
+# 大部分功能依赖 Electron 预加载 API，纯浏览器下不可用）
 npm run dev
 
 # 生产构建
@@ -257,7 +240,7 @@ npm run electron:build
 ```bash
 npm run lint          # ESLint 9（flat config）
 npm run typecheck     # TypeScript strict mode
-npm test              # Vitest —— 126 个测试
+npm test              # Vitest —— 157 个测试
 ```
 
 ## 配置

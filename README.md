@@ -2,7 +2,7 @@
 
 # CodeWiki
 
-<img src="docs/images/welcome-zh.png" alt="CodeWiki" width="720" />
+<img src="docs/images/welcome-en.png" alt="CodeWiki" width="720" />
 
 ### AI Code Knowledge Base — ontology-based semantic understanding of any codebase
 
@@ -15,8 +15,8 @@ precise, impact-aware code agent — all powered by an **ontology model** of you
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-2b3137)
 ![Electron](https://img.shields.io/badge/Electron-React%2018%20%2B%20TypeScript-47848F?logo=electron&logoColor=white)
 ![Vite](https://img.shields.io/badge/built%20with-Vite-646CFF?logo=vite&logoColor=white)
-![Release](https://img.shields.io/github/v/release/gaosichun888/codewiki?label=release&color=blueviolet)
-![Downloads](https://img.shields.io/github/downloads/gaosichun888/codewiki/total?label=downloads&color=2b3137)
+![Release](https://img.shields.io/github/v/release/gatesenman/codewiki?label=release&color=blueviolet)
+![Downloads](https://img.shields.io/github/downloads/gatesenman/codewiki/total?label=downloads&color=2b3137)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 
 </div>
@@ -72,7 +72,7 @@ knowledge base, plus a companion **VSCode extension** and a full **CLI**.
 
 | LLM Settings | |
 | --- | --- |
-| ![Settings](docs/images/settings.png) | |
+| ![Settings](docs/images/settings-en.png) | |
 
 > The "Generated Wiki" screenshots above are produced live by CodeWiki indexing this very
 > repository (354 entities / 832 relations) and generating documentation with **DeepSeek** —
@@ -195,7 +195,7 @@ Auto-generated from the ontology graph:
 - **Diagrams**: Mermaid.js + PlantUML export
 - **Graph**: D3-force (2D) + three.js / 3d-force-graph (3D)
 - **State**: Zustand (6 domain slices)
-- **Testing**: Vitest (126 tests)
+- **Testing**: Vitest (157 tests)
 - **CI**: GitHub Actions
 - **Linting**: ESLint 9 (flat config) + Prettier
 - **MCP**: `@modelcontextprotocol/sdk`
@@ -203,38 +203,21 @@ Auto-generated from the ontology graph:
 
 ## Quick Install (one-click)
 
-Requires Node.js 18+ and git. Clones, builds, and packages for your platform automatically. See [INSTALL.md](INSTALL.md) for details and prebuilt downloads.
+Requires Node.js 18+ and git. Clones, builds, and packages for your platform automatically. See [INSTALL.md](INSTALL.md) for details.
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 ```
 
 Install options: `--no-desktop`, `--no-cli`, `--no-mcp`, `--no-vscode` to skip components.
 
-Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gaosichun888/codewiki/releases).
-
-## Download (latest: v1.1.1)
-
-Grab a prebuilt installer for your platform from the [latest release](https://github.com/gaosichun888/codewiki/releases/latest):
-
-| Platform | Download |
-|---|---|
-| Windows (installer) | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows (portable) | [`CodeWiki.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS (Apple Silicon) | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS (Intel) | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux (AppImage) | [`CodeWiki-1.1.1.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux (Debian/Ubuntu) | [`codewiki_1.1.1_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| VSCode extension | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
-
-> macOS builds are unsigned: on first launch use right-click → Open, or allow it under System Settings → Privacy & Security.
-> Install the VSCode extension with `code --install-extension codewiki-vscode-0.5.1.vsix`.
+This repository does not currently publish GitHub Release assets. The previous `github.com/gaosichun888/codewiki` download links return 404, and `https://github.com/gatesenman/codewiki/releases/download/v1.1.1/...` also returns 404. Use the one-click script above (it builds from this repo) or follow the from-source steps below. After a release is published, installers will appear on [GitHub Releases](https://github.com/gatesenman/codewiki/releases).
 
 ## Getting Started (from source)
 
@@ -245,7 +228,8 @@ npm install
 # Development mode
 npm run electron:dev
 
-# Web-only (no Electron shell)
+# Vite dev server only (vite-plugin-electron still builds and launches the Electron
+# main process; most features need the Electron preload API)
 npm run dev
 
 # Build for production
@@ -257,7 +241,7 @@ npm run electron:build
 ```bash
 npm run lint          # ESLint 9 (flat config)
 npm run typecheck     # TypeScript strict mode
-npm test              # Vitest — 126 tests
+npm test              # Vitest — 157 tests
 ```
 
 ## Configuration
