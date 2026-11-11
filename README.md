@@ -207,31 +207,33 @@ Requires Node.js 18+ and git. Clones, builds, and packages for your platform aut
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 ```
 
 Install options: `--no-desktop`, `--no-cli`, `--no-mcp`, `--no-vscode` to skip components.
 
-Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gaosichun888/codewiki/releases).
+Prebuilt installers (`.AppImage`, `.deb`, Windows `.exe`, macOS `.dmg`) are published on [GitHub Releases](https://github.com/gatesenman/codewiki/releases).
 
 ## Download (latest: v1.1.1)
 
-Grab a prebuilt installer for your platform from the [latest release](https://github.com/gaosichun888/codewiki/releases/latest):
+> Note: the old `github.com/gaosichun888/...` links no longer resolve, and no release has been published under `gatesenman/codewiki` yet — until one is, build from source (see below).
+
+Grab a prebuilt installer for your platform from the [latest release](https://github.com/gatesenman/codewiki/releases/latest):
 
 | Platform | Download |
 |---|---|
-| Windows (installer) | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows (portable) | [`CodeWiki.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS (Apple Silicon) | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS (Intel) | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux (AppImage) | [`CodeWiki-1.1.1.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux (Debian/Ubuntu) | [`codewiki_1.1.1_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| VSCode extension | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows (installer) | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Windows (portable) | [`CodeWiki.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
+| macOS (Apple Silicon) | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
+| macOS (Intel) | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Linux (AppImage) | [`CodeWiki-1.1.1.AppImage`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Linux (Debian/Ubuntu) | [`codewiki_1.1.1_amd64.deb`](https://github.com/gatesenman/codewiki/releases/latest) |
+| VSCode extension | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gatesenman/codewiki/releases/latest) |
 
 > macOS builds are unsigned: on first launch use right-click → Open, or allow it under System Settings → Privacy & Security.
 > Install the VSCode extension with `code --install-extension codewiki-vscode-0.5.1.vsix`.

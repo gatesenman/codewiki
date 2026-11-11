@@ -206,32 +206,34 @@
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 ```
 
 安装选项：`--no-desktop`、`--no-cli`、`--no-mcp`、`--no-vscode` 可跳过对应组件。
 
 预编译安装包（`.AppImage`、`.deb`、Windows `.exe`、macOS `.dmg`）发布在
-[GitHub Releases](https://github.com/gaosichun888/codewiki/releases)。
+[GitHub Releases](https://github.com/gatesenman/codewiki/releases)。
 
 ## 下载（最新：v1.1.1）
 
-从 [最新发布页](https://github.com/gaosichun888/codewiki/releases/latest) 选择你平台的预编译安装包：
+> 注意：原 `github.com/gaosichun888/...` 链接已失效，`gatesenman/codewiki` 目前还没有发布 Release；发布之前请从源码构建（见下文）。
+
+从 [最新发布页](https://github.com/gatesenman/codewiki/releases/latest) 选择你平台的预编译安装包：
 
 | 平台 | 下载 |
 |---|---|
-| Windows（安装版） | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows（便携版） | [`CodeWiki.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Apple Silicon） | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Intel） | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（AppImage） | [`CodeWiki-1.1.1.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（Debian/Ubuntu） | [`codewiki_1.1.1_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| VSCode 扩展 | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows（安装版） | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Windows（便携版） | [`CodeWiki.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
+| macOS（Apple Silicon） | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
+| macOS（Intel） | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Linux（AppImage） | [`CodeWiki-1.1.1.AppImage`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Linux（Debian/Ubuntu） | [`codewiki_1.1.1_amd64.deb`](https://github.com/gatesenman/codewiki/releases/latest) |
+| VSCode 扩展 | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gatesenman/codewiki/releases/latest) |
 
 > macOS 为未签名构建：首次打开请右键 → 打开，或在「系统设置 → 隐私与安全性」中放行。
 > VSCode 扩展安装：`code --install-extension codewiki-vscode-0.5.1.vsix`。
