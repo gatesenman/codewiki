@@ -193,7 +193,7 @@
 - **图表**：Mermaid.js + PlantUML 导出
 - **图谱**：D3-force（2D）+ three.js / 3d-force-graph（3D）
 - **状态管理**：Zustand（6 个领域 slice）
-- **测试**：Vitest（126 个测试）
+- **测试**：Vitest（157 个测试）
 - **CI**：GitHub Actions
 - **代码规范**：ESLint 9（flat config）+ Prettier
 - **MCP**：`@modelcontextprotocol/sdk`
@@ -245,7 +245,8 @@ npm install
 # 开发模式
 npm run electron:dev
 
-# Web 模式（无 Electron 外壳）
+# 只启动 Vite 开发服务器（vite-plugin-electron 仍会构建并启动 Electron 主进程；
+# 大部分功能依赖 Electron 预加载 API，纯浏览器下不可用）
 npm run dev
 
 # 生产构建
@@ -257,7 +258,7 @@ npm run electron:build
 ```bash
 npm run lint          # ESLint 9（flat config）
 npm run typecheck     # TypeScript strict mode
-npm test              # Vitest —— 126 个测试
+npm test              # Vitest —— 157 个测试
 ```
 
 ## 配置

@@ -2,7 +2,7 @@
 
 # CodeWiki
 
-<img src="docs/images/welcome-zh.png" alt="CodeWiki" width="720" />
+<img src="docs/images/welcome-en.png" alt="CodeWiki" width="720" />
 
 ### AI Code Knowledge Base — ontology-based semantic understanding of any codebase
 
@@ -72,7 +72,7 @@ knowledge base, plus a companion **VSCode extension** and a full **CLI**.
 
 | LLM Settings | |
 | --- | --- |
-| ![Settings](docs/images/settings.png) | |
+| ![Settings](docs/images/settings-en.png) | |
 
 > The "Generated Wiki" screenshots above are produced live by CodeWiki indexing this very
 > repository (354 entities / 832 relations) and generating documentation with **DeepSeek** —
@@ -195,7 +195,7 @@ Auto-generated from the ontology graph:
 - **Diagrams**: Mermaid.js + PlantUML export
 - **Graph**: D3-force (2D) + three.js / 3d-force-graph (3D)
 - **State**: Zustand (6 domain slices)
-- **Testing**: Vitest (126 tests)
+- **Testing**: Vitest (157 tests)
 - **CI**: GitHub Actions
 - **Linting**: ESLint 9 (flat config) + Prettier
 - **MCP**: `@modelcontextprotocol/sdk`
@@ -245,7 +245,8 @@ npm install
 # Development mode
 npm run electron:dev
 
-# Web-only (no Electron shell)
+# Vite dev server only (vite-plugin-electron still builds and launches the Electron
+# main process; most features need the Electron preload API)
 npm run dev
 
 # Build for production
@@ -257,7 +258,7 @@ npm run electron:build
 ```bash
 npm run lint          # ESLint 9 (flat config)
 npm run typecheck     # TypeScript strict mode
-npm test              # Vitest — 126 tests
+npm test              # Vitest — 157 tests
 ```
 
 ## Configuration
