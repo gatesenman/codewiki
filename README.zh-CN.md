@@ -15,8 +15,8 @@
 ![Platform](https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-2b3137)
 ![Electron](https://img.shields.io/badge/Electron-React%2018%20%2B%20TypeScript-47848F?logo=electron&logoColor=white)
 ![Vite](https://img.shields.io/badge/构建-Vite-646CFF?logo=vite&logoColor=white)
-![Release](https://img.shields.io/github/v/release/gaosichun888/codewiki?label=release&color=blueviolet)
-![Downloads](https://img.shields.io/github/downloads/gaosichun888/codewiki/total?label=downloads&color=2b3137)
+![Release](https://img.shields.io/github/v/release/gatesenman/codewiki?label=release&color=blueviolet)
+![Downloads](https://img.shields.io/github/downloads/gatesenman/codewiki/total?label=downloads&color=2b3137)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 
 </div>
@@ -63,18 +63,23 @@
 
 | 知识图谱 | AI 生成的 Wiki（DeepSeek 真实生成） |
 | --- | --- |
-| ![知识图谱](docs/images/graph.png) | ![生成的 Wiki](docs/images/wiki-generated.png) |
+| ![知识图谱](docs/images/graph-zh.png) | ![生成的 Wiki](docs/images/wiki-generated.png) |
 
 | AI 架构图 + 组件表 | 语义搜索 |
 | --- | --- |
-| ![生成的架构图](docs/images/wiki-diagram.png) | ![语义搜索](docs/images/search.png) |
+| ![生成的架构图](docs/images/wiki-diagram.png) | ![语义搜索](docs/images/search-zh.png) |
 
 | LLM 设置 | |
 | --- | --- |
-| ![设置](docs/images/settings.png) | |
+| ![设置](docs/images/settings-zh.png) | |
 
 > 上面「AI 生成的 Wiki」截图是 CodeWiki 直接索引本仓库（354 entities / 832 relations）后，
 > 用 **DeepSeek** 实时生成的文档——包括 Mermaid 架构图，以及带真实 `文件:行号` 引用的组件表。
+> 这两张来自较早的版本（当时索引出 354 个实体），英文界面；现在顶栏还多了「洞察 / 代码地图 / 符号 Wiki / 代码流程」。
+>
+> 欢迎页、知识图谱、搜索、设置四张截图按当前代码重新实拍：在 xvfb 下运行 Electron，打开本仓库的本地副本
+> （索引出 1483 个实体、3384 条关系），界面语言为中文。没有 GPU 时 WebGL 不可用，所以图谱用的是 2D 视图
+> （`graph.render3D: false`，`maxNodes: 120`）。英文界面的同一组截图见 [README.md](README.md)。
 
 ## 功能特性
 
@@ -193,7 +198,7 @@
 - **图表**：Mermaid.js + PlantUML 导出
 - **图谱**：D3-force（2D）+ three.js / 3d-force-graph（3D）
 - **状态管理**：Zustand（6 个领域 slice）
-- **测试**：Vitest（126 个测试）
+- **测试**：Vitest（157 个测试）
 - **CI**：GitHub Actions
 - **代码规范**：ESLint 9（flat config）+ Prettier
 - **MCP**：`@modelcontextprotocol/sdk`
@@ -206,32 +211,34 @@
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 ```
 
 安装选项：`--no-desktop`、`--no-cli`、`--no-mcp`、`--no-vscode` 可跳过对应组件。
 
 预编译安装包（`.AppImage`、`.deb`、Windows `.exe`、macOS `.dmg`）发布在
-[GitHub Releases](https://github.com/gaosichun888/codewiki/releases)。
+[GitHub Releases](https://github.com/gatesenman/codewiki/releases)。
 
 ## 下载（最新：v1.1.1）
 
-从 [最新发布页](https://github.com/gaosichun888/codewiki/releases/latest) 选择你平台的预编译安装包：
+> 注意：原 `github.com/gaosichun888/...` 链接已失效，`gatesenman/codewiki` 目前还没有发布 Release；发布之前请从源码构建（见下文）。
+
+从 [最新发布页](https://github.com/gatesenman/codewiki/releases/latest) 选择你平台的预编译安装包：
 
 | 平台 | 下载 |
 |---|---|
-| Windows（安装版） | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Windows（便携版） | [`CodeWiki.1.1.1.exe`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Apple Silicon） | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| macOS（Intel） | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（AppImage） | [`CodeWiki-1.1.1.AppImage`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| Linux（Debian/Ubuntu） | [`codewiki_1.1.1_amd64.deb`](https://github.com/gaosichun888/codewiki/releases/latest) |
-| VSCode 扩展 | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gaosichun888/codewiki/releases/latest) |
+| Windows（安装版） | [`CodeWiki.Setup.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Windows（便携版） | [`CodeWiki.1.1.1.exe`](https://github.com/gatesenman/codewiki/releases/latest) |
+| macOS（Apple Silicon） | [`CodeWiki-1.1.1-arm64-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
+| macOS（Intel） | [`CodeWiki-1.1.1-mac.zip`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Linux（AppImage） | [`CodeWiki-1.1.1.AppImage`](https://github.com/gatesenman/codewiki/releases/latest) |
+| Linux（Debian/Ubuntu） | [`codewiki_1.1.1_amd64.deb`](https://github.com/gatesenman/codewiki/releases/latest) |
+| VSCode 扩展 | [`codewiki-vscode-0.5.1.vsix`](https://github.com/gatesenman/codewiki/releases/latest) |
 
 > macOS 为未签名构建：首次打开请右键 → 打开，或在「系统设置 → 隐私与安全性」中放行。
 > VSCode 扩展安装：`code --install-extension codewiki-vscode-0.5.1.vsix`。
@@ -245,7 +252,8 @@ npm install
 # 开发模式
 npm run electron:dev
 
-# Web 模式（无 Electron 外壳）
+# 只启动 Vite 开发服务器（vite-plugin-electron 仍会构建并启动 Electron 主进程；
+# 大部分功能依赖 Electron 预加载 API，纯浏览器下不可用）
 npm run dev
 
 # 生产构建
@@ -257,7 +265,7 @@ npm run electron:build
 ```bash
 npm run lint          # ESLint 9（flat config）
 npm run typecheck     # TypeScript strict mode
-npm test              # Vitest —— 126 个测试
+npm test              # Vitest —— 157 个测试
 ```
 
 ## 配置

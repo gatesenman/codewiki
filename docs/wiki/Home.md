@@ -4,7 +4,7 @@ AI Code Knowledge Base — 基于本体的代码知识库，支持知识图谱�
 
 ## 界面预览
 
-![主界面](../screenshots/codewiki-main.jpg)
+![主界面](../images/welcome-zh.png)
 
 ## 核心能力
 
