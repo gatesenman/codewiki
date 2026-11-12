@@ -15,8 +15,8 @@
 ![Platform](https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-2b3137)
 ![Electron](https://img.shields.io/badge/Electron-React%2018%20%2B%20TypeScript-47848F?logo=electron&logoColor=white)
 ![Vite](https://img.shields.io/badge/构建-Vite-646CFF?logo=vite&logoColor=white)
-![Release](https://img.shields.io/github/v/release/gaosichun888/codewiki?label=release&color=blueviolet)
-![Downloads](https://img.shields.io/github/downloads/gaosichun888/codewiki/total?label=downloads&color=2b3137)
+![Release](https://img.shields.io/github/v/release/gatesenman/codewiki?label=release&color=blueviolet)
+![Downloads](https://img.shields.io/github/downloads/gatesenman/codewiki/total?label=downloads&color=2b3137)
 ![License](https://img.shields.io/badge/license-MIT-3fb950)
 
 </div>
