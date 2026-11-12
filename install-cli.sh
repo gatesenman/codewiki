@@ -2,7 +2,7 @@
 # CodeWiki CLI — one-click global install (CLI + MCP server only, no desktop app).
 # Usage:
 #   ./install-cli.sh
-#   curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install-cli.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install-cli.sh | bash
 set -e
 
 echo "==============================================="
@@ -16,7 +16,7 @@ fi
 echo "Node: $(node -v)"
 
 # Self-bootstrap: if not inside a CodeWiki checkout, clone first.
-REPO_URL="${CODEWIKI_REPO:-https://github.com/gaosichun888/codewiki.git}"
+REPO_URL="${CODEWIKI_REPO:-https://github.com/gatesenman/codewiki.git}"
 if [ ! -f "package.json" ] || ! grep -q '"name": *"codewiki"' package.json 2>/dev/null; then
   echo "[0/4] Not inside a CodeWiki checkout — cloning $REPO_URL ..."
   if ! command -v git >/dev/null 2>&1; then

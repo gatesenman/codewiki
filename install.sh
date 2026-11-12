@@ -4,7 +4,7 @@
 # Installs: Desktop App · CLI · MCP Server · VSCode Extension
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install.sh | bash
 #   # or clone first, then:
 #   ./install.sh [--no-desktop] [--no-cli] [--no-mcp] [--no-vscode] [--prefix DIR]
 # ──────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ INSTALL_CLI=true
 INSTALL_MCP=true
 INSTALL_VSCODE=true
 PREFIX="${CODEWIKI_PREFIX:-$HOME/.codewiki}"
-REPO_URL="https://github.com/gaosichun888/codewiki.git"
+REPO_URL="https://github.com/gatesenman/codewiki.git"
 BRANCH="main"
 NODE_MIN=18
 
@@ -264,5 +264,5 @@ $INSTALL_CLI     && echo "    codewiki index /path/to/project    # Index a proje
 $INSTALL_CLI     && echo "    codewiki search 'query'            # Semantic search"
 $INSTALL_DESKTOP && echo "    npm run electron:dev                # Launch desktop app (dev)"
 echo ""
-printf "  ${CYAN}Documentation: https://github.com/gaosichun888/codewiki${NC}\n"
+printf "  ${CYAN}Documentation: https://github.com/gatesenman/codewiki${NC}\n"
 echo ""

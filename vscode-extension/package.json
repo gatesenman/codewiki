@@ -8,7 +8,7 @@
   "icon": "resources/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gaosichun888/codewiki.git",
+    "url": "https://github.com/gatesenman/codewiki.git",
     "directory": "vscode-extension"
   },
   "engines": {
