@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron'
+import { isAllowedExternalUrl } from './external-url'
 import path from 'path'
 import fs from 'fs'
 import { spawn } from 'child_process'
@@ -20,9 +21,21 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webviewTag: false,
     },
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#0d1117',
+  })
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isAllowedExternalUrl(url)) {
+      void shell.openExternal(url)
+    }
+    return { action: 'deny' }
+  })
+  mainWindow.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => {
+    callback(false)
   })
 
   if (VITE_DEV_SERVER_URL) {
@@ -38,7 +51,12 @@ function createWindow() {
   })
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => {
+    callback(false)
+  })
+  createWindow()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
@@ -138,7 +156,11 @@ ipcMain.handle('apply-modification', async (
 
 // Open external link
 ipcMain.handle('open-external', async (_event, url: string) => {
-  shell.openExternal(url)
+  if (!isAllowedExternalUrl(url)) {
+    return { ok: false, blocked: true }
+  }
+  await shell.openExternal(url)
+  return { ok: true }
 })
 
 // Get app data path for storing wiki data
