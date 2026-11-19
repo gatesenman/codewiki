@@ -31,8 +31,9 @@
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:all": "npm run build && electron-builder -mwl",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p electron/tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:gate": "vitest run && tsc --noEmit && tsc -p electron/tsconfig.json --noEmit && eslint src/",
     "test:watch": "vitest"
   },
   "build": {
