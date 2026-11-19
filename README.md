@@ -35,6 +35,16 @@ precise, impact-aware code agent — all powered by an **ontology model** of you
 
 ---
 
+## Offline structure wiki
+
+Import a local folder and produce a navigable file-tree wiki (languages, README ingest, folder pages) with no LLM key, then export it as static HTML.
+
+```bash
+npm test
+```
+
+The license copyright line is unchanged.
+
 ## About
 
 Large codebases are hard to understand and even harder to change safely. Most "AI for code" tools
