@@ -19,3 +19,14 @@ test-*.png
 test-plan.md
 test-report.md
 test-fixtures/**/codewiki-export.*
+
+# Additional hygiene
+Thumbs.db
+.env.*.local
+target/
+logs/
+.venv/
+__pycache__/
+coverage/
+!.env.example
+!.env.example.*
