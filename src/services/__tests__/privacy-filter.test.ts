@@ -4,7 +4,6 @@ import {
   isIgnored,
   createPrivacyFilter,
   redactSecrets,
-  DEFAULT_SENSITIVE_GLOBS,
 } from '../privacy-filter'
 
 describe('parseIgnore', () => {

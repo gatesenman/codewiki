@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '../store'
 import { t, tEntityTypePlural } from '../services/i18n'
-import type { WikiPage, OntologyEntity, OntologyEntityType } from '../types'
+import type { WikiPage, OntologyEntityType } from '../types'
 
 const ENTITY_ICONS: Record<OntologyEntityType, typeof Box> = {
   Module: FolderOpen,

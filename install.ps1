@@ -3,7 +3,7 @@
 # Installs: Desktop App · CLI · MCP Server · VSCode Extension
 #
 # Usage:
-#   irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 #   # or:
 #   .\install.ps1 [-NoDesktop] [-NoCli] [-NoMcp] [-NoVscode] [-Prefix DIR]
 # ──────────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RepoUrl = "https://github.com/gaosichun888/codewiki.git"
+$RepoUrl = "https://github.com/gatesenman/codewiki.git"
 $NodeMin = 18
 
 # ── Colors ────────────────────────────────────────────────────
@@ -216,5 +216,5 @@ if (-not $NoCli) {
 }
 if (-not $NoDesktop) { Write-Host "    npm run electron:dev                 # Launch desktop app (dev)" }
 Write-Host ""
-Write-Host "  Documentation: https://github.com/gaosichun888/codewiki" -ForegroundColor Cyan
+Write-Host "  Documentation: https://github.com/gatesenman/codewiki" -ForegroundColor Cyan
 Write-Host ""

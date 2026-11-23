@@ -9,20 +9,20 @@ CodeWiki 是一个跨平台桌面应用 + CLI 工具，用于代码 Wiki 生成�
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/codewiki/main/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install.ps1 | iex
 ```
 
 > 提示：上述远程一键命令需要 `install.sh` / `install.ps1` 已在 `main` 分支（合并本 PR 后生效）。在此之前可先 `git clone` 仓库后在目录内运行 `./install.sh` / `./install.ps1`。
 
 ## 方式零：下载预构建安装包（无需 Node 环境）
 
-前往 [GitHub Releases](https://github.com/gaosichun888/codewiki/releases) 下载对应平台的安装包：
+前往 [GitHub Releases](https://github.com/gatesenman/codewiki/releases) 下载对应平台的安装包（注意：本仓库目前尚未发布 Release，可先用下方方式从源码安装）：
 
 | 平台 | 产物 | 说明 |
 |------|------|------|

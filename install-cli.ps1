@@ -1,7 +1,7 @@
 # CodeWiki CLI - one-click global install (CLI + MCP server only, no desktop app).
 # Usage:
 #   .\install-cli.ps1
-#   irm https://raw.githubusercontent.com/gaosichun888/codewiki/main/install-cli.ps1 | iex
+#   irm https://raw.githubusercontent.com/gatesenman/codewiki/main/install-cli.ps1 | iex
 $ErrorActionPreference = "Stop"
 
 Write-Host "==============================================="
@@ -15,7 +15,7 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 Write-Host ("Node: " + (node -v))
 
 # Self-bootstrap: if not inside a CodeWiki checkout, clone first.
-$RepoUrl = if ($env:CODEWIKI_REPO) { $env:CODEWIKI_REPO } else { "https://github.com/gaosichun888/codewiki.git" }
+$RepoUrl = if ($env:CODEWIKI_REPO) { $env:CODEWIKI_REPO } else { "https://github.com/gatesenman/codewiki.git" }
 $inCheckout = (Test-Path "package.json") -and (Select-String -Path "package.json" -Pattern '"name"\s*:\s*"codewiki"' -Quiet)
 if (-not $inCheckout) {
   Write-Host "[0/4] Not inside a CodeWiki checkout - cloning $RepoUrl ..."

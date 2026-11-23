@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   X, Box, Code, FileText, ArrowRight, ArrowLeft,
-  AlertTriangle, Copy, ExternalLink, Braces,
+  AlertTriangle, Copy, Braces,
   FolderOpen, Hash, Database,
 } from 'lucide-react'
 import { useAppStore } from '../store'

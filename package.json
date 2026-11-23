@@ -2,11 +2,11 @@
   "name": "codewiki",
   "version": "1.1.2",
   "description": "DeepWiki-like cross-platform desktop app for code wiki generation, knowledge graph, semantic search, and precise code agent",
-  "author": "gaosichun888",
+  "author": "gatesenman",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gaosichun888/codewiki.git"
+    "url": "https://github.com/gatesenman/codewiki.git"
   },
   "main": "dist-electron/main.js",
   "bin": {
